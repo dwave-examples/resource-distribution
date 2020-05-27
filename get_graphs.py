@@ -12,6 +12,26 @@ from dimod import BinaryQuadraticModel
 from collections import defaultdict
 import json
 from numba import jit
+from itertools import product
+
+
+def haversine(p1, p2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    """
+    lon1, lat1 = p1
+    lon2, lat2 = p2
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = np.radians([lon1, lat1, lon2, lat2])
+
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
+    c = 2 * np.arcsin(np.sqrt(a))
+    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+    return c * r
 
 
 @jit(nopython=True)
@@ -29,6 +49,19 @@ def distance_matrix(X, y=None):
     return D
 
 
+def distance_matrix_haversine(X):
+    M = X.shape[0]
+    N = X.shape[1]
+    if N != 2:
+        raise ValueError
+    D = np.zeros((M, M), dtype=np.float32)
+    for i in range(M):
+        for j in range(M):
+            d = haversine(X[i], X[j])
+            D[i, j] = np.sqrt(d)
+    return D
+
+
 def us_cities(longitude, population):
     df = pd.read_csv('1000-largest-us-cities-by-population-with-geographic-coordinates.csv', sep=';')
     xy = df['Coordinates'].str.split(',', expand=True).applymap(float)
@@ -39,7 +72,8 @@ def us_cities(longitude, population):
 
     seed = 123
     np.random.seed(seed)
-    df['excess_beds'] = np.random.randint(-100, 100, size=len(df))
+    rnds = np.random.randint(-100, 100, size=len(df))
+    df['excess_beds'] = np.round(rnds - np.mean(rnds))
     return df
 
 
@@ -61,10 +95,10 @@ def create_utility_function(form, include_first_neighbor=False):
     xy = df[['longitude', 'latitude']].values
     excess = df['excess_beds'].values
     print('Number of cities: {}'.format(xy.shape[0]))
-    d = distance_matrix(xy)
+    d = distance_matrix_haversine(xy)
     n = len(d)
     if n % partition_size != 0:
-        return None, None, df, n
+        return None, None, df, n, None
     nn = []
     for i in range(n):
         nn.append(np.argsort(d[i])[1:num_neighbors])
@@ -77,22 +111,71 @@ def create_utility_function(form, include_first_neighbor=False):
             combs = list(map(lambda x: frozenset(x).union({idx}), combinations(neighb, partition_size - 1)))
         p_combinations = p_combinations.union(set(combs))
     utility = {}
+    objective = {}
     for part in p_combinations:
         beds = excess[list(part)]
-        beds = np.sum(beds)
-        if beds > 0:
-            beds = 0
-        if partition_size > 2:
-            xys = xy[list(part)]
-            hull = ConvexHull(xys)
-            xys = xys[hull.vertices]
-            area = poly_area(xys)
-        else:
-            area = 0
+        flow = flow_score(beds)
+        xys = xy[list(part)]
+        cst = cost(beds, xys)
+        # if partition_size > 2:
+        #     hull = ConvexHull(xys)
+        #     xys = xys[hull.vertices]
+        #     area = poly_area(xys)
+        # else:
+        #     area = 0
         c = d[list(part), :][:, list(part)]
-        utility[part] = beds - alpha * (np.linalg.norm(c) ** 2 + area)
+        # utility[part] = [flow, (np.linalg.norm(c) ** 2 + area)]
+        utility[part] = [flow, cst]
+        # objective[part] = (1 - alpha) * flow - alpha * (np.linalg.norm(c) ** 2 + area ** 2)
+        objective[part] = (1 - alpha) * flow - alpha * cst
     p_combinations = list(p_combinations)
-    return p_combinations, utility, df, n
+    return p_combinations, utility, df, n, objective
+
+
+def cost(beds, xys):
+    from pulp import LpProblem, lpSum, LpVariable, LpMinimize, LpInteger
+    pos = beds[beds > 0]
+    neg = beds[beds < 0]
+    xysp = xys[beds > 0]
+    xysn = xys[beds < 0]
+    if len(pos) == 0:
+        return 0
+    if len(neg) == 0:
+        return 0
+    fs = []
+    ds = []
+    flow = flow_score(beds)
+    for (p, pp), (n, pn) in product(zip(pos, xysp), zip(neg, xysn)):
+        d = haversine(pp, pn)
+        f = np.min([p, -n])
+        fs.append(f)
+        ds.append(d)
+    if sum(fs) == flow:
+        return sum(ds)
+    if sum(fs) < flow:
+        raise ValueError
+    if sum(fs) > flow:
+        prob = LpProblem("Distance Flow", LpMinimize)
+        varbs = LpVariable.dicts('main', list(range(len(fs))), lowBound=0, cat=LpInteger, upBound=1)
+        prob += lpSum([ds[i] * varbs[i] for i in range(len(ds))])
+        prob += lpSum([fs[i] * varbs[i] for i in range(len(ds))]) == flow
+        prob.solve()
+        sol = [prob.variables()[i].varValue for i in range(len(ds))]
+        return np.sum([ds[i] for i in range(len(ds)) if sol[i] > 0])
+
+    return 0
+
+
+def flow_score(beds):
+    pos = beds[beds > 0]
+    neg = beds[beds < 0]
+    if len(pos) == 0:
+        return 0
+    if len(neg) == 0:
+        return 0
+    pos = np.sum(pos)
+    neg = np.sum(-neg)
+    return np.min([pos, neg])
 
 
 def k_clique_from_combinations(utility=None, lagrange=3):
@@ -124,27 +207,6 @@ def k_clique_from_combinations(utility=None, lagrange=3):
     return bqm, utility, p_combinations
 
 
-def display_result(res, p_combinations, variables, k, num_variables, utility):
-    success = False
-    for sample, energy, occ in res.record:
-        if k != sum(sample):
-            continue
-        print('Number of partitions, {}, is equal to sum(sample)'.format(k))
-        sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
-        union = set().union(*sol)
-        inter = [set().intersection(a, b) for a, b in combinations(sol, 2)]
-        inter = [len(x) for x in inter]
-        intersect_length = sum(inter)
-        if intersect_length > 0:
-            continue
-        if len(union) != num_variables:
-            continue
-        print('Utility (higher better): {}'.format(np.sum([utility[x] for x in sol])))
-        print('Energy (lower better): {}'.format(energy))
-        success = True
-    return success
-
-
 def get_sampler(form):
     name = form.solver.data
     if name == 'SimulatedAnnealing':
@@ -162,22 +224,23 @@ def get_sampler(form):
 def plot(form):
     px.set_mapbox_access_token(open(".mapbox_token").read())
     df = us_cities(float(form.longitude.data), int(form.population.data))
-    df['size'] = 8
+    df['size'] = np.abs(df['excess_beds'].values)
     fig = px.scatter_mapbox(df, lat="latitude", lon="longitude", color="excess_beds", size='size',
-                            color_continuous_scale=px.colors.cyclical.IceFire, size_max=8, zoom=4, height=800)
+                            labels={'latitude': 'Latitude', 'longitude': 'Longitude', 'excess_beds': 'Excess Beds'},
+                            color_continuous_scale=px.colors.cyclical.IceFire, size_max=12, zoom=4, height=800)
     return fig
 
 
 def plot_results(form):
     message = ''
     fig = plot(form)
-    p_combinations, utility, df, n = create_utility_function(form)
+    p_combinations, utility, df, n, objective = create_utility_function(form)
     if utility is None:
         message = f'Number of cities {n} is not divisible by partition size {form.partition_size.data}'
         success = 0
         return fig, success, message, 0
 
-    bqm, _, p_combinations = k_clique_from_combinations(utility=utility, lagrange=10)
+    bqm, _, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
     num_variables = len(set().union(*p_combinations))
     partition_size = len(p_combinations[0])
     print('Partition size: {}'.format(partition_size))
@@ -201,7 +264,6 @@ def plot_results(form):
 
     success = 1
     for sample, energy, occ in res.record:
-        print(sum(sample))
         if k != sum(sample):
             continue
         print('Number of partitions, {}, is equal to sum(sample)'.format(k))
@@ -215,13 +277,14 @@ def plot_results(form):
         if len(union) != num_variables:
             continue
         print('Utility (higher better): {}'.format(np.sum([utility[x] for x in sol])))
-        print('Energy (lower better): {}'.format(energy))
+        total_utility = np.sum([utility[x][0] for x in sol])
+        total_area = np.sum([utility[x][1] for x in sol])
         success = 2
     if success == 2:
         sample = res.truncate(1).record.sample[0]
         sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
-        for s in sol:
-            s = np.array(list(s))
+        for sorg in sol:
+            s = np.array(list(sorg))
             dfxy = df.iloc[s]
             dfxy = dfxy[['longitude', 'latitude']]
             if len(s) > 2:
@@ -234,8 +297,12 @@ def plot_results(form):
                     lon=[dfxy.values[idx][0] for idx in vertices],
                     lat=[dfxy.values[idx][1] for idx in vertices],
                     fill='toself',
-                    showlegend=False
+                    showlegend=False,
+                    text=str(utility[sorg]),
+                    hoverinfo='text',
+                    marker={'size': 0},
                 ))
+        fig.update_layout(title=f'Valid solution with utility {total_utility} and total area {total_area:.0f}')
     else:
         message = f'No feasible solution found'
     return fig, success, message, t
@@ -262,21 +329,21 @@ class Obj:
 
 
 class Dummy:
-    partition_size = Obj(2)
-    longitude = Obj(-90)
-    population = Obj(100000)
-    solver = Obj('LeapHybridSampler')
+    partition_size = Obj(3)
+    longitude = Obj(-95)
+    population = Obj(300000)
+    solver = Obj('SimulatedAnnealing')
     alpha = Obj(1.0)
 
     num_neighbors = Obj(8)
     time_limit = Obj(10)
     num_sweeps = Obj(1000)
-    num_reads = Obj(10)
+    num_reads = Obj(1)
 
 
 if __name__ == '__main__':
     form = Dummy()
     fig, success, message, t = plot_results(form)
-    print(success)
-    if success:
-        fig.show()
+    # print(success)
+    # if success:
+    #     fig.show()

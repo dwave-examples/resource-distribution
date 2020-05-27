@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, FloatField, IntegerField, SelectField
-from wtforms.validators import DataRequired, Length, Email, EqualTo
+from wtforms import SubmitField, FloatField, IntegerField, SelectField
+from wtforms.fields.html5 import DecimalRangeField
+from wtforms.validators import DataRequired
 
 
 _choices = ['SimulatedAnnealing', 'TabuSampler', 'LeapHybridSampler']
@@ -9,7 +10,8 @@ _choices = ['SimulatedAnnealing', 'TabuSampler', 'LeapHybridSampler']
 class OptimizationParameters(FlaskForm):
     partition_size = IntegerField('Partition size', validators=[DataRequired()], default=4)
     longitude = FloatField('longitude', validators=[DataRequired()], default=-95)
-    alpha = FloatField('alpha', default=0.0)
+    # alpha = FloatField('alpha', default=0.0)
+    alpha = DecimalRangeField('Distance Objective Fraction', default=0.5)
     population = IntegerField('population', validators=[DataRequired()], default=100000)
     num_neighbors = IntegerField('Number of Neighbors', validators=[DataRequired()], default=8)
     solver = SelectField('Solver', choices=[(x, x) for x in _choices])
