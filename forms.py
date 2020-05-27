@@ -9,6 +9,7 @@ _choices = ['SimulatedAnnealing', 'TabuSampler', 'LeapHybridSampler']
 class OptimizationParameters(FlaskForm):
     partition_size = IntegerField('Partition size', validators=[DataRequired()], default=4)
     longitude = FloatField('longitude', validators=[DataRequired()], default=-95)
+    alpha = FloatField('alpha', default=0.0)
     population = IntegerField('population', validators=[DataRequired()], default=100000)
     num_neighbors = IntegerField('Number of Neighbors', validators=[DataRequired()], default=8)
     solver = SelectField('Solver', choices=[(x, x) for x in _choices])

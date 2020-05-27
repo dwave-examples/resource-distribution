@@ -35,7 +35,11 @@ def us_cities(longitude, population):
     xy.columns = ['latitude', 'longitude']
     df = pd.concat((df, xy), axis=1).drop('Coordinates', axis=1)
     df = df[df['longitude'] > longitude]
-    df = df[df['Population'] > population]
+    df = df[df['Population'] > population].reset_index()
+
+    seed = 123
+    np.random.seed(seed)
+    df['excess_beds'] = np.random.randint(-100, 100, size=len(df))
     return df
 
 
@@ -51,11 +55,11 @@ def create_utility_function(form, include_first_neighbor=False):
     population = int(form.population.data)
     num_neighbors = int(form.num_neighbors.data)
     partition_size = int(form.partition_size.data)
+    alpha = float(form.alpha.data)
 
     df = us_cities(longitude, population).sort_values(by='Population', ascending=False)
-    df = df[df['longitude'] > longitude]
-    df = df[df['Population'] > population].reset_index()
     xy = df[['longitude', 'latitude']].values
+    excess = df['excess_beds'].values
     print('Number of cities: {}'.format(xy.shape[0]))
     d = distance_matrix(xy)
     n = len(d)
@@ -74,6 +78,10 @@ def create_utility_function(form, include_first_neighbor=False):
         p_combinations = p_combinations.union(set(combs))
     utility = {}
     for part in p_combinations:
+        beds = excess[list(part)]
+        beds = np.sum(beds)
+        if beds > 0:
+            beds = 0
         if partition_size > 2:
             xys = xy[list(part)]
             hull = ConvexHull(xys)
@@ -82,7 +90,7 @@ def create_utility_function(form, include_first_neighbor=False):
         else:
             area = 0
         c = d[list(part), :][:, list(part)]
-        utility[part] = - np.linalg.norm(c) ** 2 - area
+        utility[part] = beds - alpha * (np.linalg.norm(c) ** 2 + area)
     p_combinations = list(p_combinations)
     return p_combinations, utility, df, n
 
@@ -155,7 +163,7 @@ def plot(form):
     px.set_mapbox_access_token(open(".mapbox_token").read())
     df = us_cities(float(form.longitude.data), int(form.population.data))
     df['size'] = 8
-    fig = px.scatter_mapbox(df, lat="latitude", lon="longitude", color="Population", size='size',  # "Population",
+    fig = px.scatter_mapbox(df, lat="latitude", lon="longitude", color="excess_beds", size='size',
                             color_continuous_scale=px.colors.cyclical.IceFire, size_max=8, zoom=4, height=800)
     return fig
 
@@ -193,6 +201,7 @@ def plot_results(form):
 
     success = 1
     for sample, energy, occ in res.record:
+        print(sum(sample))
         if k != sum(sample):
             continue
         print('Number of partitions, {}, is equal to sum(sample)'.format(k))
@@ -253,15 +262,21 @@ class Obj:
 
 
 class Dummy:
-    partition_size = Obj(5)
+    partition_size = Obj(2)
     longitude = Obj(-90)
     population = Obj(100000)
     solver = Obj('LeapHybridSampler')
+    alpha = Obj(1.0)
+
+    num_neighbors = Obj(8)
+    time_limit = Obj(10)
+    num_sweeps = Obj(1000)
+    num_reads = Obj(10)
 
 
 if __name__ == '__main__':
     form = Dummy()
-    fig, success = plot_results(form)
+    fig, success, message, t = plot_results(form)
     print(success)
     if success:
         fig.show()

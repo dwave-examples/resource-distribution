@@ -17,6 +17,7 @@ app.config['SECRET_KEY'] = '2b55241464af362a104880e46b36d2b6'
 @app.route('/index', methods=['GET', 'POST'])
 def home():
     form = OptimizationParameters()
+    print(form.validate_on_submit())
     if form.validate_on_submit():
         flash(f'Parameters sumbitted successfully!', category='success')
         ids, graphJSON, success, message, run_time = get_graphs_results(form)
