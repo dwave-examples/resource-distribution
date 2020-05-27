@@ -1,0 +1,61 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <h2>Resource Distribution Optimization</h2>
+    <p>
+        The ongoing Covid-19 pandemic has caused millions of people being infected and overwhelmed the health system. Many hospitals are facing a critical shortage for essential resources such as invasive ventilators, ICU beds and personal protective gears. It becomes imperative to optimize the allocation of resources. The goal is to group hospitals in such a way that shared goods and services are maximized within each of the groups while ensuring fair distribution across different groups. In resource distribution optimization, we would like to find the optimal partitioning of a fixed amount of resources to users or processes such that the total cost is minimized or utility is maximized.
+
+        We are going to consider two scenarios. In the first scenario, the objective is at most a quadratic function of resources. For example, the utility function of medical centres only depends on the location and other attributes of each medical centre or each pair of medical centres.
+
+        In the second scenario, the objective can be more general, and it could depend on the collective property of a set of variables.
+    </p>
+    {% for id in ids %}
+        <div class="row">
+            <div class="col">
+                <div id="{{id}}"></div>
+            </div>
+        </div>
+    {% endfor %}
+    {% if 0 %}
+    <h2>Formulation</h2>
+    <p>
+        If the utility function is more general, we can revert to the original idea as laid out in [1].
+
+        First, we define the set of partitions of size $n/k$ as
+
+        \begin{equation}
+           \mathcal{V} = \left\{ u: \forall ~ u \subset S ~\land ~|u| = \frac{n}{k} \right\}.
+        \end{equation}
+
+        We can define the set of edges as a pair of nodes that DO share elements (this is the complement set of the original definition in [1]).
+
+        \begin{equation}
+            \mathcal{E} = \left\{ (u, v): \forall ~ u,v \in \mathcal{V} ~\land ~~ u \cap v \neq \{\} \right\}.
+        \end{equation}
+
+        Because the nodes in $\mathcal{E}$ are derived from partitions of size $n/k$, there can be no clique larger than $k$. Therefore, all we need to do is to solve the weighted maximum independent set problem with weights equal to the utility function and some regularization factor. If the utility function is defined as $U: \mathcal{V} \rightarrow R$, we can write the objective function as
+
+        \begin{equation}
+            H = - \sum_i (U_i + R)~ x_i + \lambda \sum_{i, j \in \mathcal{E}} x_i x_j
+        \end{equation}
+
+        [1] Bass, Gideon, et al. "Heterogeneous quantum computing for satellite constellation optimization:
+            solving the weighted k-clique problem." Quantum Science and Technology 3.2 (2018): 024010.
+    </p>
+    {% endif %}
+{% endblock content %}
+
+{% block footer %}
+  <script type="text/javascript">
+
+        var graphs = {{graphJSON | safe}};
+        var ids = {{ids | safe}};
+
+        for(var i in graphs) {
+            Plotly.plot(ids[i], // the ID of the div, created above
+                        graphs[i].data,
+                        graphs[i].layout || {});
+        }
+
+  </script>
+{% endblock %}
+

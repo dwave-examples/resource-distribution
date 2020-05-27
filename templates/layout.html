@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+    {% if title %}
+        <title>{{title}}</title>
+    {% else %}
+        <title> Optimization with LeapHybridSampler </title>
+    {% endif %}
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+    </script>
+    <script type="text/javascript"
+        src="http://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+</head>
+
+<body>
+    <header class="site-header">
+      <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
+        <div class="container">
+          <a class="navbar-brand mr-4" href="/">Applications Blog</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarToggle">
+            <div class="navbar-nav mr-auto">
+              <a class="nav-item nav-link" href="/">Home</a>
+            </div>
+            <!-- Navbar Right Side -->
+            <div class="navbar-nav">
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+    <div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-2">
+          <form method="POST" action="">
+            {{ form.hidden_tag() }}
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Parameters Setting</legend>
+                    <div class="form-group">
+                        {{ form.partition_size.label(class="form-control-label") }}
+                        {% if form.partition_size.errors %}
+                            {{ form.partition_size(class="form-control form-control-sm is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.partition_size.errors %}
+                                    <span>{{error}}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.partition_size(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.longitude.label(class="form-control-label") }}
+                        {% if form.longitude.errors %}
+                            {{ form.longitude(class="form-control form-control-sm is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.longitude.errors %}
+                                    <span>{{error}}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.longitude(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.population.label(class="form-control-label") }}
+                        {% if form.population.errors %}
+                            {{ form.population(class="form-control form-control-sm is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.population.errors %}
+                                    <span>{{error}}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.population(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.solver.label(class="form-control-label") }}
+                        {% if form.solver.errors %}
+                            {{ form.solver(class="form-control form-control-sm is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.solver.errors %}
+                                    <span>{{error}}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.solver(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group form-group-sm">
+                        {{ form.time_limit.label(class="form-control-label") }}
+                        {% if form.time_limit.errors %}
+                            {{ form.time_limit(class="form-control form-control-sm is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.time_limit.errors %}
+                                    <span>{{error}}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.time_limit(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.num_reads.label(class="form-control-label") }}
+                        {% if form.num_reads.errors %}
+                            {{ form.num_reads(class="form-control form-control-sm is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.num_reads.errors %}
+                                    <span>{{error}}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.num_reads(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.num_sweeps.label(class="form-control-label") }}
+                        {% if form.num_sweeps.errors %}
+                            {{ form.num_sweeps(class="form-control form-control-sm is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.num_sweeps.errors %}
+                                    <span>{{error}}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.num_sweeps(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+            </fieldset>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-outline-info") }}
+            </div>
+        </form>
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+        </div>
+        <!-- Page Content -->
+        <div class="col-10">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+</body>
+
+<footer>
+  {% block footer %}{% endblock %}
+</footer>
+</html>
