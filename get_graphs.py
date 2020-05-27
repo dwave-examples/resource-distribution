@@ -74,11 +74,15 @@ def create_utility_function(form, include_first_neighbor=False):
         p_combinations = p_combinations.union(set(combs))
     utility = {}
     for part in p_combinations:
-        # xys = xy[list(part)]
-        # hull = ConvexHull(xys)
-        # xys = xys[hull.vertices]
+        if partition_size > 2:
+            xys = xy[list(part)]
+            hull = ConvexHull(xys)
+            xys = xys[hull.vertices]
+            area = poly_area(xys)
+        else:
+            area = 0
         c = d[list(part), :][:, list(part)]
-        utility[part] = - np.linalg.norm(c) ** 2  # - poly_area(xys)
+        utility[part] = - np.linalg.norm(c) ** 2 - area
     p_combinations = list(p_combinations)
     return p_combinations, utility, df, n
 
