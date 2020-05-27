@@ -215,11 +215,15 @@ def plot_results(form):
             s = np.array(list(s))
             dfxy = df.iloc[s]
             dfxy = dfxy[['longitude', 'latitude']]
-            hull = ConvexHull(dfxy.values)
+            if len(s) > 2:
+                hull = ConvexHull(dfxy.values)
+                vertices = hull.vertices
+            else:
+                vertices = range(len(s))
             fig.add_trace(
                 go.Scattermapbox(
-                    lon=[dfxy.values[idx][0] for idx in hull.vertices],
-                    lat=[dfxy.values[idx][1] for idx in hull.vertices],
+                    lon=[dfxy.values[idx][0] for idx in vertices],
+                    lat=[dfxy.values[idx][1] for idx in vertices],
                     fill='toself',
                     showlegend=False
                 ))

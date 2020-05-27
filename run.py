@@ -24,9 +24,9 @@ def home():
             flash(message, category='danger')
         elif success == 1:
             flash(message, category='danger')
-            flash(f'Solve time: {run_time:.2f}', category='success')
+            flash(f'Solve time: {run_time:.2f}', category='info')
         else:
-            flash(f'Solve time: {run_time:.2f}', category='success')
+            flash(f'Solve time: {run_time:.2f}', category='info')
         return render_template('index.html', form=form, ids=ids, graphJSON=graphJSON)
     else:
         ids, graphJSON = get_graphs(form)
