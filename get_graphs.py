@@ -1,17 +1,32 @@
-import json
 import plotly
 import plotly.express as px
 import plotly.graph_objects as go
 from dwave.system import LeapHybridSampler
-from load_datasets import distance_matrix
 from neal import SimulatedAnnealingSampler
 from scipy.spatial import ConvexHull
 import pandas as pd
-from collections import defaultdict
-import numpy as np
 from itertools import combinations
-from dimod import BinaryQuadraticModel
 from time import time
+import numpy as np
+from dimod import BinaryQuadraticModel
+from collections import defaultdict
+import json
+from numba import jit
+
+
+@jit(nopython=True)
+def distance_matrix(X, y=None):
+    M = X.shape[0]
+    N = X.shape[1]
+    D = np.zeros((M, M), dtype=np.float32)
+    for i in range(M):
+        for j in range(M):
+            d = 0.0
+            for k in range(N):
+                tmp = X[i, k] - X[j, k]
+                d += tmp * tmp
+            D[i, j] = np.sqrt(d)
+    return D
 
 
 def us_cities(longitude, population):

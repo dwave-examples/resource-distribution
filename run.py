@@ -1,8 +1,8 @@
 from flask import Flask
 from flask import render_template, url_for, redirect
 from flask import flash
-from webapp.forms import OptimizationParameters
-from webapp.get_graphs import get_graphs, get_graphs_results
+from forms import OptimizationParameters
+from get_graphs import get_graphs, get_graphs_results
 import json
 import plotly
 import pandas as pd
