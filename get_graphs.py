@@ -158,7 +158,7 @@ def cost(beds, xys):
         prob = LpProblem("Distance Flow", LpMinimize)
         varbs = LpVariable.dicts('main', list(range(len(fs))), lowBound=0, cat=LpInteger, upBound=1)
         prob += lpSum([ds[i] * varbs[i] for i in range(len(ds))])
-        prob += lpSum([fs[i] * varbs[i] for i in range(len(ds))]) == flow
+        prob += lpSum([fs[i] * varbs[i] for i in range(len(ds))]) >= flow
         prob.solve()
         sol = [prob.variables()[i].varValue for i in range(len(ds))]
         return np.sum([ds[i] for i in range(len(ds)) if sol[i] > 0])
