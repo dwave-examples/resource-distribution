@@ -13,12 +13,8 @@
     {% else %}
         <title> Optimization with LeapHybridSampler </title>
     {% endif %}
-    <script type="text/x-mathjax-config">
-        MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
-    </script>
-    <script type="text/javascript"
-        src="http://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
-    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
         function outputUpdate(alpha) {
             document.querySelector('#selected-alpha').value = Math.round(alpha * 100) / 100;
@@ -37,6 +33,7 @@
           <div class="collapse navbar-collapse" id="navbarToggle">
             <div class="navbar-nav mr-auto">
               <a class="nav-item nav-link" href="/">Home</a>
+              <a class="nav-item nav-link" href="/optimization">Optimization</a>
             </div>
             <!-- Navbar Right Side -->
             <div class="navbar-nav">
@@ -49,7 +46,8 @@
     <div class="row">
         <!-- Sidebar -->
         <div class="col-2">
-          <form method="POST" action="">
+            {% if form %}
+                <form method="POST" action="">
             {{ form.hidden_tag() }}
             <fieldset class="form-group">
                 <legend class="border-bottom mb-4">Parameters Setting</legend>
@@ -163,6 +161,7 @@
                 {{ form.submit(class="btn btn-outline-info") }}
             </div>
         </form>
+            {% endif %}
           {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
               {% for category, message in messages %}
@@ -174,7 +173,7 @@
           {% endwith %}
         </div>
         <!-- Page Content -->
-        <div class="col-10">
+        <div class="col-9">
             {% block content %}{% endblock %}
         </div>
     </div>

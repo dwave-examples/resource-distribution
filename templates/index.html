@@ -8,14 +8,12 @@
 
         In the second scenario, the objective can be more general, and it could depend on the collective property of a set of variables.
     </p>
-    {% for id in ids %}
-        <div class="row">
-            <div class="col">
-                <div id="{{id}}"></div>
-            </div>
-        </div>
-    {% endfor %}
-    {% if 0 %}
+    <img src="{{url_for('static', filename='partitioning.png')}}" width="600px" class="center">
+    <div class="row">
+    <h2>Utility function</h2>
+    <p>
+
+    </p>
     <h2>Formulation</h2>
     <p>
         If the utility function is more general, we can revert to the original idea as laid out in [1].
@@ -41,7 +39,6 @@
         [1] Bass, Gideon, et al. "Heterogeneous quantum computing for satellite constellation optimization:
             solving the weighted k-clique problem." Quantum Science and Technology 3.2 (2018): 024010.
     </p>
-    {% endif %}
 {% endblock content %}
 
 {% block footer %}

@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <div class="row">
+        {% for id in ids %}
+            <div class="col">
+                <div id="{{id}}"></div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock content %}
+
+{% block footer %}
+  <script type="text/javascript">
+
+        var graphs = {{graphJSON | safe}};
+        var ids = {{ids | safe}};
+
+        for(var i in graphs) {
+            Plotly.plot(ids[i], // the ID of the div, created above
+                        graphs[i].data,
+                        graphs[i].layout || {});
+        }
+
+  </script>
+{% endblock %}
+

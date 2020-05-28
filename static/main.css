@@ -5,6 +5,13 @@
   margin-left: auto;
 }
 
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+}
+
 body {
   background: #fafafa;
   color: #333333;
