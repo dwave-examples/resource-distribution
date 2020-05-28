@@ -101,7 +101,7 @@ def create_utility_function(form, include_first_neighbor=False):
         return None, None, df, n, None
     nn = []
     for i in range(n):
-        nn.append(np.argsort(d[i])[1:num_neighbors])
+        nn.append(np.argsort(d[i])[1:num_neighbors+1])
     p_combinations = set()
     for idx, neighb in enumerate(nn):
         if include_first_neighbor:
@@ -110,26 +110,23 @@ def create_utility_function(form, include_first_neighbor=False):
         else:
             combs = list(map(lambda x: frozenset(x).union({idx}), combinations(neighb, partition_size - 1)))
         p_combinations = p_combinations.union(set(combs))
-    utility = {}
+    utility = []
+    utility_dict = {}
     objective = {}
     for part in p_combinations:
         beds = excess[list(part)]
-        flow = flow_score(beds)
+        transfer = transfer_score(beds)
         xys = xy[list(part)]
         cst = cost(beds, xys)
-        # if partition_size > 2:
-        #     hull = ConvexHull(xys)
-        #     xys = xys[hull.vertices]
-        #     area = poly_area(xys)
-        # else:
-        #     area = 0
-        c = d[list(part), :][:, list(part)]
-        # utility[part] = [flow, (np.linalg.norm(c) ** 2 + area)]
-        utility[part] = [flow, cst]
-        # objective[part] = (1 - alpha) * flow - alpha * (np.linalg.norm(c) ** 2 + area ** 2)
-        objective[part] = (1 - alpha) * flow - alpha * cst
+        utility.append([part, transfer, cst])
+    utility = np.array(utility)
+    transfer_stdev = np.std(utility[:, 1])
+    cost_stdev = np.std(utility[:, 2])
+    for part, transfer, cst in utility:
+        objective[part] = (1 - alpha) * transfer / transfer_stdev - alpha * cst / cost_stdev
+        utility_dict[part] = [transfer, cst]
     p_combinations = list(p_combinations)
-    return p_combinations, utility, df, n, objective
+    return p_combinations, utility_dict, df, n, objective
 
 
 def cost(beds, xys):
@@ -144,21 +141,21 @@ def cost(beds, xys):
         return 0
     fs = []
     ds = []
-    flow = flow_score(beds)
+    transfer = transfer_score(beds)
     for (p, pp), (n, pn) in product(zip(pos, xysp), zip(neg, xysn)):
         d = haversine(pp, pn)
         f = np.min([p, -n])
         fs.append(f)
         ds.append(d)
-    if sum(fs) == flow:
+    if sum(fs) == transfer:
         return sum(ds)
-    if sum(fs) < flow:
+    if sum(fs) < transfer:
         raise ValueError
-    if sum(fs) > flow:
-        prob = LpProblem("Distance Flow", LpMinimize)
+    if sum(fs) > transfer:
+        prob = LpProblem("Transfer_cost", LpMinimize)
         varbs = LpVariable.dicts('main', list(range(len(fs))), lowBound=0, cat=LpInteger, upBound=1)
         prob += lpSum([ds[i] * varbs[i] for i in range(len(ds))])
-        prob += lpSum([fs[i] * varbs[i] for i in range(len(ds))]) >= flow
+        prob += lpSum([fs[i] * varbs[i] for i in range(len(ds))]) >= transfer
         prob.solve()
         sol = [prob.variables()[i].varValue for i in range(len(ds))]
         return np.sum([ds[i] for i in range(len(ds)) if sol[i] > 0])
@@ -166,7 +163,7 @@ def cost(beds, xys):
     return 0
 
 
-def flow_score(beds):
+def transfer_score(beds):
     pos = beds[beds > 0]
     neg = beds[beds < 0]
     if len(pos) == 0:
@@ -224,7 +221,7 @@ def get_sampler(form):
 def plot(form):
     px.set_mapbox_access_token(open(".mapbox_token").read())
     df = us_cities(float(form.longitude.data), int(form.population.data))
-    df['size'] = np.abs(df['excess_beds'].values)
+    df['size'] = 12  # np.abs(df['excess_beds'].values)
     fig = px.scatter_mapbox(df, lat="latitude", lon="longitude", color="excess_beds", size='size',
                             labels={'latitude': 'Latitude', 'longitude': 'Longitude', 'excess_beds': 'Excess Beds'},
                             color_continuous_scale=px.colors.cyclical.IceFire, size_max=12, zoom=4, height=800)
@@ -292,14 +289,28 @@ def plot_results(form):
                 vertices = hull.vertices
             else:
                 vertices = range(len(s))
+            u = list(map(int, utility[sorg]))
+            text = f'Transfers {u[0]:d}, Cost {u[1]:d}'
+            cm = np.mean(dfxy.values[vertices], axis=0)
             fig.add_trace(
                 go.Scattermapbox(
                     lon=[dfxy.values[idx][0] for idx in vertices],
                     lat=[dfxy.values[idx][1] for idx in vertices],
                     fill='toself',
                     showlegend=False,
-                    text=str(utility[sorg]),
-                    hoverinfo='text',
+                    # text=text,
+                    hoverinfo='none',
+                    mode='none',
+                    marker={'size': 0},
+                ))
+            fig.add_trace(
+                go.Scattermapbox(
+                    lon=[cm[0]],
+                    lat=[cm[1]],
+                    showlegend=False,
+                    text=text,
+                    hoverinfo='none',
+                    mode='text',
                     marker={'size': 0},
                 ))
         fig.update_layout(title=f'Valid solution with utility {total_utility} and total area {total_area:.0f}')
