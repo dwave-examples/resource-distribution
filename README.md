@@ -22,4 +22,4 @@ You'll see that the app is running on port 5000 of your local, open a brower and
 
 # Snapshot
 
-<img src="demo_webapp.png" alt="snapshot" class="center">
+![demo](demo_webapp.png)
