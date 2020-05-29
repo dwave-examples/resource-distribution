@@ -12,7 +12,7 @@ class OptimizationParameters(FlaskForm):
     longitude = FloatField('longitude', validators=[DataRequired()], default=-95)
     # alpha = FloatField('alpha', default=0.0)
     alpha = DecimalRangeField('Distance Objective Fraction', default=0.5)
-    population = IntegerField('population', validators=[DataRequired()], default=100000)
+    num_cities = IntegerField('Number of cities', validators=[DataRequired()], default=40)
     num_neighbors = IntegerField('Number of Neighbors', validators=[DataRequired()], default=8)
     solver = SelectField('Solver', choices=[(x, x) for x in _choices])
     submit = SubmitField('Run')

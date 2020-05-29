@@ -62,13 +62,12 @@ def distance_matrix_haversine(X):
     return D
 
 
-def us_cities(longitude, population):
+def us_cities(longitude, num_cities):
     df = pd.read_csv('1000-largest-us-cities-by-population-with-geographic-coordinates.csv', sep=';')
     xy = df['Coordinates'].str.split(',', expand=True).applymap(float)
     xy.columns = ['latitude', 'longitude']
     df = pd.concat((df, xy), axis=1).drop('Coordinates', axis=1)
-    df = df[df['longitude'] > longitude]
-    df = df[df['Population'] > population].reset_index()
+    df = df[df['longitude'] > longitude].sort_values(by='Population', ascending=False).head(num_cities)
 
     seed = 123
     np.random.seed(seed)
@@ -86,12 +85,12 @@ def poly_area(xy):
 
 def create_utility_function(form, include_first_neighbor=False):
     longitude = float(form.longitude.data)
-    population = int(form.population.data)
+    num_cities = int(form.num_cities.data)
     num_neighbors = int(form.num_neighbors.data)
     partition_size = int(form.partition_size.data)
     alpha = float(form.alpha.data)
 
-    df = us_cities(longitude, population).sort_values(by='Population', ascending=False)
+    df = us_cities(longitude, num_cities).sort_values(by='Population', ascending=False)
     xy = df[['longitude', 'latitude']].values
     excess = df['excess_beds'].values
     print('Number of cities: {}'.format(xy.shape[0]))
@@ -220,7 +219,7 @@ def get_sampler(form):
 
 def plot(form):
     px.set_mapbox_access_token(open(".mapbox_token").read())
-    df = us_cities(float(form.longitude.data), int(form.population.data))
+    df = us_cities(float(form.longitude.data), int(form.num_cities.data))
     df['size'] = 12  # np.abs(df['excess_beds'].values)
     fig = px.scatter_mapbox(df, lat="latitude", lon="longitude", color="excess_beds", size='size',
                             labels={'latitude': 'Latitude', 'longitude': 'Longitude', 'excess_beds': 'Excess Beds'},
@@ -342,7 +341,7 @@ class Obj:
 class Dummy:
     partition_size = Obj(3)
     longitude = Obj(-95)
-    population = Obj(300000)
+    num_cities = Obj(30)
     solver = Obj('SimulatedAnnealing')
     alpha = Obj(1.0)
 
@@ -355,6 +354,6 @@ class Dummy:
 if __name__ == '__main__':
     form = Dummy()
     fig, success, message, t = plot_results(form)
-    # print(success)
-    # if success:
-    #     fig.show()
+    print(success)
+    if success:
+        fig.show()
