@@ -13,6 +13,7 @@ from collections import defaultdict
 import json
 from numba import jit
 from itertools import product
+from problem_intro import lp_problem
 
 
 def haversine(p1, p2):
@@ -93,7 +94,6 @@ def create_utility_function(form, include_first_neighbor=False):
     df = us_cities(longitude, num_cities).sort_values(by='Population', ascending=False)
     xy = df[['longitude', 'latitude']].values
     excess = df['excess_beds'].values
-    print('Number of cities: {}'.format(xy.shape[0]))
     d = distance_matrix_haversine(xy)
     n = len(d)
     if n % partition_size != 0:
@@ -116,7 +116,8 @@ def create_utility_function(form, include_first_neighbor=False):
         beds = excess[list(part)]
         transfer = transfer_score(beds)
         xys = xy[list(part)]
-        cst = cost(beds, xys)
+        # cst = cost(beds, xys)
+        solutions, cst, status, transfer = lp_problem(xys, beds, transfer, verbose=False)
         utility.append([part, transfer, cst])
     utility = np.array(utility)
     transfer_stdev = np.std(utility[:, 1])
@@ -239,9 +240,6 @@ def plot_results(form):
     bqm, _, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
     num_variables = len(set().union(*p_combinations))
     partition_size = len(p_combinations[0])
-    print('Partition size: {}'.format(partition_size))
-    k = num_variables // partition_size
-    print('Number of variables: {}, Number of edges: {}'.format(*bqm.shape))
 
     sampler, params = get_sampler(form)
     t0 = time()
@@ -259,10 +257,12 @@ def plot_results(form):
     k = num_variables // partition_size
 
     success = 1
+    total_cost = None
+    total_utility = None
+    energy = None
     for sample, energy, occ in res.record:
         if k != sum(sample):
             continue
-        print('Number of partitions, {}, is equal to sum(sample)'.format(k))
         sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
         union = set().union(*sol)
         inter = [set().intersection(a, b) for a, b in combinations(sol, 2)]
@@ -272,10 +272,12 @@ def plot_results(form):
             continue
         if len(union) != num_variables:
             continue
-        print('Utility (higher better): {}'.format(np.sum([utility[x] for x in sol])))
         total_utility = np.sum([utility[x][0] for x in sol])
-        total_area = np.sum([utility[x][1] for x in sol])
+        total_cost = np.sum([utility[x][1] for x in sol])
         success = 2
+    if total_utility is None or total_cost is None or energy is None:
+        message = f'No feasible solution found'
+        return fig, 1, message, t
     if success == 2:
         sample = res.truncate(1).record.sample[0]
         sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
@@ -312,7 +314,9 @@ def plot_results(form):
                     mode='text',
                     marker={'size': 0},
                 ))
-        fig.update_layout(title=f'Valid solution with utility {total_utility} and total area {total_area:.0f}')
+
+        fig.update_layout(title=f'Valid solution with utility {total_utility} '
+                                f'and total cost {total_cost:.0f}, objective {energy:.2f}')
     else:
         message = f'No feasible solution found'
     return fig, success, message, t
@@ -339,11 +343,11 @@ class Obj:
 
 
 class Dummy:
-    partition_size = Obj(3)
+    partition_size = Obj(4)
     longitude = Obj(-95)
-    num_cities = Obj(30)
+    num_cities = Obj(40)
     solver = Obj('SimulatedAnnealing')
-    alpha = Obj(1.0)
+    alpha = Obj(0.5)
 
     num_neighbors = Obj(8)
     time_limit = Obj(10)
