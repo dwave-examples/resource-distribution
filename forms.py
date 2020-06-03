@@ -13,7 +13,7 @@ class OptimizationParameters(FlaskForm):
     alpha = DecimalRangeField('Distance Objective Fraction', default=0.5)
     num_cities = IntegerField('Number of cities', validators=[DataRequired()], default=21)
     num_neighbors = IntegerField('Number of Neighbors', validators=[DataRequired()], default=8)
-    solver = SelectField('Solver', choices=[(x, x) for x in _choices])
+    solver = SelectField('Solver', choices=[(x, x) for x in _choices], default='SimulatedAnnealing')
     submit = SubmitField('Run')
     time_limit = FloatField('Time Limit (seconds)', default=10)
     num_sweeps = IntegerField('Number of sweeps', validators=[DataRequired()], default=10000)

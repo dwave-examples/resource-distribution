@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 from dwave.system import LeapHybridSampler
 from neal import SimulatedAnnealingSampler
 from scipy.spatial import ConvexHull
+from tabu import TabuSampler
 import pandas as pd
 from itertools import combinations
 from time import time
@@ -73,7 +74,9 @@ def us_cities(longitude, num_cities):
     seed = 123
     np.random.seed(seed)
     rnds = np.random.randint(-100, 100, size=len(df))
-    df['excess_beds'] = np.round(rnds - np.mean(rnds))
+    rnds = np.round(rnds - np.mean(rnds))
+    rnds[rnds == 0] = np.random.binomial(1, 0.5, size=sum(rnds == 0)) * 2 - 1
+    df['excess_beds'] = rnds
     return df
 
 
@@ -214,6 +217,8 @@ def get_sampler(form):
         return SimulatedAnnealingSampler(), parameters
     elif name == 'LeapHybridSampler':
         return LeapHybridSampler(), {'time_limit': float(form.time_limit.data)}
+    elif name == 'TabuSampler':
+        return TabuSampler(), {'timeout': int(form.time_limit.data) * 1000}
     else:
         raise ValueError
 
@@ -221,10 +226,16 @@ def get_sampler(form):
 def plot(form):
     px.set_mapbox_access_token(open(".mapbox_token").read())
     df = us_cities(float(form.longitude.data), int(form.num_cities.data))
-    df['size'] = 12  # np.abs(df['excess_beds'].values)
+    df['size'] = 12
+    colorsIdx = {1: 'rgb(215,48,39)', -1: 'rgb(215,148,39)'}
+    df['sign'] = np.sign(df['excess_beds'])
+    colors = df['sign'].map(colorsIdx)
     fig = px.scatter_mapbox(df, lat="latitude", lon="longitude", color="excess_beds", size='size',
                             labels={'latitude': 'Latitude', 'longitude': 'Longitude', 'excess_beds': 'Excess Beds'},
-                            color_continuous_scale=px.colors.cyclical.IceFire, size_max=12, zoom=4, height=800)
+                            color_continuous_scale=px.colors.sequential.Rainbow, size_max=12, zoom=4, height=800)
+    # fig = px.scatter_mapbox(df, lat="latitude", lon="longitude", color=colors, size='size',
+    #                         labels={'latitude': 'Latitude', 'longitude': 'Longitude', 'color': 'Excess Beds'},
+    #                         size_max=12, zoom=4, height=800)
     return fig
 
 
@@ -293,27 +304,34 @@ def plot_results(form):
             u = list(map(int, utility[sorg]))
             text = f'Transfers {u[0]:d}, Cost {u[1]:d}'
             cm = np.mean(dfxy.values[vertices], axis=0)
-            fig.add_trace(
-                go.Scattermapbox(
-                    lon=[dfxy.values[idx][0] for idx in vertices],
-                    lat=[dfxy.values[idx][1] for idx in vertices],
-                    fill='toself',
-                    showlegend=False,
-                    # text=text,
-                    hoverinfo='none',
-                    mode='none',
-                    marker={'size': 0},
-                ))
-            fig.add_trace(
-                go.Scattermapbox(
-                    lon=[cm[0]],
-                    lat=[cm[1]],
-                    showlegend=False,
-                    text=text,
-                    hoverinfo='none',
-                    mode='text',
-                    marker={'size': 0},
-                ))
+            color = 'rgba(0, 0, 255, 0.2)'
+            if u[0] > 0:
+                fig.add_trace(
+                    go.Scattermapbox(
+                        lon=[dfxy.values[idx][0] for idx in vertices],
+                        lat=[dfxy.values[idx][1] for idx in vertices],
+                        fill='toself',
+                        fillcolor=color,
+                        showlegend=False,
+                        hoverinfo='none',
+                        mode='none',
+                        marker={'size': 0},
+                    ))
+
+                fig.add_trace(
+                    go.Scattermapbox(
+                        lon=[cm[0]],
+                        lat=[cm[1]],
+                        showlegend=False,
+                        text=text,
+                        hoverinfo='none',
+                        mode='text',
+                        marker=go.scattermapbox.Marker(
+                            size=0,
+                            color='rgb(255, 0, 0)',
+                            opacity=0.7
+                        ),
+                    ))
 
         fig.update_layout(title=f'Valid solution with utility {total_utility} '
                                 f'and total cost {total_cost:.0f}, objective {energy:.2f}')
@@ -357,6 +375,8 @@ class Dummy:
 
 if __name__ == '__main__':
     form = Dummy()
+    plot(form)
+    exit()
     fig, success, message, t = plot_results(form)
     print(success)
     if success:
