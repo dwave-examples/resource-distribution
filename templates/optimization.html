@@ -7,11 +7,12 @@
             </div>
         {% endfor %}
     </div>
-<!--    {% for res in results %}-->
-<!--        <div class="row">-->
-<!--            {{res}}-->
-<!--        </div>-->
-<!--    {% endfor %}-->
+
+    {% for res in results %}
+        <div class="row">
+            {{res}}
+        </div>
+    {% endfor %}
 {% endblock content %}
 
 {% block footer %}
@@ -25,7 +26,6 @@
                         graphs[i].data,
                         graphs[i].layout || {});
         }
-
   </script>
 {% endblock %}
 

@@ -3,7 +3,15 @@ from flask import render_template, url_for, redirect
 from flask import flash
 from forms import OptimizationParameters
 from get_graphs import get_graphs, get_graphs_results
+import plotly.graph_objects as go
+import plotly
+import json
+import sys
 
+if len(sys.argv) > 1:
+    port = int(sys.argv[1])
+else:
+    port = 5000
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '2b55241464af362a104880e46b36d2b6'
@@ -23,22 +31,42 @@ def optimization():
     form = OptimizationParameters()
     if form.validate_on_submit():
         flash(f'Parameters sumbitted successfully!', category='success')
-        ids, graphJSON, success, message, run_time, res = get_graphs_results(form)
-        if success == 0:
-            flash(message, category='danger')
-        elif success == 1:
-            flash(message, category='danger')
-            flash(f'Solve time: {run_time:.2f}', category='info')
-        elif res is None:
-            flash(message, category='danger')
+        if form.update.data:
+            results.clear()
+            ids, graphJSON = get_graphs(form)
+            return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
         else:
-            results.append(res)
-            flash(f'Solve time: {run_time:.2f}', category='info')
-        return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON, results=results)
+            ids, graphJSON, success, message, run_time, res = get_graphs_results(form)
+            if success == 0:
+                flash(message, category='danger')
+                ids, graphJSON = get_graphs(form)
+                return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
+            elif success == 1:
+                flash(message, category='danger')
+                flash(f'Solve time: {run_time:.2f}', category='info')
+            elif res is None:
+                flash(message, category='danger')
+            else:
+                results.append(res)
+                flash(f'Solve time: {run_time:.2f}', category='info')
+            # ids2, graphJSON2 = plot_results(results)
+            # ids += ids2
+            # graphJSON += graphJSON2
+            return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON, results=results)
     else:
         ids, graphJSON = get_graphs(form)
         return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
 
 
+def plot_results(results):
+    fig = go.Figure([
+        go.Bar(x=[res.solver for res in results],
+               y=[res.energy for res in results]
+               )])
+    ids = ['graph-results-{}'.format(i) for i in range(1)]
+    graphJSON = json.dumps([fig], cls=plotly.utils.PlotlyJSONEncoder)
+    return ids, graphJSON
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=port)

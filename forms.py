@@ -8,14 +8,12 @@ _choices = ['SimulatedAnnealing', 'TabuSampler', 'LeapHybridSampler']
 
 
 class OptimizationParameters(FlaskForm):
-    partition_size = IntegerField('Partition size', validators=[DataRequired()], default=3)
-    longitude = FloatField('longitude', validators=[DataRequired()], default=-95)
-    alpha = DecimalRangeField('Distance Objective Fraction', default=0.5)
-    num_cities = IntegerField('Number of cities', validators=[DataRequired()], default=21)
+    partition_size = IntegerField('Partition size', validators=[DataRequired()], default=4)
+    alpha = DecimalRangeField('Distance Objective Fraction', default=0.2)
+    num_hospitals = IntegerField('Number of Hospitals', validators=[DataRequired()], default=52)
     num_neighbors = IntegerField('Number of Neighbors', validators=[DataRequired()], default=8)
     solver = SelectField('Solver', choices=[(x, x) for x in _choices], default='SimulatedAnnealing')
     submit = SubmitField('Run')
+    update = SubmitField('Update Map')
     time_limit = FloatField('Time Limit (seconds)', default=10)
-    num_sweeps = IntegerField('Number of sweeps', validators=[DataRequired()], default=10000)
-    num_reads = IntegerField('Number of reads', validators=[DataRequired()], default=50)
 
