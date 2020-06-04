@@ -17,6 +17,7 @@ from problem_intro import lp_problem, haversine
 import dimod
 import pickle
 from os.path import exists
+from os import makedirs
 
 
 def distance_matrix_haversine(X):
@@ -162,6 +163,8 @@ def plot_results(form):
     message = ''
     fig = plot(form)
     name = f'saved_problems/main_problem_{form.partition_size.data}_{form.num_hospitals.data}_{form.num_neighbors.data}_{form.alpha.data:.2f}'
+    if not exists('saved_problems/'):
+        makedirs('saved_problems/')
     if exists(name):
         print('loading')
         with open(name, 'rb') as f:

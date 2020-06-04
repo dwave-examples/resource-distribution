@@ -30,7 +30,7 @@ def home():
 def optimization():
     form = OptimizationParameters()
     if form.validate_on_submit():
-        flash(f'Parameters sumbitted successfully!', category='success')
+        flash(f'Parameters submitted successfully!', category='success')
         if form.update.data:
             results.clear()
             ids, graphJSON = get_graphs(form)
