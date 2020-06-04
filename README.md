@@ -8,7 +8,7 @@ The ongoing Covid-19 pandemic has caused millions of people being infected and o
 
 `python -m pip install -r requirements.txt`
 
-* Obtain a token from Mapbox.com. It's free for the first 50k access. Place your token into a file named .mapbox_token. And place the file in the same folder as run.py
+* Obtain a token from [mapbox.com](mapbox.com). It's free for the first 50k access. Place your token into a file named .mapbox_token. And place the file in the same folder as run.py
 
 * Place your dwave.conf file in the same folder as run.py or use dwave setup to create one in the default directory.
 
