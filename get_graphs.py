@@ -331,40 +331,5 @@ class Dummy:
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
     form = Dummy()
     fig, success, message, t, res = plot_results(form)
-    # print(success)
-    # print(message)
-    # if success:
-    #     fig.show()
-        # fig.write_image(f'{res.solver}_{form.time_limit.data}.png', width=2000)
-    # us_hospitals(-100, 100)
-#     df = pd.read_csv('Hospitals.csv')
-#     df.columns = [x.lower() for x in df.columns]
-#     df['d'] = [haversine((-73.985130, 40.758896), (lon, lat)) for lon, lat in zip(df['longitude'], df['latitude'])]
-#     df = df.sort_values(by='d').head(1000).reset_index()
-#
-#     df['keep'] = 1
-#     for i in range(len(df)):
-#         if not df.loc[df.index[i], 'keep']:
-#             continue
-#         lon1 = df.loc[df.index[i], 'longitude']
-#         lat1 = df.loc[df.index[i], 'latitude']
-#         for j in range(i + 1, len(df)):
-#             if not df.loc[df.index[j], 'keep']:
-#                 continue
-#             lon2 = df.loc[df.index[j], 'longitude']
-#             lat2 = df.loc[df.index[j], 'latitude']
-#             d = haversine((lon1, lat1), (lon2, lat2))
-#             if d < 0.1:
-#                 if df.loc[df.index[i], 'population'] > df.loc[df.index[j], 'population']:
-#                     df.loc[df.index[j], 'keep'] = 0
-#                 else:
-#                     df.loc[df.index[i], 'keep'] = 0
-#         print(sum(df['keep']))
-#     print(len(df))
-#     df = df[df['keep'] == 1]
-#     df.to_csv('hospitals_processed.csv')
-#     print(len(df))
-# #
