@@ -1,83 +1,76 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from itertools import product
-from pulp import LpProblem, LpVariable, LpMinimize, LpInteger, lpSum, LpContinuous, LpStatus, LpBinary
+from pulp import LpProblem, LpVariable, LpMinimize, lpSum, LpStatus, LpBinary
+from typing import List, Tuple, Union
+
+Points = Union[List[Tuple[float, float]], np.ndarray]
 
 
-def main():
-    np.random.seed(12346)
-    n = 8
-    xy = np.random.rand(*(n, 2))
-    # shortage = np.random.randint(-30, 31, size=n)
-    # shortage = np.round(shortage - np.mean(shortage))
-    shortage = np.array([4, -6, 2, -2, 2, -4, 6, -2])
-    indp = shortage > 0
-    indn = shortage < 0
-
-    xyps = xy[indp]
-    xyns = xy[indn]
-
-    sps = shortage[indp]
-    sns = shortage[indn]
-
-    transfer = np.min([np.sum(sps), -np.sum(sns)])
-    solutions, cost, status, limit = lp_problem(xy, shortage, transfer)
-    print(transfer, limit)
-    for idx, ((xyp, sp), (xyn, sn)) in enumerate(product(zip(xyps, sps), zip(xyns, sns))):
-        # plt.plot(*zip(xyp, xyn), color='k', alpha=0.25)
-        # plt.text(*xyp, str(int(sp)))
-        # plt.text(*xyn, str(int(sn)))
-        v = solutions[idx]
-        if v:
-            points = np.array(list(zip(xyp, xyn)))
-            x = points[0]
-            y = points[1]
-            plt.plot(x, y, linewidth=10, color='m', alpha=.2)
-            plt.text(x.mean(), y.mean(), str(int(np.min([sp, -sn]))))
-    plt.scatter(*xyps.T, sps ** 2 * 10, color='g', alpha=1)
-    plt.scatter(*xyns.T, sns ** 2 * 10, color='r', alpha=1)
-    plt.title(f'Transfer {limit}, cost {cost:.2f}')
-    plt.axis('off')
-    plt.savefig('static/partition_with_distance.png')
-    plt.show()
-
-
-def haversine(p1, p2):
+def haversine(point_1, point_2):
     """
     Calculate the great circle distance between two points
     on the earth (specified in decimal degrees)
     """
-    lon1, lat1 = p1
-    lon2, lat2 = p2
+    longitude1, latitude1 = point_1
+    longitude2, latitude2 = point_2
     # convert decimal degrees to radians
-    lon1, lat1, lon2, lat2 = np.radians([lon1, lat1, lon2, lat2])
+    longitude1, latitude1, longitude2, latitude2 = np.radians([longitude1, latitude1, longitude2, latitude2])
 
     # haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
+    dlon = longitude2 - longitude1
+    dlat = latitude2 - latitude1
+    a = np.sin(dlat/2)**2 + np.cos(latitude1) * np.cos(latitude2) * np.sin(dlon/2)**2
     c = 2 * np.arcsin(np.sqrt(a))
     r = 6371  # Radius of earth in kilometers. Use 3956 for miles
     return c * r
 
 
-def lp_problem(xy, shortage, transfer, verbose=False):
-    indp = shortage > 0
-    indn = shortage < 0
+def distance_matrix_haversine(X: Points):
+    """
+    compute the haversine distance of a list of points
+    :param X: List of tuples or 2-d array of floats (Mx2)
+    :return: Matrix (MxM) of distances
+    """
+    M = X.shape[0]
+    N = X.shape[1]
+    if N != 2:
+        raise ValueError
+    D = np.zeros((M, M), dtype=np.float32)
+    for i in range(M):
+        for j in range(M):
+            d = haversine(X[i], X[j])
+            D[i, j] = np.sqrt(d)
+    return D
 
-    xyps = xy[indp]
-    xyns = xy[indn]
 
-    sps = shortage[indp]
-    sns = shortage[indn]
-    psize = len(sps)
-    nsize = len(sns)
-    if psize == 0 or nsize == 0:
+def lp_problem(points: Points, shortage, transfer, verbose=False):
+    """
+    Form and solve the LP problem within each cluster of cities/hospitals
+    
+    :param points: List of tuples of (longitude, latitude) coordinates
+    :param shortage: The amount of shortage for each location
+        (negative values are shortages, positive values are surpluses)
+    :param transfer: The amount of transfer we aim to achieve within each group of points.
+        The problem is the optimization of cost subject to having at least this amount of transfer
+    :param verbose: Whether to print out some partial information
+    :return: the solution, optimal cost, status, optimal transfer
+    """
+    index_surplus = shortage > 0
+    index_shortage = shortage < 0
+
+    location_surplus = points[index_surplus]
+    location_shortage = points[index_shortage]
+
+    surplus = shortage[index_surplus]
+    shortage = shortage[index_shortage]
+    num_surplus = len(surplus)
+    num_shortage = len(shortage)
+    if num_surplus == 0 or num_shortage == 0:
         return [], 0, 'Optimal', 0
     prob = LpProblem("Transfer_cost", LpMinimize)
     data = {}
     iix = 0
-    for (idx, (xyp, sp)), (jdx, (xyn, sn)) in product(enumerate(zip(xyps, sps)), enumerate(zip(xyns, sns))):
+    for (idx, (xyp, sp)), (jdx, (xyn, sn)) in product(enumerate(zip(location_surplus, surplus)), enumerate(zip(location_shortage, shortage))):
         distance = haversine(xyp, xyn)
         t = np.min([sp, -sn])
         data[(idx, jdx)] = [
@@ -89,12 +82,12 @@ def lp_problem(xy, shortage, transfer, verbose=False):
         ]
         iix += 1
 
-    prob += lpSum([data[(i, j)][1] * data[(i, j)][0] for i in range(psize) for j in range(nsize)])
-    prob += lpSum([data[(i, j)][2] * data[(i, j)][0] for i in range(psize) for j in range(nsize)]) >= transfer
-    for i in range(psize):
-        prob += lpSum([data[(i, j)][2] * data[(i, j)][0] for j in range(nsize)]) <= data[(i, 0)][3]
-    for j in range(nsize):
-        prob += lpSum([data[(i, j)][2] * data[(i, j)][0] for i in range(psize)]) <= data[(0, j)][4]
+    prob += lpSum([data[(i, j)][1] * data[(i, j)][0] for i in range(num_surplus) for j in range(num_shortage)])
+    prob += lpSum([data[(i, j)][2] * data[(i, j)][0] for i in range(num_surplus) for j in range(num_shortage)]) >= transfer
+    for i in range(num_surplus):
+        prob += lpSum([data[(i, j)][2] * data[(i, j)][0] for j in range(num_shortage)]) <= data[(i, 0)][3]
+    for j in range(num_shortage):
+        prob += lpSum([data[(i, j)][2] * data[(i, j)][0] for i in range(num_surplus)]) <= data[(0, j)][4]
 
     status = prob.solve()
     status = LpStatus[status]
@@ -107,10 +100,6 @@ def lp_problem(xy, shortage, transfer, verbose=False):
     cost = (prob.objective.value())
 
     if status != 'Optimal':
-        return lp_problem(xy, shortage, transfer - 1)
+        return lp_problem(points, shortage, transfer - 1)
 
     return solutions, cost, status, transfer
-
-
-if __name__ == '__main__':
-    main()

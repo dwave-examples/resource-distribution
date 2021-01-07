@@ -1,7 +1,7 @@
 from flask import Flask
 from flask import render_template, url_for, redirect
 from flask import flash
-from forms import OptimizationParameters
+from forms import OptimizationParametersForm
 from get_graphs import get_graphs, get_graphs_results
 import plotly.graph_objects as go
 import plotly
@@ -28,7 +28,7 @@ def home():
 
 @app.route('/optimization', methods=['GET', 'POST'])
 def optimization():
-    form = OptimizationParameters()
+    form = OptimizationParametersForm()
     if form.validate_on_submit():
         flash(f'Parameters submitted successfully!', category='success')
         if form.update.data:

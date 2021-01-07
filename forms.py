@@ -7,7 +7,7 @@ from wtforms.validators import DataRequired
 _choices = ['SimulatedAnnealing', 'TabuSampler', 'LeapHybridSampler']
 
 
-class OptimizationParameters(FlaskForm):
+class OptimizationParametersForm(FlaskForm):
     partition_size = IntegerField('Partition size', validators=[DataRequired()], default=4)
     alpha = DecimalRangeField('Distance Objective Fraction', default=0.2)
     num_hospitals = IntegerField('Number of Hospitals', validators=[DataRequired()], default=52)

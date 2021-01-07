@@ -12,29 +12,22 @@ import numpy as np
 from dimod import BinaryQuadraticModel
 from collections import defaultdict
 import json
-from itertools import product
-from problem_intro import lp_problem, haversine
+from problem_intro import lp_problem, haversine, distance_matrix_haversine
 import dimod
 import pickle
 from os.path import exists
 from os import makedirs
+from forms import OptimizationParametersForm
 
 
-def distance_matrix_haversine(X):
-    M = X.shape[0]
-    N = X.shape[1]
-    if N != 2:
-        raise ValueError
-    D = np.zeros((M, M), dtype=np.float32)
-    for i in range(M):
-        for j in range(M):
-            d = haversine(X[i], X[j])
-            D[i, j] = np.sqrt(d)
-    return D
+def us_hospitals(num_hospitals: int) -> pd.DataFrame:
+    """
+    Load the hospitals dataset and assign random values of shortage/surplus of resources proportional to the size of
+        the hospitals.
 
-
-def us_hospitals(num_hospitals):
-    # df = pd.read_csv('Hospitals.csv')
+    :param num_hospitals: The number of hospitals to keep
+    :return:
+    """
     df = pd.read_csv('hospitals_processed.csv').drop(['Unnamed: 0'], axis=1).reset_index()
     df.columns = [x.lower() for x in df.columns]
     df['Population'] = df['population'].values
@@ -52,7 +45,7 @@ def us_hospitals(num_hospitals):
     return df
 
 
-def create_utility_function(form, include_first_neighbor=False):
+def create_utility_function(form: OptimizationParametersForm, include_first_neighbor=False):
     num_hospitals = int(form.num_hospitals.data)
     num_neighbors = int(form.num_neighbors.data)
     partition_size = int(form.partition_size.data)
@@ -136,7 +129,7 @@ def k_clique_from_combinations(utility=None, lagrange=3):
     return bqm, utility, p_combinations
 
 
-def get_sampler(form):
+def get_sampler(form: OptimizationParametersForm):
     name = form.solver.data
     if name == 'SimulatedAnnealing':
         return SimulatedAnnealingSampler(), {}
@@ -148,7 +141,7 @@ def get_sampler(form):
         raise ValueError
 
 
-def plot(form):
+def plot(form: OptimizationParametersForm):
     px.set_mapbox_access_token(open(".mapbox_token").read())
     df = us_hospitals(int(form.num_hospitals.data))
     df['size'] = np.abs(df['excess_beds'])
@@ -159,7 +152,7 @@ def plot(form):
     return fig
 
 
-def plot_results(form):
+def plot_results(form: OptimizationParametersForm):
     message = ''
     fig = plot(form)
     name = f'saved_problems/main_problem_{form.partition_size.data}_{form.num_hospitals.data}_{form.num_neighbors.data}_{form.alpha.data:.2f}'
@@ -300,36 +293,16 @@ def add_trace(fig, df, sorg, utility):
     return fig
 
 
-def get_graphs(form):
+def get_graphs(form: OptimizationParametersForm):
     graphs = [plot(form)]
     ids = ['graph-{}'.format(i) for i, _ in enumerate(graphs)]
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
     return ids, graphJSON
 
 
-def get_graphs_results(form):
+def get_graphs_results(form: OptimizationParametersForm):
     fig, success, message, run_time, res = plot_results(form)
     graphs = [fig]
     ids = ['graph-{}'.format(i) for i, _ in enumerate(graphs)]
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
     return ids, graphJSON, success, message, run_time, res
-
-
-class Obj:
-    def __init__(self, value):
-        self.data = value
-
-
-class Dummy:
-    partition_size = Obj(4)
-    num_hospitals = Obj(16)
-    solver = Obj('TabuSampler')
-    alpha = Obj(1.0)
-
-    num_neighbors = Obj(21)
-    time_limit = Obj(10)
-
-
-if __name__ == '__main__':
-    form = Dummy()
-    fig, success, message, t, res = plot_results(form)
