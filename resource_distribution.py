@@ -12,7 +12,7 @@ import numpy as np
 from dimod import BinaryQuadraticModel
 from collections import defaultdict
 import json
-from problem_intro import lp_problem, haversine, distance_matrix_haversine
+from solve_lp import lp_problem, haversine, distance_matrix_haversine
 import dimod
 import pickle
 from os.path import exists
@@ -26,7 +26,7 @@ def us_hospitals(num_hospitals: int) -> pd.DataFrame:
         the hospitals.
 
     :param num_hospitals: The number of hospitals to keep
-    :return:
+    :return: pandas.DataFrame
     """
     df = pd.read_csv('hospitals_processed.csv').drop(['Unnamed: 0'], axis=1).reset_index()
     df.columns = [x.lower() for x in df.columns]
@@ -46,62 +46,81 @@ def us_hospitals(num_hospitals: int) -> pd.DataFrame:
 
 
 def create_utility_function(form: OptimizationParametersForm, include_first_neighbor=False):
+    """
+    Given the parameters set by the user specified in `form`, create partitions of hospitals, compute the optimal
+        cost and utility of each partition
+    :param form: A user form specified by the class `OptimizationParametersForm`
+    :param include_first_neighbor: To reduce complexity of the problem, always consider the first nearest neighbor.
+    :return:
+    """
     num_hospitals = int(form.num_hospitals.data)
     num_neighbors = int(form.num_neighbors.data)
     partition_size = int(form.partition_size.data)
     alpha = float(form.alpha.data)
 
-    df = us_hospitals(num_hospitals).sort_values(by='Population', ascending=False)
-    xy = df[['longitude', 'latitude']].values
-    excess = df['excess_beds'].values
-    d = distance_matrix_haversine(xy)
-    n = len(d)
-    if n % partition_size != 0:
-        return None, None, df, n, None
-    nn = []
-    for i in range(n):
-        nn.append(np.argsort(d[i])[1:num_neighbors+1])
-    p_combinations = set()
-    for idx, neighb in enumerate(nn):
+    dataframe = us_hospitals(num_hospitals).sort_values(by='Population', ascending=False)
+    positions = dataframe[['longitude', 'latitude']].values
+    excess = dataframe['excess_beds'].values
+    d = distance_matrix_haversine(positions)
+    num_hospitals = len(d)
+    if num_hospitals % partition_size != 0:
+        return None, None, dataframe, num_hospitals, None
+
+    # for each hospital find the first few nearest neighbors up to num_neighbors
+    nearest_neighbors = []
+    for i in range(num_hospitals):
+        nearest_neighbors.append(np.argsort(d[i])[1:num_neighbors+1])
+
+    # find all partitions that include num_neighbors of the nearest neighbors
+    partitions = set()
+    for idx, neighbor in enumerate(nearest_neighbors):
         if include_first_neighbor:
-            combs = list(map(lambda x: frozenset(x).union({idx}).union({neighb[0]}),
-                             combinations(neighb[1:], partition_size - 2)))
+            combs = list(map(lambda x: frozenset(x).union({idx}).union({neighbor[0]}),
+                             combinations(neighbor[1:], partition_size - 2)))
         else:
-            combs = list(map(lambda x: frozenset(x).union({idx}), combinations(neighb, partition_size - 1)))
-        p_combinations = p_combinations.union(set(combs))
+            combs = list(map(lambda x: frozenset(x).union({idx}), combinations(neighbor, partition_size - 1)))
+        partitions = partitions.union(set(combs))
+
+    # for each partition compute the cost and utility
     utility = []
     utility_dict = {}
     objective = {}
-    for part in p_combinations:
-        beds = excess[list(part)]
+    for partition in partitions:
+        beds = excess[list(partition)]
         transfer = transfer_score(beds)
-        xys = xy[list(part)]
+        xys = positions[list(partition)]
         solutions, cst, status, transfer = lp_problem(xys, beds, transfer, verbose=False)
-        utility.append([part, transfer, cst])
+        utility.append([partition, transfer, cst])
     utility = np.array(utility)
     transfer_stdev = np.std(utility[:, 1])
     cost_stdev = np.std(utility[:, 2])
-    for part, transfer, cst in utility:
-        objective[part] = (1 - alpha) * transfer / transfer_stdev - alpha * cst / cost_stdev
-        utility_dict[part] = [transfer, cst]
-    p_combinations = list(p_combinations)
-    return p_combinations, utility_dict, df, n, objective
+    for partition, transfer, cst in utility:
+        objective[partition] = (1 - alpha) * transfer / transfer_stdev - alpha * cst / cost_stdev
+        utility_dict[partition] = [transfer, cst]
+    partitions = list(partitions)
+    return partitions, utility_dict, dataframe, num_hospitals, objective
 
 
-def transfer_score(beds):
-    pos = beds[beds > 0]
-    neg = beds[beds < 0]
-    if len(pos) == 0:
+def transfer_score(resources):
+    """
+    compute the maximum transfer
+    :param resources: the amount of shortage/surplus in each location of the partition
+    :return: maximum transfer
+    """
+    surplus = resources[resources > 0]
+    shortage = resources[resources < 0]
+    if len(surplus) == 0:
         return 0
-    if len(neg) == 0:
+    if len(shortage) == 0:
         return 0
-    pos = np.sum(pos)
-    neg = np.sum(-neg)
-    return np.min([pos, neg])
+    surplus = np.sum(surplus)
+    shortage = np.sum(-shortage)
+    return np.min([surplus, shortage])
 
 
 def k_clique_from_combinations(utility=None, lagrange=3):
     """
+    # TODO use dwave-networkx weighted maximum clique or weighted maximum independent set
     This function naively generates all possible combinations of size number_variables/num_partitions and then
     using a given utility function (generated randomly here), creates an objective function that find the clique of size
     num_partitions that has the maximum utility function.
@@ -130,6 +149,11 @@ def k_clique_from_combinations(utility=None, lagrange=3):
 
 
 def get_sampler(form: OptimizationParametersForm):
+    """
+    Given a set of user inputs, return the selected solver and a minimal set of default parameters
+    :param form: user input form
+    :return: solver, parameters
+    """
     name = form.solver.data
     if name == 'SimulatedAnnealing':
         return SimulatedAnnealingSampler(), {}
@@ -142,6 +166,11 @@ def get_sampler(form: OptimizationParametersForm):
 
 
 def plot(form: OptimizationParametersForm):
+    """
+    Plot the empty map of the US centered at `lon=-73.985130, lat=40.758896`
+    :param form: user input form
+    :return: fig handle object
+    """
     px.set_mapbox_access_token(open(".mapbox_token").read())
     df = us_hospitals(int(form.num_hospitals.data))
     df['size'] = np.abs(df['excess_beds'])
@@ -293,14 +322,14 @@ def add_trace(fig, df, sorg, utility):
     return fig
 
 
-def get_graphs(form: OptimizationParametersForm):
+def plot_empty_map(form: OptimizationParametersForm):
     graphs = [plot(form)]
     ids = ['graph-{}'.format(i) for i, _ in enumerate(graphs)]
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
     return ids, graphJSON
 
 
-def get_graphs_results(form: OptimizationParametersForm):
+def plot_map_results(form: OptimizationParametersForm):
     fig, success, message, run_time, res = plot_results(form)
     graphs = [fig]
     ids = ['graph-{}'.format(i) for i, _ in enumerate(graphs)]

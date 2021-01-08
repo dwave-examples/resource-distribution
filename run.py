@@ -2,7 +2,7 @@ from flask import Flask
 from flask import render_template, url_for, redirect
 from flask import flash
 from forms import OptimizationParametersForm
-from get_graphs import get_graphs, get_graphs_results
+from resource_distribution import plot_empty_map, plot_map_results
 import plotly.graph_objects as go
 import plotly
 import json
@@ -33,13 +33,13 @@ def optimization():
         flash(f'Parameters submitted successfully!', category='success')
         if form.update.data:
             results.clear()
-            ids, graphJSON = get_graphs(form)
+            ids, graphJSON = plot_empty_map(form)
             return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
         else:
-            ids, graphJSON, success, message, run_time, res = get_graphs_results(form)
+            ids, graphJSON, success, message, run_time, res = plot_map_results(form)
             if success == 0:
                 flash(message, category='danger')
-                ids, graphJSON = get_graphs(form)
+                ids, graphJSON = plot_empty_map(form)
                 return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
             elif success == 1:
                 flash(message, category='danger')
@@ -54,7 +54,7 @@ def optimization():
             # graphJSON += graphJSON2
             return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON, results=results)
     else:
-        ids, graphJSON = get_graphs(form)
+        ids, graphJSON = plot_empty_map(form)
         return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
 
 
