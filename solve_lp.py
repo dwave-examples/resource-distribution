@@ -43,26 +43,29 @@ def distance_matrix_haversine(X: Points):
     return D
 
 
-def lp_problem(points: Points, shortage, transfer, verbose=False):
+def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
     """
     Form and solve the LP problem within each cluster of cities/hospitals
     
     :param points: List of tuples of (longitude, latitude) coordinates
-    :param shortage: The amount of shortage for each location
+    :param signed_shortage: The amount of shortage for each location
         (negative values are shortages, positive values are surpluses)
     :param transfer: The amount of transfer we aim to achieve within each group of points.
         The problem is the optimization of cost subject to having at least this amount of transfer
     :param verbose: Whether to print out some partial information
     :return: the solution, optimal cost, status, optimal transfer
     """
-    index_surplus = shortage > 0
-    index_shortage = shortage < 0
+    index_surplus = signed_shortage > 0
+    index_shortage = signed_shortage < 0
 
-    location_surplus = points[index_surplus]
-    location_shortage = points[index_shortage]
+    try:
+        location_surplus = points[index_surplus]
+        location_shortage = points[index_shortage]
+    except:
+        a = 2
 
-    surplus = shortage[index_surplus]
-    shortage = shortage[index_shortage]
+    surplus = signed_shortage[index_surplus]
+    shortage = signed_shortage[index_shortage]
     num_surplus = len(surplus)
     num_shortage = len(shortage)
     if num_surplus == 0 or num_shortage == 0:
@@ -70,7 +73,8 @@ def lp_problem(points: Points, shortage, transfer, verbose=False):
     prob = LpProblem("Transfer_cost", LpMinimize)
     data = {}
     iix = 0
-    for (idx, (xyp, sp)), (jdx, (xyn, sn)) in product(enumerate(zip(location_surplus, surplus)), enumerate(zip(location_shortage, shortage))):
+    for (idx, (xyp, sp)), (jdx, (xyn, sn)) in product(enumerate(zip(location_surplus, surplus)),
+                                                      enumerate(zip(location_shortage, shortage))):
         distance = haversine(xyp, xyn)
         t = np.min([sp, -sn])
         data[(idx, jdx)] = [
@@ -100,6 +104,6 @@ def lp_problem(points: Points, shortage, transfer, verbose=False):
     cost = (prob.objective.value())
 
     if status != 'Optimal':
-        return lp_problem(points, shortage, transfer - 1)
+        return lp_problem(points, signed_shortage, transfer - 1)
 
     return solutions, cost, status, transfer
