@@ -33,29 +33,26 @@ def optimization():
         flash(f'Parameters submitted successfully!', category='success')
         if form.update.data:
             results.clear()
-            ids, graphJSON = plot_empty_map(form)
-            return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
+            graph_indices, graphJSON = plot_empty_map(form)
+            return render_template('optimization.html', form=form, ids=graph_indices, graphJSON=graphJSON)
         else:
-            ids, graphJSON, success, message, run_time, res = plot_map_results(form)
+            graph_indices, graphJSON, success, message, run_time, result = plot_map_results(form)
             if success == 0:
                 flash(message, category='danger')
-                ids, graphJSON = plot_empty_map(form)
-                return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
+                graph_indices, graphJSON = plot_empty_map(form)
+                return render_template('optimization.html', form=form, ids=graph_indices, graphJSON=graphJSON)
             elif success == 1:
                 flash(message, category='danger')
                 flash(f'Solve time: {run_time:.2f}', category='info')
-            elif res is None:
+            elif result is None:
                 flash(message, category='danger')
             else:
-                results.append(res)
+                results.append(result)
                 flash(f'Solve time: {run_time:.2f}', category='info')
-            # ids2, graphJSON2 = plot_results(results)
-            # ids += ids2
-            # graphJSON += graphJSON2
-            return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON, results=results)
+            return render_template('optimization.html', form=form, ids=graph_indices, graphJSON=graphJSON, results=results)
     else:
-        ids, graphJSON = plot_empty_map(form)
-        return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
+        graph_indices, graphJSON = plot_empty_map(form)
+        return render_template('optimization.html', form=form, ids=graph_indices, graphJSON=graphJSON)
 
 
 def plot_results(results):

@@ -169,7 +169,7 @@ def plot(form: OptimizationParametersForm):
     """
     Plot the empty map of the US centered at `lon=-73.985130, lat=40.758896`
     :param form: user input form
-    :return: fig handle object
+    :return: figure handle object
     """
     px.set_mapbox_access_token(open(".mapbox_token").read())
     df = us_hospitals(int(form.num_hospitals.data))
@@ -182,23 +182,31 @@ def plot(form: OptimizationParametersForm):
 
 
 def plot_results(form: OptimizationParametersForm):
+    """
+
+    :param form:
+    :return: figure, success, message, run_time, result
+    """
     message = ''
-    fig = plot(form)
+    figure = plot(form)
     name = f'saved_problems/main_problem_{form.partition_size.data}_{form.num_hospitals.data}_{form.num_neighbors.data}_{form.alpha.data:.2f}'
+    success = 0
+    run_time = 0
+    result = None
     if not exists('saved_problems/'):
         makedirs('saved_problems/')
     if exists(name):
         print('loading')
         with open(name, 'rb') as f:
-            p_combinations, utility, df, n, objective = pickle.load(f)
+            p_combinations, utility, dataframe, n, objective = pickle.load(f)
     else:
-        p_combinations, utility, df, n, objective = create_utility_function(form)
+        p_combinations, utility, dataframe, n, objective = create_utility_function(form)
         print('writing')
         with open(name, 'wb') as f:
-            pickle.dump((p_combinations, utility, df, n, objective), f)
+            pickle.dump((p_combinations, utility, dataframe, n, objective), f)
     if utility is None:
         message = f'Number of cities {n} is not divisible by partition size {form.partition_size.data}'
-        return fig, 0, message, 0, None
+        return figure, success, message, run_time, result
 
     bqm, _, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
     num_variables = len(set().union(*p_combinations))
@@ -208,55 +216,61 @@ def plot_results(form: OptimizationParametersForm):
     t0 = time()
     try:
         if form.solver.data == 'SimulatedAnnealing':
-            res = sampler.sample(bqm)
-            beta_range = res.info['beta_range']
+            response = sampler.sample(bqm)
+            beta_range = response.info['beta_range']
             t0 = time()
-            res = sampler.sample(bqm, beta_range=beta_range)
-            t = time() - t0
-            nsw = int(float(form.time_limit.data) / t * 1000 / 10)
-            print(nsw)
-            t = 0
-            while t < float(form.time_limit.data):
+            response = sampler.sample(bqm, beta_range=beta_range)
+            run_time = time() - t0
+            nsw = int(float(form.time_limit.data) / run_time * 1000 / 10)
+            run_time = 0
+            while run_time < float(form.time_limit.data):
                 t0 = time()
-                res = dimod.concatenate((res, sampler.sample(bqm, num_sweeps=nsw, beta_range=beta_range)))
-                t += time() - t0
-            res = res.truncate(1)
+                response = dimod.concatenate((response, sampler.sample(bqm, num_sweeps=nsw, beta_range=beta_range)))
+                run_time += time() - t0
+            response = response.truncate(1)
         else:
-            res = sampler.sample(bqm, **params).truncate(1)
-            t = time() - t0
+            response = sampler.sample(bqm, **params).truncate(1)
+            run_time = time() - t0
             if form.solver.data == 'LeapHybridSampler':
-                t = res.info['run_time'] / 1e6
+                run_time = response.info['run_time'] / 1e6
 
     except ValueError as err:
         message = str(err)
-        return fig, 0, message, 0, None
-    variables = np.array(res.variables)
+        success = 0
+        run_time = 0
+        result = None
+        return figure, success, message, run_time, result
+    variables = np.array(response.variables)
 
     num_variables = len(set().union(*p_combinations))
-    k = num_variables // partition_size
-    res = Result(res, p_combinations, variables, num_variables, utility, k, t, solver=form.solver.data)
-    if res.total_cost is None or res.total_utility is None or res.energy is None:
+    num_partitions = num_variables // partition_size
+    response = Result(response, p_combinations, variables, num_variables, utility,
+                      num_partitions, run_time, solver=form.solver.data)
+    if response.total_cost is None or response.total_utility is None or response.energy is None:
         message = f'No feasible solution found'
-        return fig, 1, message, t, None
-    sample = res.sample
+        success = 1
+        result = None
+        return figure, success, message, run_time, result
+    sample = response.sample
     sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
     np.random.seed(123)
     for sorg in sol:
-        fig = add_trace(fig, df, sorg, utility)
+        figure = add_trace(figure, dataframe, sorg, utility)
 
-    fig.update_layout(title=f'Valid solution with utility {res.total_utility} '
-                            f'and total cost {res.total_cost:.2f}, objective {res.energy:.2f}')
-    return fig, 2, message, t, res
+    figure.update_layout(title=f'Valid solution with utility {response.total_utility} '
+                            f'and total cost {response.total_cost:.2f}, objective {response.energy:.2f}')
+    success = 2
+    return figure, success, message, run_time, response
 
 
 class Result:
-    def __init__(self, res, p_combinations, variables, num_variables, utility, k, t, solver):
+    def __init__(self, response, p_combinations, variables, num_variables, utility, k, t, solver):
         total_cost = None
         self.solver = solver
         total_utility = None
         self.t = t
         energy = None
-        for sample, energy, occ in res.record:
+        for sample, energy, occ in response.record:
             if k != sum(sample):
                 continue
             sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
@@ -270,7 +284,7 @@ class Result:
                 continue
             total_utility = np.sum([utility[x][0] for x in sol])
             total_cost = np.sum([utility[x][1] for x in sol])
-        self.sample = res.truncate(1).record.sample[0]
+        self.sample = response.truncate(1).record.sample[0]
         self.total_utility = total_utility
         self.total_cost = total_cost
         self.energy = energy
@@ -279,9 +293,9 @@ class Result:
         return f'{self.solver:40s}: Utility {self.total_utility:.2f}, cost {self.total_cost:.2f}, energy {self.energy:.2f}, in {self.t:.2f} seconds'
 
 
-def add_trace(fig, df, sorg, utility):
+def add_trace(figure, dataframe, sorg, utility):
     s = np.array(list(sorg))
-    dfxy = df.iloc[s]
+    dfxy = dataframe.iloc[s]
     dfxy = dfxy[['longitude', 'latitude']]
     if len(s) > 2:
         hull = ConvexHull(dfxy.values)
@@ -294,7 +308,7 @@ def add_trace(fig, df, sorg, utility):
     rnd = lambda: np.random.randint(0, 256)
     color = f'rgba({rnd()}, {rnd()}, {rnd()}, 0.3)'
     if u[0] > 0:
-        fig.add_trace(
+        figure.add_trace(
             go.Scattermapbox(
                 lon=[dfxy.values[idx][0] for idx in vertices],
                 lat=[dfxy.values[idx][1] for idx in vertices],
@@ -306,7 +320,7 @@ def add_trace(fig, df, sorg, utility):
                 marker={'size': 0},
             ))
 
-        fig.add_trace(
+        figure.add_trace(
             go.Scattermapbox(
                 lon=[cm[0]],
                 lat=[cm[1]],
@@ -319,7 +333,7 @@ def add_trace(fig, df, sorg, utility):
                     opacity=0.0
                 ),
             ))
-    return fig
+    return figure
 
 
 def plot_empty_map(form: OptimizationParametersForm):
@@ -330,8 +344,8 @@ def plot_empty_map(form: OptimizationParametersForm):
 
 
 def plot_map_results(form: OptimizationParametersForm):
-    fig, success, message, run_time, res = plot_results(form)
-    graphs = [fig]
+    figure, success, message, run_time, result = plot_results(form)
+    graphs = [figure]
     ids = ['graph-{}'.format(i) for i, _ in enumerate(graphs)]
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
-    return ids, graphJSON, success, message, run_time, res
+    return ids, graphJSON, success, message, run_time, result
