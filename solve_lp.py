@@ -74,6 +74,7 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
     
     Returns:
         The solution, optimal cost, status, optimal transfer
+
     """
     index_surplus = signed_shortage > 0
     index_shortage = signed_shortage < 0
