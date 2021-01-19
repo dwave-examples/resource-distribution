@@ -249,49 +249,60 @@ def get_empty_map(form: OptimizationParametersForm):
     return folium_map
 
 def add_result_marker(figure, dataframe, sorg, utility):
-    """Adds a marker to figure representing one group of hospitals.
+    """Adds a marker to figure representing one grouping of hospitals.
 
     Args:
         figure (folium.Map):
             Map object to be added to
 
         dataframe (pandas.DataFrame):
-            Contains longitude and latitude data for one group
+            Contains hospital data
 
-        utility (2-tuple):
-            First element is the transfer value, second is cost
+        sorg (frozenset):
+            One grouping of hospitals
+
+        utility (dict):
+            Each key is a grouping of hospitals and each value is a tuple 
+            of (transfer, cost)
 
     Returns:
         None
     """
-    if len(s) > 2:
-        hull = ConvexHull(dfxy.values)
-        vertices = hull.vertices
-    else:
-        vertices = range(len(s))
+    s = np.array(list(sorg))
+    dfxy = dataframe.iloc[s]
+    dfxy = dfxy[['longitude', 'latitude']]
 
-    locations = [(dfxy.values[idx][1], dfxy.values[idx][0]) for idx in vertices]
+    u = utility[sorg]
 
-    colors = ['red', 'blue', 'green', 'purple']
-    color = np.random.choice(colors)
+    if u[0] > 0:
+        if len(s) > 2:
+            hull = ConvexHull(dfxy.values)
+            vertices = hull.vertices
+        else:
+            vertices = range(len(s))
 
-    folium.vector_layers.Polygon(locations,
-                                    fill=True,
-                                    stroke=True,
-                                    color=color,
-                                    fill_color=color,
-                                    fill_opacity=0.3,
-                                    opacity=0.2).add_to(figure)
+        locations = [(dfxy.values[idx][1], dfxy.values[idx][0]) for idx in vertices]
 
-    text = f'Transfers {utility[0]:.2f} <br> Cost {utility[1]:.2f}'
-    cm = np.mean(dfxy.values[vertices], axis=0)
+        colors = ['red', 'blue', 'green', 'purple']
+        color = np.random.choice(colors)
 
-    folium.map.Marker([cm[1], cm[0]],
-                        icon=DivIcon(icon_size=(150,36),
-                        icon_anchor=(75,18),
-                        html='<div style="font-size: 12pt">%s</div>' % text)).add_to(figure)
+        folium.vector_layers.Polygon(locations,
+                                        fill=True,
+                                        stroke=True,
+                                        color=color,
+                                        fill_color=color,
+                                        fill_opacity=0.3,
+                                        opacity=0.2).add_to(figure)
 
-def plot_results(form: OptimizationParametersForm):
+        text = f'Transfers {u[0]:.2f} <br> Cost {u[1]:.2f}'
+        cm = np.mean(dfxy.values[vertices], axis=0)
+
+        folium.map.Marker([cm[1], cm[0]],
+                            icon=DivIcon(icon_size=(150,36),
+                            icon_anchor=(75,18),
+                            html='<div style="font-size: 12pt">%s</div>' % text)).add_to(figure)
+
+def get_results(form: OptimizationParametersForm):
     """
 
     :param form:
@@ -367,15 +378,7 @@ def plot_results(form: OptimizationParametersForm):
     sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
 
     for sorg in sol:
-        s = np.array(list(sorg))
-        dfxy = dataframe.iloc[s]
-        dfxy = dfxy[['longitude', 'latitude']]
-
-        u = utility[sorg]
-
-        # Checking transfer value
-        if u[0] > 0:
-            add_result_marker(figure, dataframe, sorg, u)
+        add_result_marker(figure, dataframe, sorg, utility)
 
     success = 2
     return figure, success, message, run_time, response

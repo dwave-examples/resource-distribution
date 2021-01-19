@@ -2,7 +2,7 @@ from flask import Flask
 from flask import render_template, url_for, redirect
 from flask import flash
 from forms import OptimizationParametersForm
-from resource_distribution import get_empty_map, plot_results
+from resource_distribution import get_empty_map, get_results
 import plotly.graph_objects as go
 import plotly
 import json
@@ -37,8 +37,8 @@ def optimization():
             empty_map.save('templates/map.html')
             return render_template('optimization.html', form=form)
         else:
-            map_results, success, message, run_time, result = plot_results(form)
-            map_results.save('templates/map.html')
+            figure, success, message, run_time, result = get_results(form)
+            figure.save('templates/map.html')
             if success == 0:
                 flash(message, category='danger')
                 return render_template('optimization.html', form=form)
