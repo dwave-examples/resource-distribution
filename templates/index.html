@@ -80,19 +80,3 @@
             solving the weighted k-clique problem." Quantum Science and Technology 3.2 (2018): 024010.
     </p>
 {% endblock content %}
-
-{% block footer %}
-  <script type="text/javascript">
-
-        var graphs = {{graphJSON | safe}};
-        var ids = {{ids | safe}};
-
-        for(var i in graphs) {
-            Plotly.plot(ids[i], // the ID of the div, created above
-                        graphs[i].data,
-                        graphs[i].layout || {});
-        }
-
-  </script>
-{% endblock %}
-
