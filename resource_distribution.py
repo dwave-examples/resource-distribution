@@ -192,7 +192,7 @@ def get_sampler(form: OptimizationParametersForm):
         tuple: A 2-tuple containing:
             solver: User selected solver
 
-            dict: Default parameters
+            dict: Default parameters for the solver
     """
     name = form.solver.data
     if name == 'SimulatedAnnealing':
@@ -303,20 +303,40 @@ def add_result_marker(figure, dataframe, sorg, utility):
                             html='<div style="font-size: 12pt">%s</div>' % text)).add_to(figure)
 
 def get_results(form: OptimizationParametersForm):
-    """
+    """Generate problem based on user input and solve the BQM for results.
+    
+    Args:
+        form (OptimizationParametersForm):
+            User input form
+    
+    Returns:
+        figure (folium.Map):
+            Map containing markers displaying hospital partitions
 
-    :param form:
-    :return: figure, success, message, run_time, result
+        success (int):
+            0 - Error occurred
+            1 - No feasible solution found
+            2 - Solution found
+
+        message (str):
+            Message to flash to user
+        
+        run_time (float)
+        
+        result (Result/None):
+            Result object containing info on the problem and solution
     """
     message = ''
     figure = get_empty_map(form)
 
-    name = f'saved_problems/main_problem_{form.partition_size.data}_{form.num_hospitals.data}_{form.num_neighbors.data}_{form.alpha.data:.2f}'
     success = 0
     run_time = 0
     result = None
+
     if not exists('saved_problems/'):
         makedirs('saved_problems/')
+
+    name = f'saved_problems/main_problem_{form.partition_size.data}_{form.num_hospitals.data}_{form.num_neighbors.data}_{form.alpha.data:.2f}'
     if exists(name):
         print('loading')
         with open(name, 'rb') as f:
@@ -326,13 +346,12 @@ def get_results(form: OptimizationParametersForm):
         print('writing')
         with open(name, 'wb') as f:
             pickle.dump((p_combinations, utility, dataframe, n, objective), f)
+
     if utility is None:
         message = f'Number of cities {n} is not divisible by partition size {form.partition_size.data}'
         return figure, success, message, run_time, result
 
     bqm, _, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
-    num_variables = len(set().union(*p_combinations))
-    partition_size = len(p_combinations[0])
 
     sampler, params = get_sampler(form)
     t0 = time()
@@ -362,12 +381,15 @@ def get_results(form: OptimizationParametersForm):
         run_time = 0
         result = None
         return figure, success, message, run_time, result
+
     variables = np.array(response.variables)
 
-    num_variables = len(set().union(*p_combinations))
-    num_partitions = num_variables // partition_size
-    response = Result(response, p_combinations, variables, num_variables, utility,
+    num_hospitals = form.num_hospitals.data
+    num_partitions = num_hospitals // form.partition_size.data
+
+    response = Result(response, p_combinations, variables, num_hospitals, utility,
                       num_partitions, run_time, solver=form.solver.data)
+
     if response.total_cost is None or response.total_utility is None or response.energy is None:
         message = f'No feasible solution found'
         success = 1
@@ -385,7 +407,7 @@ def get_results(form: OptimizationParametersForm):
 
 
 class Result:
-    def __init__(self, response, p_combinations, variables, num_variables, utility, k, t, solver):
+    def __init__(self, response, p_combinations, variables, num_hospitals, utility, k, t, solver):
         total_cost = None
         self.solver = solver
         total_utility = None
@@ -401,7 +423,7 @@ class Result:
             intersect_length = sum(inter)
             if intersect_length > 0:
                 continue
-            if len(union) != num_variables:
+            if len(union) != num_hospitals:
                 continue
             total_utility = np.sum([utility[x][0] for x in sol])
             total_cost = np.sum([utility[x][1] for x in sol])
