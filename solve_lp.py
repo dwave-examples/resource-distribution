@@ -15,7 +15,7 @@ def haversine(point_1, point_2):
         point_2 (tuple(float, float))
 
     Returns:
-        The haversine distance
+        float: The haversine distance.
     """
     longitude1, latitude1 = point_1
     longitude2, latitude2 = point_2
@@ -35,11 +35,10 @@ def distance_matrix_haversine(X: Points):
     """Compute the haversine distance of a list of points.
 
     Args:
-        X (iterable):
-            List of tuples or 2-d array of floats (Mx2)
+        X: List of tuples or 2-d array of floats (Mx2).
     
     Returns:
-        Matrix (MxM) of distances
+        Matrix (MxM) of distances.
     """
     M = X.shape[0]
     N = X.shape[1]
@@ -58,22 +57,22 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
     
     Args:
         points (list):
-            List of tuples of (longitude, latitude) coordinates
+            List of tuples of (longitude, latitude) coordinates.
     
         signed_shortage (int):
             The amount of shortage for each location (negative values are shortages,
-            positive values are surpluses)
+            positive values are surpluses).
 
         transfer (float):
             The amount of transfer we aim to achieve within each group of points. The 
             problem is the optimization of cost subject to having at least this amount 
-            of transfer
+            of transfer.
 
         verbose (boolean):
-            Whether to print out some partial information
+            Whether to print out some partial information.
     
     Returns:
-        The solution, optimal cost, status, optimal transfer
+        The solution, optimal cost, status, optimal transfer.
 
     """
     index_surplus = signed_shortage > 0
@@ -91,6 +90,7 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
     num_shortage = len(shortage)
     if num_surplus == 0 or num_shortage == 0:
         return [], 0, 'Optimal', 0
+
     prob = LpProblem("Transfer_cost", LpMinimize)
     data = {}
     iix = 0

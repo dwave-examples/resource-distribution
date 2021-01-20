@@ -20,14 +20,14 @@ import math
 
 
 def us_hospitals(num_hospitals: int) -> pd.DataFrame:
-    """Load the hospitals dataset and assign random values of resource
+    """Loads the hospitals dataset and assigns random values of resource
     shortage/surplus proportional to hospital size.
 
     Args:
-        num_hospitals (int)
+        num_hospitals: Number of hospitals to add to the map.
 
     Returns:
-        pandas.DataFrame
+        Hospital data.
     """
     df = pd.read_csv('hospitals_processed.csv').drop(['Unnamed: 0'], axis=1).reset_index()
     df.columns = [x.lower() for x in df.columns]
@@ -51,23 +51,23 @@ def create_utility_function(form: OptimizationParametersForm, include_first_neig
     hospitals and compute the optimal cost and utility of each partition.
 
     Args:
-        form (OptimizationParametersForm):
-            User input form
+        form:
+            User input form.
 
-        include_first_neighbor (boolean):
-            To reduce problem complexity, always consider the first nearest neighbor
+        include_first_neighbor (boolean, default=False):
+            To reduce problem complexity, always consider the first nearest neighbor.
 
     Returns:
         tuple: A 5-tuple containing:
-            list: Partitions of hospitals
+            list: Groupings of hospitals.
 
-            dict: Utility
+            dict: Utility (Each key is a hospital grouping, each value is a tuple (transfer, cost)).
 
-            pandas.DataFrame: Hospital data
+            pandas.DataFrame: Hospital data.
 
-            int: Number of hospitals
+            int: Number of hospitals.
 
-            dict: Objective values
+            dict: Each key is a hospital grouping, each value is its objective value.
     """
     num_hospitals = int(form.num_hospitals.data)
     num_neighbors = int(form.num_neighbors.data)
@@ -122,17 +122,16 @@ def transfer_score(resources):
 
     Args:
         resources (int):
-            Amount of shortage/surplus in each location of the partition
+            Amount of shortage/surplus in each location of the partition.
 
     Returns:
-        Maximum transfer
+        float: Maximum transfer.
     """
     surplus = resources[resources > 0]
     shortage = resources[resources < 0]
-    if len(surplus) == 0:
+    if len(surplus) == 0 or len(shortage) == 0:
         return 0
-    if len(shortage) == 0:
-        return 0
+
     surplus = np.sum(surplus)
     shortage = np.sum(-shortage)
     return np.min([surplus, shortage])
@@ -147,7 +146,7 @@ def k_clique_from_combinations(utility=None, lagrange=3):
     clique of size num_partitions that has the maximum utility function.
 
     Args:
-        utility (dict):
+        utility (dict, default=None):
             A dictionary with frozenset of size partition_size as keys. The dictionary
             returns the utility function for a given partition.
 
@@ -159,7 +158,7 @@ def k_clique_from_combinations(utility=None, lagrange=3):
         tuple: A 3-tuple containing:
             bqm: BinaryQuadraticModel
 
-            dict: Utility
+            dict: Utility 
 
             list: p_combinations
     """
@@ -182,14 +181,14 @@ def get_sampler(form: OptimizationParametersForm):
     of default parameters.
 
     Args:
-        form (OptimizationParametersForm):
-            User input form
+        form:
+            User input form.
 
     Returns:
         tuple: A 2-tuple containing:
-            solver: User selected solver
+            solver: User selected solver.
 
-            dict: Default parameters for the solver
+            dict: Default parameters for the solver.
     """
     name = form.solver.data
     if name == 'SimulatedAnnealing':
@@ -205,8 +204,8 @@ def get_empty_map(form: OptimizationParametersForm):
     """Create a Folium map with hospital markers.
 
     Args:
-        form (OptimizationParametersForm):
-            User input form
+        form:
+            User input form.
 
     Returns:
         folium.Map
@@ -250,17 +249,17 @@ def add_result_marker(figure, dataframe, sorg, utility):
 
     Args:
         figure (folium.Map):
-            Map object to be added to
+            Map object to be added to.
 
         dataframe (pandas.DataFrame):
-            Contains hospital data
+            Contains hospital data.
 
         sorg (frozenset):
-            One grouping of hospitals
+            One grouping of hospitals.
 
         utility (dict):
             Each key is a grouping of hospitals and each value is a tuple 
-            of (transfer, cost)
+            of (transfer, cost).
 
     Returns:
         None
@@ -303,25 +302,23 @@ def get_results(form: OptimizationParametersForm):
     """Generate problem based on user input and solve the BQM for results.
     
     Args:
-        form (OptimizationParametersForm):
-            User input form
+        form:
+            User input form.
     
     Returns:
-        figure (folium.Map):
-            Map containing markers displaying hospital partitions
+        tuple: A 5-tuple containing:
+            folium.Map: Map with markers displaying hospital partitions.
 
-        success (int):
-            0 - Error occurred
-            1 - No feasible solution found
-            2 - Solution found
+            int: Describes outcome:
+                0 - Error occurred
+                1 - No feasible solution found
+                2 - Solution found
 
-        message (str):
-            Message to flash to user
-        
-        run_time (float)
-        
-        result (Result/None):
-            Result object containing info on the problem and solution
+            str: Message to flash to user.
+            
+            float: Run time.
+
+            Result/None: Result object containing info on the problem and solution.
     """
     message = ''
     figure = get_empty_map(form)
