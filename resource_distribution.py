@@ -1,6 +1,3 @@
-import plotly
-import plotly.express as px
-import plotly.graph_objects as go
 from dwave.system import LeapHybridSampler
 from neal import SimulatedAnnealingSampler
 from scipy.spatial import ConvexHull
@@ -11,7 +8,6 @@ from time import time
 import numpy as np
 from dimod import BinaryQuadraticModel
 from collections import defaultdict
-import json
 from solve_lp import lp_problem, haversine, distance_matrix_haversine
 import dimod
 import pickle

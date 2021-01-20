@@ -3,9 +3,6 @@ from flask import render_template, url_for, redirect
 from flask import flash
 from forms import OptimizationParametersForm
 from resource_distribution import get_empty_map, get_results
-import plotly.graph_objects as go
-import plotly
-import json
 import sys
 
 if len(sys.argv) > 1:
