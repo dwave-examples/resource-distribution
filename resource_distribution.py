@@ -16,6 +16,7 @@ from os import makedirs
 from forms import OptimizationParametersForm
 import folium
 from folium.features import DivIcon
+import math
 
 
 def us_hospitals(num_hospitals: int) -> pd.DataFrame:
@@ -232,7 +233,7 @@ def get_empty_map(form: OptimizationParametersForm):
     # Add one marker per hospital
     for latitude, longitude, size, excess_beds, color in zip(df['latitude'], df['longitude'], df['size'], df['excess_beds'], df['marker_color']):
         folium.CircleMarker([latitude, longitude],
-                            radius=0.25*abs(excess_beds),
+                            radius=math.sqrt(size)+3,
                             tooltip=('Size: ' + str(size) + '<br>'
                                      'Latitude: ' + str(latitude) + '<br>'
                                      'Longitude: ' + str(longitude) + '<br>'
