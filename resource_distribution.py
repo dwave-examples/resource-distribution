@@ -137,7 +137,7 @@ def transfer_score(resources):
     return np.min([surplus, shortage])
 
 
-def k_clique_from_combinations(utility=None, lagrange=3):
+def k_clique_from_combinations(utility, lagrange=3):
     """
     # TODO use dwave-networkx weighted maximum clique or weighted maximum independent set
     This function naively generates all possible combinations of size
@@ -146,7 +146,7 @@ def k_clique_from_combinations(utility=None, lagrange=3):
     clique of size num_partitions that has the maximum utility function.
 
     Args:
-        utility (dict, default=None):
+        utility (dict):
             A dictionary with frozenset of size partition_size as keys. The dictionary
             returns the utility function for a given partition.
 
@@ -158,9 +158,7 @@ def k_clique_from_combinations(utility=None, lagrange=3):
         tuple: A 3-tuple containing:
             bqm: BinaryQuadraticModel
 
-            dict: Utility 
-
-            list: p_combinations
+            list: All possible combinations of hospital groupings.
     """
     p_combinations = list(utility.keys())
     scale = np.max(np.abs(list(utility.values())))
@@ -174,7 +172,7 @@ def k_clique_from_combinations(utility=None, lagrange=3):
             if len(intersection) > 0:
                 qubo[(idx, jdx)] += lagrange * len(intersection)
     bqm = BinaryQuadraticModel.from_qubo(qubo)
-    return bqm, utility, p_combinations
+    return bqm, p_combinations
 
 def get_sampler(form: OptimizationParametersForm):
     """Given a set of user inputs, return the selected solver and a minimal set
@@ -345,7 +343,7 @@ def get_results(form: OptimizationParametersForm):
         message = f'Number of cities {n} is not divisible by partition size {form.partition_size.data}'
         return figure, success, message, run_time, result
 
-    bqm, _, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
+    bqm, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
 
     sampler, params = get_sampler(form)
     t0 = time()
