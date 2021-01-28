@@ -7,9 +7,15 @@ Points = Union[List[Tuple[float, float]], np.ndarray]
 
 
 def haversine(point_1, point_2):
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
+    """Calculate the great circle distance between two points on earth
+    (specified in decimal degrees).
+
+    Args:
+        point_1 (tuple(float, float))
+        point_2 (tuple(float, float))
+
+    Returns:
+        float: The haversine distance.
     """
     longitude1, latitude1 = point_1
     longitude2, latitude2 = point_2
@@ -26,10 +32,13 @@ def haversine(point_1, point_2):
 
 
 def distance_matrix_haversine(X: Points):
-    """
-    compute the haversine distance of a list of points
-    :param X: List of tuples or 2-d array of floats (Mx2)
-    :return: Matrix (MxM) of distances
+    """Compute the haversine distance of a list of points.
+
+    Args:
+        X: List of tuples or 2-d array of floats (Mx2).
+    
+    Returns:
+        Matrix (MxM) of distances.
     """
     M = X.shape[0]
     N = X.shape[1]
@@ -44,16 +53,27 @@ def distance_matrix_haversine(X: Points):
 
 
 def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
-    """
-    Form and solve the LP problem within each cluster of cities/hospitals
+    """Form and solve the LP problem within each cluster of cities/hospitals.
     
-    :param points: List of tuples of (longitude, latitude) coordinates
-    :param signed_shortage: The amount of shortage for each location
-        (negative values are shortages, positive values are surpluses)
-    :param transfer: The amount of transfer we aim to achieve within each group of points.
-        The problem is the optimization of cost subject to having at least this amount of transfer
-    :param verbose: Whether to print out some partial information
-    :return: the solution, optimal cost, status, optimal transfer
+    Args:
+        points (list):
+            List of tuples of (longitude, latitude) coordinates.
+    
+        signed_shortage (int):
+            The amount of shortage for each location (negative values are shortages,
+            positive values are surpluses).
+
+        transfer (float):
+            The amount of transfer we aim to achieve within each group of points. The 
+            problem is the optimization of cost subject to having at least this amount 
+            of transfer.
+
+        verbose (boolean):
+            Whether to print out some partial information.
+    
+    Returns:
+        The solution, optimal cost, status, optimal transfer.
+
     """
     index_surplus = signed_shortage > 0
     index_shortage = signed_shortage < 0
@@ -70,6 +90,7 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
     num_shortage = len(shortage)
     if num_surplus == 0 or num_shortage == 0:
         return [], 0, 'Optimal', 0
+
     prob = LpProblem("Transfer_cost", LpMinimize)
     data = {}
     iix = 0

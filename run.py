@@ -2,10 +2,7 @@ from flask import Flask
 from flask import render_template, url_for, redirect
 from flask import flash
 from forms import OptimizationParametersForm
-from resource_distribution import plot_empty_map, plot_map_results
-import plotly.graph_objects as go
-import plotly
-import json
+from resource_distribution import get_empty_map, get_results
 import sys
 
 if len(sys.argv) > 1:
@@ -15,6 +12,7 @@ else:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '2b55241464af362a104880e46b36d2b6'
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 
 results = []
@@ -25,7 +23,6 @@ results = []
 def home():
     return render_template('index.html')
 
-
 @app.route('/optimization', methods=['GET', 'POST'])
 def optimization():
     form = OptimizationParametersForm()
@@ -33,14 +30,15 @@ def optimization():
         flash(f'Parameters submitted successfully!', category='success')
         if form.update.data:
             results.clear()
-            graph_indices, graphJSON = plot_empty_map(form)
-            return render_template('optimization.html', form=form, ids=graph_indices, graphJSON=graphJSON)
+            empty_map = get_empty_map(form)
+            empty_map.save('templates/map.html')
+            return render_template('optimization.html', form=form)
         else:
-            graph_indices, graphJSON, success, message, run_time, result = plot_map_results(form)
+            figure, success, message, run_time, result = get_results(form)
+            figure.save('templates/map.html')
             if success == 0:
                 flash(message, category='danger')
-                graph_indices, graphJSON = plot_empty_map(form)
-                return render_template('optimization.html', form=form, ids=graph_indices, graphJSON=graphJSON)
+                return render_template('optimization.html', form=form)
             elif success == 1:
                 flash(message, category='danger')
                 flash(f'Solve time: {run_time:.2f}', category='info')
@@ -49,21 +47,12 @@ def optimization():
             else:
                 results.append(result)
                 flash(f'Solve time: {run_time:.2f}', category='info')
-            return render_template('optimization.html', form=form, ids=graph_indices, graphJSON=graphJSON, results=results)
+            return render_template('optimization.html', form=form, results=results)
     else:
-        graph_indices, graphJSON = plot_empty_map(form)
-        return render_template('optimization.html', form=form, ids=graph_indices, graphJSON=graphJSON)
+        empty_map = get_empty_map(form)
+        empty_map.save('templates/map.html')
 
-
-def plot_results(results):
-    fig = go.Figure([
-        go.Bar(x=[res.solver for res in results],
-               y=[res.energy for res in results]
-               )])
-    ids = ['graph-results-{}'.format(i) for i in range(1)]
-    graphJSON = json.dumps([fig], cls=plotly.utils.PlotlyJSONEncoder)
-    return ids, graphJSON
-
+        return render_template('optimization.html', form=form)
 
 if __name__ == '__main__':
     app.run(debug=False, port=port)

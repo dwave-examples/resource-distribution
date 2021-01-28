@@ -1,6 +1,3 @@
-import plotly
-import plotly.express as px
-import plotly.graph_objects as go
 from dwave.system import LeapHybridSampler
 from neal import SimulatedAnnealingSampler
 from scipy.spatial import ConvexHull
@@ -11,22 +8,26 @@ from time import time
 import numpy as np
 from dimod import BinaryQuadraticModel
 from collections import defaultdict
-import json
 from solve_lp import lp_problem, haversine, distance_matrix_haversine
 import dimod
 import pickle
 from os.path import exists
 from os import makedirs
 from forms import OptimizationParametersForm
+import folium
+from folium.features import DivIcon
+import math
 
 
 def us_hospitals(num_hospitals: int) -> pd.DataFrame:
-    """
-    Load the hospitals dataset and assign random values of shortage/surplus of resources proportional to the size of
-        the hospitals.
+    """Loads the hospitals dataset and assigns random values of resource
+    shortage/surplus proportional to hospital size.
 
-    :param num_hospitals: The number of hospitals to keep
-    :return: pandas.DataFrame
+    Args:
+        num_hospitals: Number of hospitals to add to the map.
+
+    Returns:
+        Hospital data.
     """
     df = pd.read_csv('hospitals_processed.csv').drop(['Unnamed: 0'], axis=1).reset_index()
     df.columns = [x.lower() for x in df.columns]
@@ -46,12 +47,27 @@ def us_hospitals(num_hospitals: int) -> pd.DataFrame:
 
 
 def create_utility_function(form: OptimizationParametersForm, include_first_neighbor=False):
-    """
-    Given the parameters set by the user specified in `form`, create partitions of hospitals, compute the optimal
-        cost and utility of each partition
-    :param form: A user form specified by the class `OptimizationParametersForm`
-    :param include_first_neighbor: To reduce complexity of the problem, always consider the first nearest neighbor.
-    :return:
+    """Given user parameters specified in `form`, create partitions of
+    hospitals and compute the optimal cost and utility of each partition.
+
+    Args:
+        form:
+            User input form.
+
+        include_first_neighbor (boolean, default=False):
+            To reduce problem complexity, always consider the first nearest neighbor.
+
+    Returns:
+        tuple: A 5-tuple containing:
+            list: Groupings of hospitals.
+
+            dict: Utility (Each key is a hospital grouping, each value is a tuple (transfer, cost)).
+
+            pandas.DataFrame: Hospital data.
+
+            int: Number of hospitals.
+
+            dict: Each key is a hospital grouping, each value is its objective value.
     """
     num_hospitals = int(form.num_hospitals.data)
     num_neighbors = int(form.num_neighbors.data)
@@ -96,42 +112,53 @@ def create_utility_function(form: OptimizationParametersForm, include_first_neig
     cost_stdev = np.std(utility[:, 2])
     for partition, transfer, cst in utility:
         objective[partition] = (1 - alpha) * transfer / transfer_stdev - alpha * cst / cost_stdev
-        utility_dict[partition] = [transfer, cst]
+        utility_dict[partition] = (transfer, cst)
     partitions = list(partitions)
     return partitions, utility_dict, dataframe, num_hospitals, objective
 
 
 def transfer_score(resources):
-    """
-    compute the maximum transfer
-    :param resources: the amount of shortage/surplus in each location of the partition
-    :return: maximum transfer
+    """Compute the maximum transfer.
+
+    Args:
+        resources (int):
+            Amount of shortage/surplus in each location of the partition.
+
+    Returns:
+        float: Maximum transfer.
     """
     surplus = resources[resources > 0]
     shortage = resources[resources < 0]
-    if len(surplus) == 0:
+    if len(surplus) == 0 or len(shortage) == 0:
         return 0
-    if len(shortage) == 0:
-        return 0
+
     surplus = np.sum(surplus)
     shortage = np.sum(-shortage)
     return np.min([surplus, shortage])
 
 
-def k_clique_from_combinations(utility=None, lagrange=3):
+def k_clique_from_combinations(utility, lagrange=3):
     """
     # TODO use dwave-networkx weighted maximum clique or weighted maximum independent set
-    This function naively generates all possible combinations of size number_variables/num_partitions and then
-    using a given utility function (generated randomly here), creates an objective function that find the clique of size
-    num_partitions that has the maximum utility function.
-    :param utility: A dictionary with frozenset of size partition_size as keys. The dictionary returns the utitlity function for a given partition
-    :param lagrange: optional (default 3)
-        Lagrange parameter to weight constraints (no edges within set)
-        versus objective (largest set possible).
-    :return:
-    bqm: BinaryQuadraticModel
-    utility: dict
-    p_combinations: list
+    This function naively generates all possible combinations of size
+    number_variables/num_partitions and then using a given utility function
+    (generated randomly here), creates an objective function that find the
+    clique of size num_partitions that has the maximum utility function.
+
+    Args:
+        utility (dict):
+            A dictionary with frozenset of size partition_size as keys. The dictionary
+            returns the utility function for a given partition.
+
+        lagrange (int, default=3):
+            Lagrange parameter to weight constraints (no edges within set)
+            versus objective (largest set possible).
+
+    Returns:
+        tuple: A 3-tuple containing:
+            bqm: BinaryQuadraticModel
+
+            list: All possible combinations of hospital groupings.
     """
     p_combinations = list(utility.keys())
     scale = np.max(np.abs(list(utility.values())))
@@ -145,14 +172,21 @@ def k_clique_from_combinations(utility=None, lagrange=3):
             if len(intersection) > 0:
                 qubo[(idx, jdx)] += lagrange * len(intersection)
     bqm = BinaryQuadraticModel.from_qubo(qubo)
-    return bqm, utility, p_combinations
-
+    return bqm, p_combinations
 
 def get_sampler(form: OptimizationParametersForm):
-    """
-    Given a set of user inputs, return the selected solver and a minimal set of default parameters
-    :param form: user input form
-    :return: solver, parameters
+    """Given a set of user inputs, return the selected solver and a minimal set
+    of default parameters.
+
+    Args:
+        form:
+            User input form.
+
+    Returns:
+        tuple: A 2-tuple containing:
+            solver: User selected solver.
+
+            dict: Default parameters for the solver.
     """
     name = form.solver.data
     if name == 'SimulatedAnnealing':
@@ -164,37 +198,137 @@ def get_sampler(form: OptimizationParametersForm):
     else:
         raise ValueError
 
+def get_empty_map(form: OptimizationParametersForm):
+    """Create a Folium map with hospital markers.
 
-def plot(form: OptimizationParametersForm):
+    Args:
+        form:
+            User input form.
+
+    Returns:
+        folium.Map
     """
-    Plot the empty map of the US centered at `lon=-73.985130, lat=40.758896`
-    :param form: user input form
-    :return: figure handle object
-    """
-    px.set_mapbox_access_token(open(".mapbox_token").read())
     df = us_hospitals(int(form.num_hospitals.data))
     df['size'] = np.abs(df['excess_beds'])
-    fig = px.scatter_mapbox(df, lat="latitude", lon="longitude", color="excess_beds", size='size',
-                            center=dict(lon=-73.985130, lat=40.758896),
-                            labels={'latitude': 'Latitude', 'longitude': 'Longitude', 'excess_beds': 'Excess Beds'},
-                            color_continuous_scale=list(reversed(px.colors.sequential.Bluered)), zoom=10, height=800)
-    return fig
 
+    start_coords = (40.758896, -73.985130)
+    zoom = 12 if len(df) > 25 else 13
 
-def plot_results(form: OptimizationParametersForm):
+    folium_map = folium.Map(location=start_coords, tiles=None, zoom_start=zoom, height=700, width=1800)
+    folium.TileLayer(tiles='openstreetmap', opacity=0.5).add_to(folium_map)
+
+    # Marker color is based on number of excess_beds (scale is from red (shortage) to blue (surplus))
+    df['marker_color'] = pd.cut(df['excess_beds'], bins=8, labels=['#fc0009',
+                                                                   '#e10435',
+                                                                   '#b30963',
+                                                                   '#910b81',
+                                                                   '#5f0aad',
+                                                                   '#4f08ba',
+                                                                   '#2606de',
+                                                                   '#1702f6'])
+
+    # Add one marker per hospital
+    for latitude, longitude, size, excess_beds, color in zip(df['latitude'], df['longitude'], df['size'], df['excess_beds'], df['marker_color']):
+        folium.CircleMarker([latitude, longitude],
+                            radius=math.sqrt(size)+3,
+                            tooltip=('Size: ' + str(size) + '<br>'
+                                     'Latitude: ' + str(latitude) + '<br>'
+                                     'Longitude: ' + str(longitude) + '<br>'
+                                     'Excess beds: ' + str(excess_beds)),
+                            fill=True,
+                            stroke=False,
+                            fill_color=color,
+                            fill_opacity=0.8).add_to(folium_map)
+
+    return folium_map
+
+def add_result_marker(figure, dataframe, sorg, utility):
+    """Adds a marker to figure representing one grouping of hospitals.
+
+    Args:
+        figure (folium.Map):
+            Map object to be added to.
+
+        dataframe (pandas.DataFrame):
+            Contains hospital data.
+
+        sorg (frozenset):
+            One grouping of hospitals.
+
+        utility (dict):
+            Each key is a grouping of hospitals and each value is a tuple 
+            of (transfer, cost).
+
+    Returns:
+        None
     """
+    s = np.array(list(sorg))
+    dfxy = dataframe.iloc[s]
+    dfxy = dfxy[['longitude', 'latitude']]
 
-    :param form:
-    :return: figure, success, message, run_time, result
+    u = utility[sorg]
+
+    if u[0] > 0:
+        if len(s) > 2:
+            hull = ConvexHull(dfxy.values)
+            vertices = hull.vertices
+        else:
+            vertices = range(len(s))
+
+        locations = [(dfxy.values[idx][1], dfxy.values[idx][0]) for idx in vertices]
+
+        colors = ['red', 'blue', 'green', 'purple']
+        color = np.random.choice(colors)
+
+        folium.vector_layers.Polygon(locations,
+                                        fill=True,
+                                        stroke=True,
+                                        color=color,
+                                        fill_color=color,
+                                        fill_opacity=0.3,
+                                        opacity=0.2).add_to(figure)
+
+        text = f'Transfers {u[0]:.2f} <br> Cost {u[1]:.2f}'
+        cm = np.mean(dfxy.values[vertices], axis=0)
+
+        folium.map.Marker([cm[1], cm[0]],
+                            icon=DivIcon(icon_size=(150,36),
+                            icon_anchor=(75,18),
+                            html='<div style="font-size: 12pt">%s</div>' % text)).add_to(figure)
+
+def get_results(form: OptimizationParametersForm):
+    """Generate problem based on user input and solve the BQM for results.
+    
+    Args:
+        form:
+            User input form.
+    
+    Returns:
+        tuple: A 5-tuple containing:
+            folium.Map: Map with markers displaying hospital partitions.
+
+            int: Describes outcome:
+                0 - Error occurred
+                1 - No feasible solution found
+                2 - Solution found
+
+            str: Message to flash to user.
+            
+            float: Run time.
+
+            Result/None: Result object containing info on the problem and solution.
     """
     message = ''
-    figure = plot(form)
-    name = f'saved_problems/main_problem_{form.partition_size.data}_{form.num_hospitals.data}_{form.num_neighbors.data}_{form.alpha.data:.2f}'
+    figure = get_empty_map(form)
+
     success = 0
     run_time = 0
     result = None
+
     if not exists('saved_problems/'):
         makedirs('saved_problems/')
+
+    name = f'saved_problems/main_problem_{form.partition_size.data}_{form.num_hospitals.data}_{form.num_neighbors.data}_{form.alpha.data:.2f}'
     if exists(name):
         print('loading')
         with open(name, 'rb') as f:
@@ -204,13 +338,12 @@ def plot_results(form: OptimizationParametersForm):
         print('writing')
         with open(name, 'wb') as f:
             pickle.dump((p_combinations, utility, dataframe, n, objective), f)
+
     if utility is None:
         message = f'Number of cities {n} is not divisible by partition size {form.partition_size.data}'
         return figure, success, message, run_time, result
 
-    bqm, _, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
-    num_variables = len(set().union(*p_combinations))
-    partition_size = len(p_combinations[0])
+    bqm, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
 
     sampler, params = get_sampler(form)
     t0 = time()
@@ -240,31 +373,33 @@ def plot_results(form: OptimizationParametersForm):
         run_time = 0
         result = None
         return figure, success, message, run_time, result
+
     variables = np.array(response.variables)
 
-    num_variables = len(set().union(*p_combinations))
-    num_partitions = num_variables // partition_size
-    response = Result(response, p_combinations, variables, num_variables, utility,
+    num_hospitals = form.num_hospitals.data
+    num_partitions = num_hospitals // form.partition_size.data
+
+    response = Result(response, p_combinations, variables, num_hospitals, utility,
                       num_partitions, run_time, solver=form.solver.data)
+
     if response.total_cost is None or response.total_utility is None or response.energy is None:
         message = f'No feasible solution found'
         success = 1
         result = None
         return figure, success, message, run_time, result
+
     sample = response.sample
     sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
-    np.random.seed(123)
-    for sorg in sol:
-        figure = add_trace(figure, dataframe, sorg, utility)
 
-    figure.update_layout(title=f'Valid solution with utility {response.total_utility} '
-                            f'and total cost {response.total_cost:.2f}, objective {response.energy:.2f}')
+    for sorg in sol:
+        add_result_marker(figure, dataframe, sorg, utility)
+
     success = 2
     return figure, success, message, run_time, response
 
 
 class Result:
-    def __init__(self, response, p_combinations, variables, num_variables, utility, k, t, solver):
+    def __init__(self, response, p_combinations, variables, num_hospitals, utility, k, t, solver):
         total_cost = None
         self.solver = solver
         total_utility = None
@@ -280,7 +415,7 @@ class Result:
             intersect_length = sum(inter)
             if intersect_length > 0:
                 continue
-            if len(union) != num_variables:
+            if len(union) != num_hospitals:
                 continue
             total_utility = np.sum([utility[x][0] for x in sol])
             total_cost = np.sum([utility[x][1] for x in sol])
@@ -291,61 +426,3 @@ class Result:
 
     def __repr__(self):
         return f'{self.solver:40s}: Utility {self.total_utility:.2f}, cost {self.total_cost:.2f}, energy {self.energy:.2f}, in {self.t:.2f} seconds'
-
-
-def add_trace(figure, dataframe, sorg, utility):
-    s = np.array(list(sorg))
-    dfxy = dataframe.iloc[s]
-    dfxy = dfxy[['longitude', 'latitude']]
-    if len(s) > 2:
-        hull = ConvexHull(dfxy.values)
-        vertices = hull.vertices
-    else:
-        vertices = range(len(s))
-    u = utility[sorg]
-    text = f'Transfers {u[0]:.2f}, Cost {u[1]:.2f}'
-    cm = np.mean(dfxy.values[vertices], axis=0)
-    rnd = lambda: np.random.randint(0, 256)
-    color = f'rgba({rnd()}, {rnd()}, {rnd()}, 0.3)'
-    if u[0] > 0:
-        figure.add_trace(
-            go.Scattermapbox(
-                lon=[dfxy.values[idx][0] for idx in vertices],
-                lat=[dfxy.values[idx][1] for idx in vertices],
-                fill='toself',
-                fillcolor=color,
-                showlegend=False,
-                hoverinfo='none',
-                mode='none',
-                marker={'size': 0},
-            ))
-
-        figure.add_trace(
-            go.Scattermapbox(
-                lon=[cm[0]],
-                lat=[cm[1]],
-                showlegend=False,
-                text=text,
-                hoverinfo='none',
-                mode='text',
-                marker=go.scattermapbox.Marker(
-                    size=0,
-                    opacity=0.0
-                ),
-            ))
-    return figure
-
-
-def plot_empty_map(form: OptimizationParametersForm):
-    graphs = [plot(form)]
-    ids = ['graph-{}'.format(i) for i, _ in enumerate(graphs)]
-    graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
-    return ids, graphJSON
-
-
-def plot_map_results(form: OptimizationParametersForm):
-    figure, success, message, run_time, result = plot_results(form)
-    graphs = [figure]
-    ids = ['graph-{}'.format(i) for i, _ in enumerate(graphs)]
-    graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
-    return ids, graphJSON, success, message, run_time, result
