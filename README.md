@@ -26,8 +26,9 @@ To run the web-app:
 python run.py
 ```
 
-You'll see that the app is running on port 5000 of your local, open a browser and paste the link.
+You'll see that the app is now running on port 5000 of your local. Now, you can
+copy and paste the provided link into your browser for access.
 
 ## Snapshot
 
-![demo](demo_webapp.png)
+![demo](demo_app.png)
