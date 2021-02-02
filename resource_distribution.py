@@ -1,22 +1,24 @@
-from dwave.system import LeapHybridSampler
-from neal import SimulatedAnnealingSampler
-from scipy.spatial import ConvexHull
-from tabu import TabuSampler
-import pandas as pd
-from itertools import combinations
-from time import time
-import numpy as np
-from dimod import BinaryQuadraticModel
 from collections import defaultdict
-from solve_lp import lp_problem, haversine, distance_matrix_haversine
-import dimod
-import pickle
-from os.path import exists
+from itertools import combinations
 from os import makedirs
+from os.path import exists
+import math
+import pickle
+from time import time
+
 from forms import OptimizationParametersForm
 import folium
 from folium.features import DivIcon
-import math
+import numpy as np
+import pandas as pd
+from scipy.spatial import ConvexHull
+import dimod
+from dimod import BinaryQuadraticModel
+from dwave.system import LeapHybridSampler
+from neal import SimulatedAnnealingSampler
+from tabu import TabuSampler
+
+from solve_lp import lp_problem, haversine, distance_matrix_haversine
 
 
 def us_hospitals(num_hospitals: int) -> pd.DataFrame:

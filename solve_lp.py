@@ -1,7 +1,8 @@
-import numpy as np
 from itertools import product
-from pulp import LpProblem, LpVariable, LpMinimize, lpSum, LpStatus, LpBinary
 from typing import List, Tuple, Union
+
+import numpy as np
+from pulp import LpProblem, LpVariable, LpMinimize, lpSum, LpStatus, LpBinary
 
 Points = Union[List[Tuple[float, float]], np.ndarray]
 

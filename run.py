@@ -1,9 +1,11 @@
+import sys
+
 from flask import Flask
 from flask import render_template, url_for, redirect
 from flask import flash
 from forms import OptimizationParametersForm
+
 from resource_distribution import get_empty_map, get_results
-import sys
 
 if len(sys.argv) > 1:
     port = int(sys.argv[1])
