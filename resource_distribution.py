@@ -334,13 +334,14 @@ def get_results(form: OptimizationParametersForm):
     makedirs('saved_problems/', exist_ok=True)
 
     name = f'saved_problems/main_problem_{form.partition_size.data}_{form.num_hospitals.data}_{form.num_neighbors.data}_{form.alpha.data:.2f}'
-    if exists(name):
-        print('loading')
+    
+    try:
         with open(name, 'rb') as f:
+            print('loading')
             p_combinations, utility, dataframe, n, objective = pickle.load(f)
-    else:
-        p_combinations, utility, dataframe, n, objective = create_utility_function(form)
+    except:
         print('writing')
+        p_combinations, utility, dataframe, n, objective = create_utility_function(form)
         with open(name, 'wb') as f:
             pickle.dump((p_combinations, utility, dataframe, n, objective), f)
 
