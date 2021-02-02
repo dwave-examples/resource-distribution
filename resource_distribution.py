@@ -4,7 +4,7 @@ from os import makedirs
 from os.path import exists
 import math
 import pickle
-from time import time
+import time
 
 from forms import OptimizationParametersForm
 import folium
@@ -20,13 +20,14 @@ from tabu import TabuSampler
 
 from solve_lp import lp_problem, haversine, distance_matrix_haversine
 
-
-def us_hospitals(num_hospitals: int) -> pd.DataFrame:
+def us_hospitals(num_hospitals: int, seed=None) -> pd.DataFrame:
     """Loads the hospitals dataset and assigns random values of resource
     shortage/surplus proportional to hospital size.
 
     Args:
         num_hospitals: Number of hospitals to add to the map.
+
+        seed (int/None): Seed to use for assigning random resource shortage/surplus.
 
     Returns:
         Hospital data.
@@ -35,10 +36,11 @@ def us_hospitals(num_hospitals: int) -> pd.DataFrame:
     df.columns = [x.lower() for x in df.columns]
     df['Population'] = df['population'].values
     df.drop('population', axis=1, inplace=True)
+
+    # Sort hospitals by their distance to the center of Manhattan
     df['d'] = [haversine((-73.985130, 40.758896), (lon, lat)) for lon, lat in zip(df['longitude'], df['latitude'])]
     df = df.sort_values(by='d').head(num_hospitals)
 
-    seed = 123
     np.random.seed(seed)
     rnds = np.random.rand(len(df)) * df['Population']
     rnds = rnds / np.max(np.abs(rnds)) * 100
@@ -93,10 +95,12 @@ def create_utility_function(form: OptimizationParametersForm, include_first_neig
     partitions = set()
     for idx, neighbor in enumerate(nearest_neighbors):
         if include_first_neighbor:
-            combs = list(map(lambda x: frozenset(x).union({idx}).union({neighbor[0]}),
-                             combinations(neighbor[1:], partition_size - 2)))
+            combs = map(lambda x: frozenset(x).union({idx, neighbor[0]}),
+                        combinations(neighbor[1:], partition_size - 2))
         else:
-            combs = list(map(lambda x: frozenset(x).union({idx}), combinations(neighbor, partition_size - 1)))
+            combs = map(lambda x: frozenset(x).union({idx}),
+                        combinations(neighbor, partition_size - 1))
+
         partitions = partitions.union(set(combs))
 
     # for each partition compute the cost and utility
@@ -157,7 +161,7 @@ def k_clique_from_combinations(utility, lagrange=3):
             versus objective (largest set possible).
 
     Returns:
-        tuple: A 3-tuple containing:
+        tuple: A pair containing:
             bqm: BinaryQuadraticModel
 
             list: All possible combinations of hospital groupings.
@@ -327,8 +331,7 @@ def get_results(form: OptimizationParametersForm):
     run_time = 0
     result = None
 
-    if not exists('saved_problems/'):
-        makedirs('saved_problems/')
+    makedirs('saved_problems/', exist_ok=True)
 
     name = f'saved_problems/main_problem_{form.partition_size.data}_{form.num_hospitals.data}_{form.num_neighbors.data}_{form.alpha.data:.2f}'
     if exists(name):
@@ -348,24 +351,29 @@ def get_results(form: OptimizationParametersForm):
     bqm, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
 
     sampler, params = get_sampler(form)
-    t0 = time()
     try:
         if form.solver.data == 'SimulatedAnnealing':
             response = sampler.sample(bqm)
             beta_range = response.info['beta_range']
-            t0 = time()
+
+            t0 = time.perf_counter()
             response = sampler.sample(bqm, beta_range=beta_range)
-            run_time = time() - t0
+            run_time = time.perf_counter() - t0
+
             nsw = int(float(form.time_limit.data) / run_time * 1000 / 10)
+
             run_time = 0
+            t0 = time.perf_counter()
             while run_time < float(form.time_limit.data):
-                t0 = time()
-                response = dimod.concatenate((response, sampler.sample(bqm, num_sweeps=nsw, beta_range=beta_range)))
-                run_time += time() - t0
-            response = response.truncate(1)
+                onerun = sampler.sample(bqm, num_sweeps=nsw, beta_range=beta_range).truncate(1)
+                response = dimod.concatenate((response, onerun)).truncate(1)
+                run_time = time.perf_counter() - t0
+
         else:
+            t0 = time.perf_counter()
             response = sampler.sample(bqm, **params).truncate(1)
-            run_time = time() - t0
+            run_time = time.perf_counter() - t0
+
             if form.solver.data == 'LeapHybridSampler':
                 run_time = response.info['run_time'] / 1e6
 
