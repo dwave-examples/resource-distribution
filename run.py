@@ -21,7 +21,7 @@ from forms import OptimizationParametersForm
 
 from resource_distribution import get_empty_map, get_results
 
-if len(sys.argv) > 1:
+if len(sys.argv) > 1 and sys.argv[1].isdigit():
     port = int(sys.argv[1])
 else:
     port = 5000
