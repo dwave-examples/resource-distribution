@@ -308,7 +308,7 @@ def add_result_marker(figure, dataframe, sorg, utility):
                                         fill_opacity=0.3,
                                         opacity=0.2).add_to(figure)
 
-        text = f'Transfers {u[0]:.2f} <br> Cost {u[1]:.2f}'
+        text = "Transfers {:.2f} <br> Cost {:.2f}".format(u[0], u[1])
         cm = np.mean(dfxy.values[vertices], axis=0)
 
         folium.map.Marker([cm[1], cm[0]],
@@ -347,8 +347,10 @@ def get_results(form: OptimizationParametersForm):
 
     makedirs('saved_problems/', exist_ok=True)
 
-    name = f'saved_problems/main_problem_{form.partition_size.data}_{form.num_hospitals.data}_{form.num_neighbors.data}_{form.alpha.data:.2f}'
-    
+    name = "saved_problems/main_problem_{}_{}_{}_{:.2f}".format(form.partition_size.data, 
+                                                                form.num_hospitals.data, 
+                                                                form.num_neighbors.data, 
+                                                                form.alpha.data)
     try:
         with open(name, 'rb') as f:
             print('loading')
@@ -360,7 +362,7 @@ def get_results(form: OptimizationParametersForm):
             pickle.dump((p_combinations, utility, dataframe, n, objective), f)
 
     if utility is None:
-        message = f'Number of cities {n} is not divisible by partition size {form.partition_size.data}'
+        message = "Number of cities {} is not divisible by partition size {}".format(n, form.partition_size.data)
         return figure, success, message, run_time, result
 
     bqm, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
@@ -408,7 +410,7 @@ def get_results(form: OptimizationParametersForm):
                       num_partitions, run_time, solver=form.solver.data)
 
     if response.total_cost is None or response.total_utility is None or response.energy is None:
-        message = f'No feasible solution found'
+        message = "No feasible solution found"
         success = 1
         result = None
         return figure, success, message, run_time, result
@@ -450,4 +452,8 @@ class Result:
         self.energy = energy
 
     def __repr__(self):
-        return f'{self.solver:40s}: Utility {self.total_utility:.2f}, cost {self.total_cost:.2f}, energy {self.energy:.2f}, in {self.t:.2f} seconds'
+        return "{:40s}: Utility {:.2f}, cost {:.2f}, energy {:.2f}, in {:.2f} seconds".format(self.solver, 
+                                                                                              self.total_utility, 
+                                                                                              self.total_cost, 
+                                                                                              self.energy, 
+                                                                                              self.t)

@@ -114,7 +114,7 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
         distance = haversine(xyp, xyn)
         t = np.min([sp, -sn])
         data[(idx, jdx)] = [
-            LpVariable(f'x_{iix}', cat=LpBinary),
+            LpVariable("x_{}".format(iix), cat=LpBinary),
             distance,
             t,  # 2
             sp,  # 3
@@ -134,7 +134,7 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
     solutions = np.zeros(len(data))
     for variable in prob.variables():
         if verbose:
-            print(f"{variable.name} = {variable.varValue}")
+            print("{} = {}".format(variable.name, variable.varValue))
         idx = int(variable.name.split('_')[-1])
         solutions[idx] = variable.varValue
     cost = (prob.objective.value())

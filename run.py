@@ -43,7 +43,7 @@ def home():
 def optimization():
     form = OptimizationParametersForm()
     if form.validate_on_submit():
-        flash(f'Parameters submitted successfully!', category='success')
+        flash("Parameters submitted successfully!", category='success')
         if form.update.data:
             results.clear()
             empty_map = get_empty_map(form)
@@ -57,12 +57,12 @@ def optimization():
                 return render_template('optimization.html', form=form)
             elif success == 1:
                 flash(message, category='danger')
-                flash(f'Solve time: {run_time:.2f}', category='info')
+                flash("Solve time: {:.2f}".format(run_time), category='info')
             elif result is None:
                 flash(message, category='danger')
             else:
                 results.append(result)
-                flash(f'Solve time: {run_time:.2f}', category='info')
+                flash("Solve time: {:.2f}".format(run_time), category='info')
             return render_template('optimization.html', form=form, results=results)
     else:
         empty_map = get_empty_map(form)
