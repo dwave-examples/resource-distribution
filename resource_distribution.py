@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from itertools import combinations
 from os import makedirs
 from os.path import exists
@@ -324,7 +324,7 @@ def get_results(form: OptimizationParametersForm):
             User input form.
     
     Returns:
-        tuple: A 5-tuple containing:
+        namedtuple: A 5-tuple (ResultTuple) containing:
             folium.Map: Map with markers displaying hospital partitions.
 
             int: Describes outcome:
@@ -338,6 +338,8 @@ def get_results(form: OptimizationParametersForm):
 
             Result/None: Result object containing info on the problem and solution.
     """
+    ResultTuple = namedtuple('ResultTuple', ['figure', 'success', 'message', 'run_time', 'result'])
+
     message = ''
     figure = get_empty_map(form)
 
@@ -363,7 +365,7 @@ def get_results(form: OptimizationParametersForm):
 
     if utility is None:
         message = "Number of cities {} is not divisible by partition size {}".format(n, form.partition_size.data)
-        return figure, success, message, run_time, result
+        return ResultTuple(figure, success, message, run_time, result)
 
     bqm, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
 
@@ -395,11 +397,7 @@ def get_results(form: OptimizationParametersForm):
                 run_time = response.info['run_time'] / 1e6
 
     except ValueError as err:
-        message = str(err)
-        success = 0
-        run_time = 0
-        result = None
-        return figure, success, message, run_time, result
+        return ResultTuple(figure, success=0, message=str(err), run_time=0, result=None)
 
     variables = np.array(response.variables)
 
@@ -411,9 +409,7 @@ def get_results(form: OptimizationParametersForm):
 
     if response.total_cost is None or response.total_utility is None or response.energy is None:
         message = "No feasible solution found"
-        success = 1
-        result = None
-        return figure, success, message, run_time, result
+        return ResultTuple(figure, success=1, message=message, run_time=run_time, result=None)
 
     sample = response.sample
     sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
@@ -422,7 +418,7 @@ def get_results(form: OptimizationParametersForm):
         add_result_marker(figure, dataframe, sorg, utility)
 
     success = 2
-    return figure, success, message, run_time, response
+    return ResultTuple(figure, success, message, run_time, response)
 
 
 class Result:

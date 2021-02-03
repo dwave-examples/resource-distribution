@@ -50,19 +50,19 @@ def optimization():
             empty_map.save('templates/map.html')
             return render_template('optimization.html', form=form)
         else:
-            figure, success, message, run_time, result = get_results(form)
-            figure.save('templates/map.html')
-            if success == 0:
-                flash(message, category='danger')
+            response = get_results(form)
+            response.figure.save('templates/map.html')
+            if response.success == 0:
+                flash(response.message, category='danger')
                 return render_template('optimization.html', form=form)
-            elif success == 1:
-                flash(message, category='danger')
-                flash("Solve time: {:.2f}".format(run_time), category='info')
-            elif result is None:
-                flash(message, category='danger')
+            elif response.success == 1:
+                flash(response.message, category='danger')
+                flash("Solve time: {:.2f}".format(response.run_time), category='info')
+            elif response.result is None:
+                flash(response.message, category='danger')
             else:
-                results.append(result)
-                flash("Solve time: {:.2f}".format(run_time), category='info')
+                results.append(response.result)
+                flash("Solve time: {:.2f}".format(response.run_time), category='info')
             return render_template('optimization.html', form=form, results=results)
     else:
         empty_map = get_empty_map(form)

@@ -33,23 +33,23 @@ class MockForm:
 class TestResourceDistribution(unittest.TestCase):
     def test_get_results(self):
         form = MockForm(partition_size=2, num_hospitals=10)
-        figure, success, msg, run_time, res = get_results(form)
+        response = get_results(form)
 
-        self.assertEqual(success, 2)
-        self.assertEqual(msg, "")
-        self.assertAlmostEqual(run_time, 10, places=0)
-        self.assertTrue(res)
+        self.assertEqual(response.success, 2)
+        self.assertEqual(response.message, "")
+        self.assertAlmostEqual(response.run_time, 10, places=0)
+        self.assertTrue(response.result)
 
-        output = figure.to_json()
+        output = response.figure.to_json()
         num_markers = output.count("CircleMarker")
         self.assertEqual(num_markers, 10)   # Checking hospital markers
         self.assertIn("Polygon", output)   # Checking result markers
 
     def test_bad_results(self):
         form = MockForm(partition_size=3, num_hospitals=10)
-        figure, success, msg, run_time, res = get_results(form)
+        response = get_results(form)
 
-        self.assertEqual(success, 0)
-        self.assertEqual(msg, "Number of cities 10 is not divisible by partition size 3")
-        self.assertEqual(run_time, 0)
-        self.assertIsNone(res)
+        self.assertEqual(response.success, 0)
+        self.assertEqual(response.message, "Number of cities 10 is not divisible by partition size 3")
+        self.assertEqual(response.run_time, 0)
+        self.assertIsNone(response.result)
