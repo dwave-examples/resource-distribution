@@ -34,14 +34,14 @@ from tabu import TabuSampler
 
 from solve_lp import lp_problem, haversine, distance_matrix_haversine
 
-def us_hospitals(num_hospitals: int, seed=None) -> pd.DataFrame:
-    """Loads the hospitals dataset and assigns random values of resource
+ResultTuple = namedtuple('ResultTuple', ['figure', 'success', 'message', 'run_time', 'result'])
+
+def us_hospitals(num_hospitals: int) -> pd.DataFrame:
+    """Loads the hospitals dataset and assigns values of resource
     shortage/surplus proportional to hospital size.
 
     Args:
         num_hospitals: Number of hospitals to add to the map.
-
-        seed (int/None): Seed to use for assigning random resource shortage/surplus.
 
     Returns:
         Hospital data.
@@ -55,6 +55,8 @@ def us_hospitals(num_hospitals: int, seed=None) -> pd.DataFrame:
     df['d'] = [haversine((-73.985130, 40.758896), (lon, lat)) for lon, lat in zip(df['longitude'], df['latitude'])]
     df = df.sort_values(by='d').head(num_hospitals)
 
+    # Hardcoding seed to keep the same map/hospitals for each run (making it easier to compare results)
+    seed = 123
     np.random.seed(seed)
     rnds = np.random.rand(len(df)) * df['Population']
     rnds = rnds / np.max(np.abs(rnds)) * 100
@@ -338,8 +340,6 @@ def get_results(form: OptimizationParametersForm):
 
             Result/None: Result object containing info on the problem and solution.
     """
-    ResultTuple = namedtuple('ResultTuple', ['figure', 'success', 'message', 'run_time', 'result'])
-
     message = ''
     figure = get_empty_map(form)
 
