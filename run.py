@@ -21,15 +21,9 @@ from forms import OptimizationParametersForm
 
 from resource_distribution import get_empty_map, get_results
 
-if len(sys.argv) > 1 and sys.argv[1].isdigit():
-    port = int(sys.argv[1])
-else:
-    port = 5000
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '2b55241464af362a104880e46b36d2b6'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
-
 
 results = []
 
@@ -71,4 +65,9 @@ def optimization():
         return render_template('optimization.html', form=form)
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
+    else:
+        port = 5000
+
     app.run(debug=False, port=port)
