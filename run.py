@@ -1,21 +1,29 @@
+# Copyright 2021 D-Wave Systems Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import sys
+
 from flask import Flask
 from flask import render_template, url_for, redirect
 from flask import flash
-from forms import OptimizationParameters
-from get_graphs import get_graphs, get_graphs_results
-import plotly.graph_objects as go
-import plotly
-import json
-import sys
+from forms import OptimizationParametersForm
 
-if len(sys.argv) > 1:
-    port = int(sys.argv[1])
-else:
-    port = 5000
+from resource_distribution import get_empty_map, get_results
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '2b55241464af362a104880e46b36d2b6'
-
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 results = []
 
@@ -25,48 +33,41 @@ results = []
 def home():
     return render_template('index.html')
 
-
 @app.route('/optimization', methods=['GET', 'POST'])
 def optimization():
-    form = OptimizationParameters()
+    form = OptimizationParametersForm()
     if form.validate_on_submit():
-        flash(f'Parameters submitted successfully!', category='success')
+        flash("Parameters submitted successfully!", category='success')
         if form.update.data:
             results.clear()
-            ids, graphJSON = get_graphs(form)
-            return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
+            empty_map = get_empty_map(form)
+            empty_map.save('templates/map.html')
+            return render_template('optimization.html', form=form)
         else:
-            ids, graphJSON, success, message, run_time, res = get_graphs_results(form)
-            if success == 0:
-                flash(message, category='danger')
-                ids, graphJSON = get_graphs(form)
-                return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
-            elif success == 1:
-                flash(message, category='danger')
-                flash(f'Solve time: {run_time:.2f}', category='info')
-            elif res is None:
-                flash(message, category='danger')
+            response = get_results(form)
+            response.figure.save('templates/map.html')
+            if response.success == 0:
+                flash(response.message, category='danger')
+                return render_template('optimization.html', form=form)
+            elif response.success == 1:
+                flash(response.message, category='danger')
+                flash("Solve time: {:.2f}".format(response.run_time), category='info')
+            elif response.result is None:
+                flash(response.message, category='danger')
             else:
-                results.append(res)
-                flash(f'Solve time: {run_time:.2f}', category='info')
-            # ids2, graphJSON2 = plot_results(results)
-            # ids += ids2
-            # graphJSON += graphJSON2
-            return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON, results=results)
+                results.append(response.result)
+                flash("Solve time: {:.2f}".format(response.run_time), category='info')
+            return render_template('optimization.html', form=form, results=results)
     else:
-        ids, graphJSON = get_graphs(form)
-        return render_template('optimization.html', form=form, ids=ids, graphJSON=graphJSON)
+        empty_map = get_empty_map(form)
+        empty_map.save('templates/map.html')
 
-
-def plot_results(results):
-    fig = go.Figure([
-        go.Bar(x=[res.solver for res in results],
-               y=[res.energy for res in results]
-               )])
-    ids = ['graph-results-{}'.format(i) for i in range(1)]
-    graphJSON = json.dumps([fig], cls=plotly.utils.PlotlyJSONEncoder)
-    return ids, graphJSON
-
+        return render_template('optimization.html', form=form)
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
+    else:
+        port = 5000
+
     app.run(debug=False, port=port)
