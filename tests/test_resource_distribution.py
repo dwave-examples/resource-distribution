@@ -12,44 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import unittest
 
-from resource_distribution import get_results
-
-class FormObject:
-    def __init__(self, value):
-        self.data = value
-
-class MockForm:
-    def __init__(self, partition_size=4, num_hospitals=52, 
-                 solver='SimulatedAnnealing', alpha=0.2, num_neighbors=8, time_limit=10):
-        self.partition_size = FormObject(partition_size)
-        self.num_hospitals = FormObject(num_hospitals)
-        self.solver = FormObject(solver)
-        self.alpha = FormObject(alpha)
-        self.num_neighbors = FormObject(num_neighbors)
-        self.time_limit = FormObject(time_limit)
+from resource_distribution import get_results, FormInput
 
 class TestResourceDistribution(unittest.TestCase):
     def test_get_results(self):
-        form = MockForm(partition_size=2, num_hospitals=10)
+        form = FormInput(num_hospitals=6, 
+                         partition_size=2, 
+                         num_neighbors=4, 
+                         dof=0.2, 
+                         solver="SimulatedAnnealing", 
+                         time_limit=15)
         response = get_results(form)
 
         self.assertEqual(response.success, 2)
-        self.assertEqual(response.message, "")
-        self.assertAlmostEqual(response.run_time, 10, places=0)
+        self.assertEqual(response.message, "Solution was found.")
+        self.assertAlmostEqual(response.run_time, 15, places=0)
         self.assertTrue(response.result)
 
         output = response.figure.to_json()
         num_markers = output.count("CircleMarker")
-        self.assertEqual(num_markers, 10)   # Checking hospital markers
+        self.assertEqual(num_markers, 6)   # Checking hospital markers
         self.assertIn("Polygon", output)   # Checking result markers
 
-    def test_bad_results(self):
-        form = MockForm(partition_size=3, num_hospitals=10)
-        response = get_results(form)
+        # Check that problem file was created
+        problem_file = "saved_problems/main_problem_{}_{}_{}_{:.2f}".format(form.partition_size, 
+                                                                            form.num_hospitals, 
+                                                                            form.num_neighbors, 
+                                                                            form.dof)
 
-        self.assertEqual(response.success, 0)
-        self.assertEqual(response.message, "Number of cities 10 is not divisible by partition size 3")
-        self.assertEqual(response.run_time, 0)
-        self.assertIsNone(response.result)
+        self.assertTrue(os.path.isfile(problem_file))
+        os.remove(problem_file)
