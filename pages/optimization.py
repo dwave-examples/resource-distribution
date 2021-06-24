@@ -26,10 +26,10 @@ def validate_input(form: FormInput) -> bool:
     return True
 
 def run_page():
-    """Main func for optimization page. Runs on any user input on the page.""" 
-
+    """Runs when user visits optimization page, and on any user input."""
     # Generate sidebar inputs
-    num_hospitals = st.sidebar.number_input("Number of Hospitals", value=52, min_value=2)   
+    st.sidebar.markdown("""---""")
+    num_hospitals = st.sidebar.number_input("Number of Hospitals", value=52, min_value=2)
     update_button = st.sidebar.button("Update Map", key="update")
     partition_size = st.sidebar.number_input("Partition Size", value=4, min_value=1)
     num_neighbors = st.sidebar.number_input("Number of Neighbors", value=8)
