@@ -1,4 +1,4 @@
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from typing import DefaultDict
 
 import streamlit as st
@@ -54,21 +54,21 @@ def run_page():
     # On run, update map and results
     if run_button:
         if validate_input(form):
-            results = get_results(form)
+            figure, result = get_results(form)
 
-            if results.result:
+            if result:
                 st.sidebar.success("Found solution!")
                 results_dict['# of Hospitals'].append(num_hospitals)
                 results_dict['Partition Size'].append(partition_size)
                 results_dict['# of Neighbors'].append(num_neighbors)
                 results_dict['Dist. Objective Fraction'].append(dof)
                 results_dict['Solver'].append(form.solver)
-                results_dict['Utility'].append(results.result.total_utility)
-                results_dict['Cost'].append(results.result.total_cost)
-                results_dict['Energy'].append(results.result.energy)
-                results_dict['Run Time'].append(results.result.t)
+                results_dict['Utility'].append(result.total_utility)
+                results_dict['Cost'].append(result.total_cost)
+                results_dict['Energy'].append(result.energy)
+                results_dict['Run Time'].append(result.t)
                 
-                folium_map = results.figure
+                folium_map = figure
             else:
                 st.sidebar.warning("No feasible solution found.")
 

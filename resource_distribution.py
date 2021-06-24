@@ -33,7 +33,6 @@ from tabu import TabuSampler
 from solve_lp import lp_problem, haversine, distance_matrix_haversine
 
 FormInput = namedtuple('FormInput', ['num_hospitals', 'partition_size', 'num_neighbors', 'dof', 'solver', 'time_limit'])
-ResultTuple = namedtuple('ResultTuple', ['figure', 'success', 'message', 'run_time', 'result'])
 
 def us_hospitals(num_hospitals: int) -> pd.DataFrame:
     """Loads the hospitals dataset and assigns values of resource
@@ -320,17 +319,8 @@ def get_results(form: FormInput):
             User input form.
     
     Returns:
-        namedtuple: A 5-tuple (ResultTuple) containing:
+        A 2-tuple containing:
             folium.Map: Map with markers displaying hospital partitions.
-
-            int: Describes outcome:
-                0 - Error occurred
-                1 - No feasible solution found
-                2 - Solution found
-
-            str: Message to flash to user.
-            
-            float: Run time.
 
             Result/None: Result object containing info on the problem and solution.
     """
@@ -386,7 +376,7 @@ def get_results(form: FormInput):
                 run_time = response.info['run_time'] / 1e6
 
     except ValueError as err:
-        return ResultTuple(figure, success=0, message=str(err), run_time=0, result=None)
+        return figure, None
 
     variables = np.array(response.variables)
 
@@ -396,9 +386,8 @@ def get_results(form: FormInput):
                       num_partitions, run_time, solver=form.solver)
 
     if response.total_cost is None or response.total_utility is None or response.energy is None:
-        message = "No feasible solution found."
-        print(message)
-        return ResultTuple(figure, success=1, message=message, run_time=run_time, result=None)
+        # No feasible solution found
+        return figure, None
 
     sample = response.sample
     sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
@@ -406,10 +395,7 @@ def get_results(form: FormInput):
     for sorg in sol:
         add_result_marker(figure, dataframe, sorg, utility)
 
-    message = "Solution was found."
-    print(message)
-    success = 2
-    return ResultTuple(figure, success, message, run_time, response)
+    return figure, response
 
 
 class Result:

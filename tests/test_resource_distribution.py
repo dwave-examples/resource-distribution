@@ -25,14 +25,12 @@ class TestResourceDistribution(unittest.TestCase):
                          dof=0.2, 
                          solver="SimulatedAnnealing", 
                          time_limit=15)
-        response = get_results(form)
+        figure, result = get_results(form)
 
-        self.assertEqual(response.success, 2)
-        self.assertEqual(response.message, "Solution was found.")
-        self.assertAlmostEqual(response.run_time, 15, places=0)
-        self.assertTrue(response.result)
+        self.assertTrue(result)
+        self.assertAlmostEqual(result.t, 15, places=0)
 
-        output = response.figure.to_json()
+        output = figure.to_json()
         num_markers = output.count("CircleMarker")
         self.assertEqual(num_markers, 6)   # Checking hospital markers
         self.assertIn("Polygon", output)   # Checking result markers
