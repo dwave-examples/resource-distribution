@@ -23,7 +23,8 @@ variables.
 To run the web-app:
 
 ```bash
-python run.py
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
 You'll see that the app is now running on port 5000 of your local. Now, you can
