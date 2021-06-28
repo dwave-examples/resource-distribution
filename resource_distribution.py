@@ -15,12 +15,10 @@
 from collections import defaultdict, namedtuple
 from itertools import combinations
 from os import makedirs
-from os.path import exists
 import math
 import pickle
 import time
 
-from forms import OptimizationParametersForm
 import folium
 from folium.features import DivIcon
 import numpy as np
@@ -34,7 +32,7 @@ from tabu import TabuSampler
 
 from solve_lp import lp_problem, haversine, distance_matrix_haversine
 
-ResultTuple = namedtuple('ResultTuple', ['figure', 'success', 'message', 'run_time', 'result'])
+FormInput = namedtuple('FormInput', ['num_hospitals', 'partition_size', 'num_neighbors', 'dof', 'solver', 'time_limit'])
 
 def us_hospitals(num_hospitals: int) -> pd.DataFrame:
     """Loads the hospitals dataset and assigns values of resource
@@ -66,7 +64,7 @@ def us_hospitals(num_hospitals: int) -> pd.DataFrame:
     return df
 
 
-def create_utility_function(form: OptimizationParametersForm, include_first_neighbor=False):
+def create_utility_function(form: FormInput, include_first_neighbor=False):
     """Given user parameters specified in `form`, create partitions of
     hospitals and compute the optimal cost and utility of each partition.
 
@@ -78,44 +76,34 @@ def create_utility_function(form: OptimizationParametersForm, include_first_neig
             To reduce problem complexity, always consider the first nearest neighbor.
 
     Returns:
-        tuple: A 5-tuple containing:
+        tuple: A 4-tuple containing:
             list: Groupings of hospitals.
 
             dict: Utility (Each key is a hospital grouping, each value is a tuple (transfer, cost)).
 
             pandas.DataFrame: Hospital data.
 
-            int: Number of hospitals.
-
             dict: Each key is a hospital grouping, each value is its objective value.
     """
-    num_hospitals = int(form.num_hospitals.data)
-    num_neighbors = int(form.num_neighbors.data)
-    partition_size = int(form.partition_size.data)
-    alpha = float(form.alpha.data)
-
-    dataframe = us_hospitals(num_hospitals).sort_values(by='Population', ascending=False)
+    dataframe = us_hospitals(form.num_hospitals).sort_values(by='Population', ascending=False)
     positions = dataframe[['longitude', 'latitude']].values
     excess = dataframe['excess_beds'].values
     d = distance_matrix_haversine(positions)
-    num_hospitals = len(d)
-    if num_hospitals % partition_size != 0:
-        return None, None, dataframe, num_hospitals, None
 
     # for each hospital find the first few nearest neighbors up to num_neighbors
     nearest_neighbors = []
-    for i in range(num_hospitals):
-        nearest_neighbors.append(np.argsort(d[i])[1:num_neighbors+1])
+    for i in range(form.num_hospitals):
+        nearest_neighbors.append(np.argsort(d[i])[1:form.num_neighbors+1])
 
     # find all partitions that include num_neighbors of the nearest neighbors
     partitions = set()
     for idx, neighbor in enumerate(nearest_neighbors):
         if include_first_neighbor:
             combs = map(lambda x: frozenset(x).union({idx, neighbor[0]}),
-                        combinations(neighbor[1:], partition_size - 2))
+                        combinations(neighbor[1:], form.partition_size - 2))
         else:
             combs = map(lambda x: frozenset(x).union({idx}),
-                        combinations(neighbor, partition_size - 1))
+                        combinations(neighbor, form.partition_size - 1))
 
         partitions = partitions.union(set(combs))
 
@@ -132,11 +120,13 @@ def create_utility_function(form: OptimizationParametersForm, include_first_neig
     utility = np.array(utility)
     transfer_stdev = np.std(utility[:, 1])
     cost_stdev = np.std(utility[:, 2])
+
+    alpha = form.dof
     for partition, transfer, cst in utility:
         objective[partition] = (1 - alpha) * transfer / transfer_stdev - alpha * cst / cost_stdev
         utility_dict[partition] = (transfer, cst)
     partitions = list(partitions)
-    return partitions, utility_dict, dataframe, num_hospitals, objective
+    return partitions, utility_dict, dataframe, objective
 
 
 def transfer_score(resources):
@@ -196,7 +186,8 @@ def k_clique_from_combinations(utility, lagrange=3):
     bqm = BinaryQuadraticModel.from_qubo(qubo)
     return bqm, p_combinations
 
-def get_sampler(form: OptimizationParametersForm):
+
+def get_sampler(form: FormInput):
     """Given a set of user inputs, return the selected solver and a minimal set
     of default parameters.
 
@@ -210,33 +201,35 @@ def get_sampler(form: OptimizationParametersForm):
 
             dict: Default parameters for the solver.
     """
-    name = form.solver.data
+    name = form.solver
     if name == 'SimulatedAnnealing':
         return SimulatedAnnealingSampler(), {}
     elif name == 'LeapHybridSampler':
-        return LeapHybridSampler(), {'time_limit': float(form.time_limit.data)}
+        return LeapHybridSampler(), {'time_limit': float(form.time_limit), 
+                                     'label': 'Demo from Leap - Resource Distribution Optimization'}
     elif name == 'TabuSampler':
-        return TabuSampler(), {'timeout': int(form.time_limit.data) * 1000}
+        return TabuSampler(), {'timeout': int(form.time_limit) * 1000}
     else:
         raise ValueError
 
-def get_empty_map(form: OptimizationParametersForm):
+
+def get_empty_map(num_hospitals: int):
     """Create a Folium map with hospital markers.
 
     Args:
-        form:
-            User input form.
+        num_hospitals (int):
+            Number of hospitals to add to the map.
 
     Returns:
         folium.Map
     """
-    df = us_hospitals(int(form.num_hospitals.data))
+    df = us_hospitals(num_hospitals)
     df['size'] = np.abs(df['excess_beds'])
 
     start_coords = (40.758896, -73.985130)
     zoom = 12 if len(df) > 25 else 13
 
-    folium_map = folium.Map(location=start_coords, tiles=None, zoom_start=zoom, height=700, width=1800)
+    folium_map = folium.Map(location=start_coords, tiles=None, zoom_start=zoom)
     folium.TileLayer(tiles='openstreetmap', opacity=0.5).add_to(folium_map)
 
     # Marker color is based on number of excess_beds (scale is from red (shortage) to blue (surplus))
@@ -318,7 +311,7 @@ def add_result_marker(figure, dataframe, sorg, utility):
                             icon_anchor=(75,18),
                             html='<div style="font-size: 12pt">%s</div>' % text)).add_to(figure)
 
-def get_results(form: OptimizationParametersForm):
+def get_results(form: FormInput):
     """Generate problem based on user input and solve the BQM for results.
     
     Args:
@@ -326,52 +319,38 @@ def get_results(form: OptimizationParametersForm):
             User input form.
     
     Returns:
-        namedtuple: A 5-tuple (ResultTuple) containing:
+        A 2-tuple containing:
             folium.Map: Map with markers displaying hospital partitions.
-
-            int: Describes outcome:
-                0 - Error occurred
-                1 - No feasible solution found
-                2 - Solution found
-
-            str: Message to flash to user.
-            
-            float: Run time.
 
             Result/None: Result object containing info on the problem and solution.
     """
-    message = ''
-    figure = get_empty_map(form)
-
-    success = 0
+    # Set default values
+    figure = get_empty_map(form.num_hospitals)
     run_time = 0
     result = None
 
+    # Get problem
     makedirs('saved_problems/', exist_ok=True)
-
-    name = "saved_problems/main_problem_{}_{}_{}_{:.2f}".format(form.partition_size.data, 
-                                                                form.num_hospitals.data, 
-                                                                form.num_neighbors.data, 
-                                                                form.alpha.data)
+    name = "saved_problems/main_problem_{}_{}_{}_{:.2f}".format(form.partition_size, 
+                                                                form.num_hospitals, 
+                                                                form.num_neighbors, 
+                                                                form.dof)
     try:
         with open(name, 'rb') as f:
-            print('loading')
-            p_combinations, utility, dataframe, n, objective = pickle.load(f)
+            p_combinations, utility, dataframe, objective = pickle.load(f)
+            print('Load saved problem file: ', name)
     except:
-        print('writing')
-        p_combinations, utility, dataframe, n, objective = create_utility_function(form)
+        print('Writing new problem file: ', name)
+        p_combinations, utility, dataframe, objective = create_utility_function(form)
         with open(name, 'wb') as f:
-            pickle.dump((p_combinations, utility, dataframe, n, objective), f)
-
-    if utility is None:
-        message = "Number of cities {} is not divisible by partition size {}".format(n, form.partition_size.data)
-        return ResultTuple(figure, success, message, run_time, result)
+            pickle.dump((p_combinations, utility, dataframe, objective), f)
 
     bqm, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
 
+    # Solve problem
     sampler, params = get_sampler(form)
     try:
-        if form.solver.data == 'SimulatedAnnealing':
+        if form.solver == 'SimulatedAnnealing':
             response = sampler.sample(bqm)
             beta_range = response.info['beta_range']
 
@@ -379,11 +358,11 @@ def get_results(form: OptimizationParametersForm):
             response = sampler.sample(bqm, beta_range=beta_range)
             run_time = time.perf_counter() - t0
 
-            nsw = int(float(form.time_limit.data) / run_time * 1000 / 10)
+            nsw = int(float(form.time_limit) / run_time * 1000 / 10)
 
             run_time = 0
             t0 = time.perf_counter()
-            while run_time < float(form.time_limit.data):
+            while run_time < float(form.time_limit):
                 onerun = sampler.sample(bqm, num_sweeps=nsw, beta_range=beta_range).truncate(1)
                 response = dimod.concatenate((response, onerun)).truncate(1)
                 run_time = time.perf_counter() - t0
@@ -393,23 +372,22 @@ def get_results(form: OptimizationParametersForm):
             response = sampler.sample(bqm, **params).truncate(1)
             run_time = time.perf_counter() - t0
 
-            if form.solver.data == 'LeapHybridSampler':
+            if form.solver == 'LeapHybridSampler':
                 run_time = response.info['run_time'] / 1e6
 
     except ValueError as err:
-        return ResultTuple(figure, success=0, message=str(err), run_time=0, result=None)
+        return figure, None
 
     variables = np.array(response.variables)
 
-    num_hospitals = form.num_hospitals.data
-    num_partitions = num_hospitals // form.partition_size.data
+    num_partitions = form.num_hospitals // form.partition_size
 
-    response = Result(response, p_combinations, variables, num_hospitals, utility,
-                      num_partitions, run_time, solver=form.solver.data)
+    response = Result(response, p_combinations, variables, form.num_hospitals, utility,
+                      num_partitions, run_time, solver=form.solver)
 
     if response.total_cost is None or response.total_utility is None or response.energy is None:
-        message = "No feasible solution found"
-        return ResultTuple(figure, success=1, message=message, run_time=run_time, result=None)
+        # No feasible solution found
+        return figure, None
 
     sample = response.sample
     sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
@@ -417,8 +395,7 @@ def get_results(form: OptimizationParametersForm):
     for sorg in sol:
         add_result_marker(figure, dataframe, sorg, utility)
 
-    success = 2
-    return ResultTuple(figure, success, message, run_time, response)
+    return figure, response
 
 
 class Result:
