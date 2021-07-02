@@ -1,0 +1,89 @@
+@font-face {
+  font-family: 'proximanova-light';
+  src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-light-webfont.woff2') format('woff2'),
+      url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-light-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Proxima Nova';
+  src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff2') format('woff2'),
+      url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'proximanova-regular';
+  src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff2') format('woff2'),
+      url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'proximanova-semibold';
+  src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-semibold-webfont.woff2') format('woff2'),
+      url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-semibold-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  color: #222222;
+  font-family: 'proximanova-regular', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+:root {
+  --orange: #cf4520;
+}
+h1, h2, h3, .css-zue355 {
+  font-family: 'proximanova-regular', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+h2 {
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 600;
+  margin: 0 0 1.25rem;
+  border-left: 3px solid var(--orange);
+  padding: 0 0 0 1rem;
+  border-style: solid;
+  border-color: red;
+  border-width: 2px;
+}
+
+h3 {
+  font-size: 20px;
+  font-weight: 400;
+  margin: 0 0 0.75rem;
+}
+
+.home {
+  border-style: solid;
+  border-color: blue;
+  border-width: 2px;
+}
+
+.home-img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+  border-style: solid;
+  border-color: purple;
+  border-width: 2px;
+}
+
+header {
+  display: flex;
+  margin-bottom: 4rem;
+  border-style: solid;
+  border-color: red;
+  border-width: 2px;
+}
+
+p {
+  border-style: solid;
+  border-color: green;
+  border-width: 2px;
+}

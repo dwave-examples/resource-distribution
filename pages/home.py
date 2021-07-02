@@ -1,10 +1,10 @@
 import os
 import base64
+from pathlib import Path
 
 import streamlit as st
+import jinja2
 
-from pathlib import Path
-from jinja2 import Template
 
 def img_to_bytes(img_path: str) -> str:
     img_bytes = Path(img_path).read_bytes()
@@ -14,10 +14,12 @@ def img_to_bytes(img_path: str) -> str:
 def run_page():
     """Runs when user visits home page."""
 
-    with open("templates/home.html") as home:
-        template = Template(home.read())
-        home_html = template.render(partitioning=img_to_bytes("assets/partitioning.png"), 
-                                    partition_with_distance=img_to_bytes("assets/partition_with_distance.png"))
+    template_dir = Path(__file__).absolute().parent.parent.joinpath('templates')
+    loader = jinja2.FileSystemLoader(template_dir)
+    env = jinja2.Environment(loader=loader)
+    home = env.get_template('home.html')
+    home_html = home.render(partitioning=img_to_bytes("assets/partitioning.png"),
+                            partition_with_distance=img_to_bytes("assets/partition_with_distance.png"))
 
     # css works but mathjax doesn't
     # st.write(home_html, unsafe_allow_html=True)
