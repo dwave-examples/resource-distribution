@@ -1,16 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-      <!-- Required meta tags -->
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-      <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-      <style type="text/css">
-        {% include 'style.css' %}
-      </style>
-    </head>
+{% extends "layout.html" %}
 
+{% block content %}
 <div class="home">
 <p>
     The ongoing Covid-19 pandemic has caused millions of people being infected and has overwhelmed the health system.
@@ -23,10 +13,7 @@
 
 <img src='data:image/png;base64,{{partitioning}}' class='home-img'/>
 
-<h1>Utility Function</h1>
-<p>
-    \\(u_n = (a_5, ..., a_8)\\)
-</p>
+<h2>Utility Function</h2>
 <p>
     The goal is to divide the medical centers into groups such that the maximum amount of transfer is achieved at minimum cost.
     The transfer is quantified as the smaller number of total excess and total shortage. The cost is the sum of all costs associated 
@@ -86,9 +73,9 @@
     where, \(x_u\) is a binary variable that decides if the group \(u\) is selected.
 
 </p>
-<p>
+<p id='refs'>
     [1] Bass, Gideon, et al. "Heterogeneous quantum computing for satellite constellation optimization:
         solving the weighted k-clique problem." Quantum Science and Technology 3.2 (2018): 024010.
 </p>
 </div>
-</html>
+{% endblock content %}

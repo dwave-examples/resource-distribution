@@ -21,8 +21,4 @@ def run_page():
     home_html = home.render(partitioning=img_to_bytes("assets/partitioning.png"),
                             partition_with_distance=img_to_bytes("assets/partition_with_distance.png"))
 
-    # css works but mathjax doesn't
-    # st.write(home_html, unsafe_allow_html=True)
-
-    # mathjax works but css doesn't
     st.components.v1.html(home_html, height=3000, scrolling=True)

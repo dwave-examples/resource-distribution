@@ -47,9 +47,6 @@ h2 {
   margin: 0 0 1.25rem;
   border-left: 3px solid var(--orange);
   padding: 0 0 0 1rem;
-  border-style: solid;
-  border-color: red;
-  border-width: 2px;
 }
 
 h3 {
@@ -58,32 +55,17 @@ h3 {
   margin: 0 0 0.75rem;
 }
 
-.home {
-  border-style: solid;
-  border-color: blue;
-  border-width: 2px;
-}
-
 .home-img {
   display: block;
   margin-left: auto;
   margin-right: auto;
+  margin-top: 3rem;
+  margin-bottom: 3rem;
   width: 50%;
-  border-style: solid;
-  border-color: purple;
-  border-width: 2px;
 }
 
-header {
-  display: flex;
-  margin-bottom: 4rem;
-  border-style: solid;
-  border-color: red;
-  border-width: 2px;
-}
-
-p {
-  border-style: solid;
-  border-color: green;
-  border-width: 2px;
+#refs {
+  border-top: 1px solid var(--orange);
+  padding-top: 30px;
+  margin-top: 30px;
 }
