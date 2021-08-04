@@ -26,3 +26,9 @@ def run_page():
                             partition_with_distance=img_to_bytes("assets/partition_with_distance.png"))
 
     st.components.v1.html(home_html, height=3000, scrolling=True)
+
+    # Both templates (header.html and home.html) include the stylesheet already,
+    # but we include it here again for the sidebar.
+    with open("templates/style.html") as css:
+        stylesheet = css.read()
+    st.write(stylesheet, unsafe_allow_html=True)
