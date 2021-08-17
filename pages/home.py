@@ -16,9 +16,12 @@ def run_page():
     loader = jinja2.FileSystemLoader(template_dir)
     env = jinja2.Environment(loader=loader)
 
+    # Render style.html to link the sidebar with style.css
+    style = env.get_template('style.html').render()
+    st.write(style, unsafe_allow_html=True)
+
     # Display header
-    header_html = env.get_template('header.html').render()
-    st.components.v1.html(header_html, height=60)
+    st.markdown("<h1>Resource Distribution Demonstration</h1>", unsafe_allow_html=True)
 
     # Display rest of home page
     home = env.get_template('home.html')
@@ -26,9 +29,3 @@ def run_page():
                             partition_with_distance=img_to_bytes("assets/partition_with_distance.png"))
 
     st.components.v1.html(home_html, height=3000, scrolling=True)
-
-    # Both templates (header.html and home.html) include the stylesheet already,
-    # but we include it here again for the sidebar.
-    with open("templates/style.html") as css:
-        stylesheet = css.read()
-    st.write(stylesheet, unsafe_allow_html=True)

@@ -27,18 +27,16 @@ def validate_input(form: FormInput) -> bool:
     
     return True
 
-def header():
-    """Render 'templates/header.html'."""
-    # Could just do a st.header, but using a template instead so that the header can be shared
-    # between pages (and use the same css).
+def render_style():
+    """Render 'templates/style.html'."""
     template_dir = Path(__file__).absolute().parent.parent.joinpath('templates')
     loader = jinja2.FileSystemLoader(template_dir)
     env = jinja2.Environment(loader=loader)
-    
-    header_html = env.get_template('header.html').render()
-    st.components.v1.html(header_html, height=60, scrolling=False)
 
-def sidebar():
+    style = env.get_template('style.html').render()
+    st.write(style, unsafe_allow_html=True)
+
+def render_sidebar():
     """Render sidebar. Returns the user input (button, form)."""
     st.sidebar.markdown("---")
     num_hospitals = st.sidebar.number_input("Number of Hospitals", value=12, min_value=2)
@@ -61,13 +59,11 @@ def sidebar():
 
 def run_page():
     """Runs when user visits optimization page, and on any user input."""
-    with open("templates/style.html") as css:
-        stylesheet = css.read()
+    render_style()
 
-    st.write(stylesheet, unsafe_allow_html=True)
+    st.markdown("<h1>Resource Distribution Demonstration</h1>", unsafe_allow_html=True)
 
-    header()
-    run_button, form = sidebar()
+    run_button, form = render_sidebar()
 
     # Initialize map and results
     folium_map = get_empty_map(form.num_hospitals)
@@ -100,7 +96,6 @@ def run_page():
 
     # Display map and results
     folium_static(folium_map, width=map_width, height=map_height)
-
     st.markdown("<h2>Results</h2>", unsafe_allow_html=True)
 
     # Using st.empty() allows us to remove elements from a page without reloading
