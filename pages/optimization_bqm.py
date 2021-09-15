@@ -103,7 +103,7 @@ def run_page():
                 results_dict['Cost'].append(str(round(result.total_cost, 2)))
                 results_dict['Energy'].append(str(round(result.energy, 2)))
                 results_dict['Run Time'].append(str(round(result.run_time, 2)))
-                folium_map = figure
+                folium_map = result.figure
 
     # Display map and results
     folium_static(folium_map, width=map_width, height=map_height)
