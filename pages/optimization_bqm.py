@@ -89,6 +89,9 @@ def run_page():
                 st.sidebar.warning("No solution found.")
             else:
                 results_dict['# of Hospitals'].append(form.num_hospitals)
+                results_dict['Partition Size'].append(form.partition_size)
+                results_dict['# of Neighbors'].append(form.num_neighbors)
+                results_dict['Dist. Obj. Fraction'].append(form.dof)
                 results_dict['Solver'].append(form.solver)
 
                 if not result.error_msgs:
@@ -97,7 +100,7 @@ def run_page():
                 else:
                     for msg in result.error_msgs:
                         st.sidebar.warning(msg)
-                    results_dict['All Constraints Satisfied'].append("False")
+                    results_dict['Constraints Satisfied'].append("False")
 
                 results_dict['Transfer'].append(str(round(result.total_transfer, 2)))
                 results_dict['Cost'].append(str(round(result.total_cost, 2)))
