@@ -96,7 +96,7 @@ def run_page():
 
                 if not result.error_msgs:
                     st.sidebar.success("Found feasible solution!")
-                    results_dict['All Constraints Satisfied'].append("True")
+                    results_dict['Constraints Satisfied'].append("True")
                 else:
                     for msg in result.error_msgs:
                         st.sidebar.warning(msg)
