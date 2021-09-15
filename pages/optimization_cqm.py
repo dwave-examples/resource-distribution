@@ -18,7 +18,7 @@ def render_sidebar():
     num_hospitals = st.sidebar.number_input("Number of Hospitals", value=12, min_value=6)
     update_button = st.sidebar.button("Update Map", key="update")
     solver = st.sidebar.radio("Solver", ["LeapHybridCQMSampler", 
-                                         "LeapHybridSampler", 
+                                         "LeapHybridBQMSampler", 
                                          "SimulatedAnnealing", 
                                          "TabuSampler"], index=0)
     time_limit = st.sidebar.number_input("Time Limit", value=10)

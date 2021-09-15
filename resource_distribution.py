@@ -150,7 +150,7 @@ def get_sampler(form: FormInput) -> Tuple[dimod.Sampler, dict]:
     name = form.solver
     if name == 'SimulatedAnnealing':
         return SimulatedAnnealingSampler(), {}
-    elif name == 'LeapHybridSampler':
+    elif name == 'LeapHybridBQMSampler':
         sampler = LeapHybridSampler()
         return sampler, {'time_limit': float(form.time_limit), 
                          'label': 'Demo from Leap - Resource Distribution Optimization'}
@@ -161,7 +161,7 @@ def get_sampler(form: FormInput) -> Tuple[dimod.Sampler, dict]:
         return sampler, {'time_limit': float(form.time_limit),
                          'label': 'Demo from Leap - Resource Distribution Optimization'}
     else:
-        raise ValueError
+        raise ValueError("Incorrect sampler name: {}".format(name))
 
 
 def solve_bqm(hospital_df: pd.DataFrame, form: FormInput, 
@@ -225,7 +225,7 @@ def solve_bqm(hospital_df: pd.DataFrame, form: FormInput,
         response = sampler.sample(bqm, **params).truncate(1)
         run_time = time.perf_counter() - t0
 
-        if form.solver == 'LeapHybridSampler':
+        if form.solver == 'LeapHybridBQMSampler':
             run_time = response.info['run_time'] / 1e6
 
     variables = np.array(response.variables)
@@ -307,7 +307,6 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
     distance_matrix = distance_matrix_haversine(hospital_df[['longitude', 'latitude']].values)
     distances = dict(((hospital_df['name'][i], hospital_df['name'][j]), distance_matrix[i, j])
                     for i in range(form.num_hospitals) for j in range(form.num_hospitals))
-
     print("distances: ", distances)
 
     sampler, params = get_sampler(form)

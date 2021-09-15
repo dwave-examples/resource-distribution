@@ -49,7 +49,9 @@ def render_sidebar():
     partition_size = st.sidebar.number_input("Partition Size", value=4, min_value=1)
     num_neighbors = st.sidebar.number_input("Number of Neighbors", value=8)
     dof = st.sidebar.slider("Distance Objective Fraction", value=0.2, min_value=0.0, max_value=1.0, step=0.01)
-    solver = st.sidebar.radio("Solver", ["SimulatedAnnealing", "TabuSampler", "LeapHybridSampler"], index=0)
+    solver = st.sidebar.radio("Solver", ["SimulatedAnnealing", 
+                                         "TabuSampler", 
+                                         "LeapHybridBQMSampler"], index=0)
     time_limit = st.sidebar.number_input("Time Limit", value=10)
 
     run_button = st.sidebar.button("Run Optimization", key="run")
