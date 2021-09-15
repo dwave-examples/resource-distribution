@@ -362,6 +362,7 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
     for group in groups:
         print(group)
 
+        # While we're at it, do some validation. Can probably remove eventually.
         max_cost = get_cost(group.names, group.excess_beds, distances)
         if max_cost < group.cost:
             # TODO: find out why optimal cost is sometimes greater than max cost

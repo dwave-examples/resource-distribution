@@ -177,6 +177,14 @@ def add_result_markers(figure: folium.Map, groups: list) -> None:
 
             color = next(colors)
 
+            hospitals = dict(zip(group.names, group.excess_beds))
+            text = "Group of {} hospitals. <br> <br> \
+                    Hospitals: {} <br> <br>\
+                    Transfer: {:.2f} <br> <br>\
+                    Cost: {:.2f}".format(num_hospitals, hospitals, group.transfer, group.cost)
+
+            popup = folium.map.Popup(html=text, max_width=250)
+
             folium.vector_layers.Polygon(locations,
                                          fill=True,
                                          stroke=True,
@@ -184,15 +192,8 @@ def add_result_markers(figure: folium.Map, groups: list) -> None:
                                          fill_color=color,
                                          fill_opacity=0.3,
                                          opacity=0.2,
-                                         interactive=False).add_to(figure)
-
-            text = "Transfers {:.2f} <br> Cost {:.2f}".format(group.transfer, group.cost)
-            cm = np.mean(group.positions[vertices], axis=0)
-
-            folium.map.Marker([cm[1], cm[0]],
-                              icon=DivIcon(icon_size=(150,36),
-                              icon_anchor=(75,18),
-                              html='<div style="font-size: 12pt">%s</div>' % text)).add_to(figure)
+                                         interactive=False,
+                                         popup=popup).add_to(figure)
 
 
 def check_feasibility(groups: list) -> Tuple[bool, bool]:
