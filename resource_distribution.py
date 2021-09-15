@@ -12,88 +12,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import defaultdict, namedtuple
-from itertools import combinations
-from os import makedirs
 import math
 import pickle
 import time
+from os import makedirs
+from collections import defaultdict, namedtuple
+from itertools import combinations, filterfalse
+from typing import Union, Tuple
 
 import folium
-from folium.features import DivIcon
 import numpy as np
 import pandas as pd
-from scipy.spatial import ConvexHull
 import dimod
 from dimod import BinaryQuadraticModel
-from dwave.system import LeapHybridSampler
+from dwave.system import LeapHybridSampler, LeapHybridCQMSampler
 from neal import SimulatedAnnealingSampler
 from tabu import TabuSampler
 
-from solve_lp import lp_problem, haversine, distance_matrix_haversine
+from solve_lp import lp_problem, distance_matrix_haversine
+from utils import (check_feasibility, us_hospitals, get_empty_map, add_result_markers, 
+                   get_transfer, get_cost)
 
-FormInput = namedtuple('FormInput', ['num_hospitals', 'partition_size', 'num_neighbors', 'dof', 'solver', 'time_limit'])
+form_fields = ['page', 'num_hospitals', 'partition_size', 'num_neighbors', 'dof', 'solver', 
+               'time_limit']
+FormInput = namedtuple('FormInput', form_fields, defaults=(None,)*len(form_fields))
 
-def us_hospitals(num_hospitals: int) -> pd.DataFrame:
-    """Loads the hospitals dataset and assigns values of resource
-    shortage/surplus proportional to hospital size.
-
-    Args:
-        num_hospitals: Number of hospitals to add to the map.
-
-    Returns:
-        Hospital data.
-    """
-    df = pd.read_csv('hospitals_processed.csv').drop(['Unnamed: 0'], axis=1).reset_index()
-    df.columns = [x.lower() for x in df.columns]
-    df['Population'] = df['population'].values
-    df.drop('population', axis=1, inplace=True)
-
-    # Sort hospitals by their distance to the center of Manhattan
-    df['d'] = [haversine((-73.985130, 40.758896), (lon, lat)) for lon, lat in zip(df['longitude'], df['latitude'])]
-    df = df.sort_values(by='d').head(num_hospitals)
-
-    # Hardcoding seed to keep the same map/hospitals for each run (making it easier to compare results)
-    seed = 123
-    np.random.seed(seed)
-    rnds = np.random.rand(len(df)) * df['Population']
-    rnds = rnds / np.max(np.abs(rnds)) * 100
-    rnds = np.round(rnds - np.mean(rnds))
-    rnds[np.abs(rnds) < 10] = 10 * (np.random.binomial(1, 0.5, size=sum(np.abs(rnds) < 10)) * 2 - 1)
-    df['excess_beds'] = rnds
-    return df
+result_fields = ['figure', 'total_cost', 'total_transfer', 'energy', 'error_msgs', 'run_time']
+Result = namedtuple('Result', result_fields, defaults=(None,)*len(result_fields))
 
 
-def create_utility_function(form: FormInput, include_first_neighbor=False):
-    """Given user parameters specified in `form`, create partitions of
-    hospitals and compute the optimal cost and utility of each partition.
+def create_utility_function(form: FormInput, hospital_df: pd.DataFrame, 
+                            include_first_neighbor: bool = False) -> Tuple[dict, dict]:
+    """Helper function for BQM solution. Given user parameters specified in `form` and hospital data, 
+    create partitions of hospitals and compute the optimal cost and utility of each partition.
 
     Args:
-        form:
-            User input form.
+        form: User input form.
 
-        include_first_neighbor (boolean, default=False):
-            To reduce problem complexity, always consider the first nearest neighbor.
+        hospital_df: DataFrame containing hospital data for all hospitals in the problem.
+
+        include_first_neighbor: To reduce problem complexity, always consider the first nearest neighbor.
 
     Returns:
-        tuple: A 4-tuple containing:
-            list: Groupings of hospitals.
-
-            dict: Utility (Each key is a hospital grouping, each value is a tuple (transfer, cost)).
-
-            pandas.DataFrame: Hospital data.
-
-            dict: Each key is a hospital grouping, each value is its objective value.
+        A 2-tuple containing dictionaries for utility (keys are hospital groupings, values are 
+        (transfer, cost)), and objective (keys are hospital groupings, values are objective values).
     """
-    dataframe = us_hospitals(form.num_hospitals).sort_values(by='Population', ascending=False)
-    positions = dataframe[['longitude', 'latitude']].values
-    excess = dataframe['excess_beds'].values
-    d = distance_matrix_haversine(positions)
-
+    positions = hospital_df[['longitude', 'latitude']].values
+    excess = hospital_df['excess_beds'].values
+    distance_matrix = distance_matrix_haversine(positions)
+    
     # for each hospital find the first few nearest neighbors up to num_neighbors
     nearest_neighbors = []
     for i in range(form.num_hospitals):
-        nearest_neighbors.append(np.argsort(d[i])[1:form.num_neighbors+1])
+        nearest_neighbors.append(np.argsort(distance_matrix[i])[1:form.num_neighbors+1])
 
     # find all partitions that include num_neighbors of the nearest neighbors
     partitions = set()
@@ -107,16 +78,21 @@ def create_utility_function(form: FormInput, include_first_neighbor=False):
 
         partitions = partitions.union(set(combs))
 
+    if not partitions:
+        # TODO: take care of corner cases
+        return None, None
+
     # for each partition compute the cost and utility
     utility = []
     utility_dict = {}
     objective = {}
     for partition in partitions:
         beds = excess[list(partition)]
-        transfer = transfer_score(beds)
+        transfer = get_transfer(beds)
         xys = positions[list(partition)]
         solutions, cst, status, transfer = lp_problem(xys, beds, transfer, verbose=False)
         utility.append([partition, transfer, cst])
+
     utility = np.array(utility)
     transfer_stdev = np.std(utility[:, 1])
     cost_stdev = np.std(utility[:, 2])
@@ -125,32 +101,12 @@ def create_utility_function(form: FormInput, include_first_neighbor=False):
     for partition, transfer, cst in utility:
         objective[partition] = (1 - alpha) * transfer / transfer_stdev - alpha * cst / cost_stdev
         utility_dict[partition] = (transfer, cst)
-    partitions = list(partitions)
-    return partitions, utility_dict, dataframe, objective
+
+    return utility_dict, objective
 
 
-def transfer_score(resources):
-    """Compute the maximum transfer.
-
-    Args:
-        resources (int):
-            Amount of shortage/surplus in each location of the partition.
-
-    Returns:
-        float: Maximum transfer.
-    """
-    surplus = resources[resources > 0]
-    shortage = resources[resources < 0]
-    if len(surplus) == 0 or len(shortage) == 0:
-        return 0
-
-    surplus = np.sum(surplus)
-    shortage = np.sum(-shortage)
-    return np.min([surplus, shortage])
-
-
-def k_clique_from_combinations(utility, lagrange=3):
-    """
+def k_clique_from_combinations(utility: dict, lagrange: int = 3) -> Tuple[dimod.BinaryQuadraticModel, list]:
+    """Helper function for BQM solution.
     # TODO use dwave-networkx weighted maximum clique or weighted maximum independent set
     This function naively generates all possible combinations of size
     number_variables/num_partitions and then using a given utility function
@@ -158,19 +114,14 @@ def k_clique_from_combinations(utility, lagrange=3):
     clique of size num_partitions that has the maximum utility function.
 
     Args:
-        utility (dict):
-            A dictionary with frozenset of size partition_size as keys. The dictionary
-            returns the utility function for a given partition.
+        utility: Keys are groups (frozensets) of hospitals (represented by indices for a dataframe). 
+                 Values are the objectives.
 
-        lagrange (int, default=3):
-            Lagrange parameter to weight constraints (no edges within set)
-            versus objective (largest set possible).
+        lagrange: Lagrange parameter to weight constraints (no edges within set) versus objective 
+                  (largest set possible).
 
     Returns:
-        tuple: A pair containing:
-            bqm: BinaryQuadraticModel
-
-            list: All possible combinations of hospital groupings.
+        The BQM and a list of all possible combinations of hospital groupings.
     """
     p_combinations = list(utility.keys())
     scale = np.max(np.abs(list(utility.values())))
@@ -187,148 +138,50 @@ def k_clique_from_combinations(utility, lagrange=3):
     return bqm, p_combinations
 
 
-def get_sampler(form: FormInput):
-    """Given a set of user inputs, return the selected solver and a minimal set
-    of default parameters.
+def get_sampler(form: FormInput) -> Tuple[dimod.Sampler, dict]:
+    """Given a set of user inputs, return the selected solver and a minimal set of default parameters.
 
     Args:
-        form:
-            User input form.
+        form: User input form.
 
     Returns:
-        tuple: A 2-tuple containing:
-            solver: User selected solver.
-
-            dict: Default parameters for the solver.
+        The user selected solver and default parameters for the solver.
     """
     name = form.solver
     if name == 'SimulatedAnnealing':
         return SimulatedAnnealingSampler(), {}
     elif name == 'LeapHybridSampler':
-        return LeapHybridSampler(), {'time_limit': float(form.time_limit), 
-                                     'label': 'Demo from Leap - Resource Distribution Optimization'}
+        return (LeapHybridSampler(solver=dict(name='hybrid_binary_quadratic_model_version2_test')),
+                {'time_limit': float(form.time_limit), 
+                 'label': 'Demo from Leap - Resource Distribution Optimization'})
     elif name == 'TabuSampler':
         return TabuSampler(), {'timeout': int(form.time_limit) * 1000}
+    elif name == 'LeapHybridCQMSampler':
+        sampler = LeapHybridCQMSampler(solver=dict(name='hybrid_constrained_quadratic_model_version1_test'))
+        return sampler, {'time_limit': float(form.time_limit),
+                         'label': 'Demo from Leap - Resource Distribution Optimization'}
     else:
         raise ValueError
 
 
-def get_empty_map(num_hospitals: int):
-    """Create a Folium map with hospital markers.
+def solve_bqm(hospital_df: pd.DataFrame, form: FormInput, 
+              sampler: dimod.Sampler, params: dict) -> Tuple[dict, float, float]:
+    """Builds a BQM from the user input and finds a solution.
 
     Args:
-        num_hospitals (int):
-            Number of hospitals to add to the map.
+        hospital_df: DataFrame containing hospital data for all hospitals in the problem.
+
+        form: User input form.
+
+        sampler: A `dimod` sampler object.
+
+        params: Default parameters for the sampler.
 
     Returns:
-        folium.Map
+        Group data from the best solution found (keys are frozensets of hospitals (represented by 
+        indices for `hospital_df`), values are (transfer, cost)), the energy of the best solution,
+        and the run time.
     """
-    df = us_hospitals(num_hospitals)
-    df['size'] = np.abs(df['excess_beds'])
-
-    start_coords = (40.758896, -73.985130)
-    zoom = 12 if len(df) > 25 else 13
-
-    folium_map = folium.Map(location=start_coords, tiles=None, zoom_start=zoom)
-    folium.TileLayer(tiles='openstreetmap', opacity=0.5).add_to(folium_map)
-
-    # Marker color is based on number of excess_beds (scale is from red (shortage) to blue (surplus))
-    df['marker_color'] = pd.cut(df['excess_beds'], bins=8, labels=['#fc0009',
-                                                                   '#e10435',
-                                                                   '#b30963',
-                                                                   '#910b81',
-                                                                   '#5f0aad',
-                                                                   '#4f08ba',
-                                                                   '#2606de',
-                                                                   '#1702f6'])
-
-    # Add one marker per hospital
-    for latitude, longitude, size, excess_beds, color in zip(df['latitude'], df['longitude'], df['size'], df['excess_beds'], df['marker_color']):
-        folium.CircleMarker([latitude, longitude],
-                            radius=math.sqrt(size)+3,
-                            tooltip=('Size: ' + str(size) + '<br>'
-                                     'Latitude: ' + str(latitude) + '<br>'
-                                     'Longitude: ' + str(longitude) + '<br>'
-                                     'Excess beds: ' + str(excess_beds)),
-                            fill=True,
-                            stroke=False,
-                            fill_color=color,
-                            fill_opacity=0.8).add_to(folium_map)
-
-    return folium_map
-
-def add_result_marker(figure, dataframe, sorg, utility):
-    """Adds a marker to figure representing one grouping of hospitals.
-
-    Args:
-        figure (folium.Map):
-            Map object to be added to.
-
-        dataframe (pandas.DataFrame):
-            Contains hospital data.
-
-        sorg (frozenset):
-            One grouping of hospitals.
-
-        utility (dict):
-            Each key is a grouping of hospitals and each value is a tuple 
-            of (transfer, cost).
-
-    Returns:
-        None
-    """
-    s = np.array(list(sorg))
-    dfxy = dataframe.iloc[s]
-    dfxy = dfxy[['longitude', 'latitude']]
-
-    u = utility[sorg]
-
-    if u[0] > 0:
-        if len(s) > 2:
-            hull = ConvexHull(dfxy.values)
-            vertices = hull.vertices
-        else:
-            vertices = range(len(s))
-
-        locations = [(dfxy.values[idx][1], dfxy.values[idx][0]) for idx in vertices]
-
-        colors = ['red', 'blue', 'green', 'purple']
-        color = np.random.choice(colors)
-
-        folium.vector_layers.Polygon(locations,
-                                        fill=True,
-                                        stroke=True,
-                                        color=color,
-                                        fill_color=color,
-                                        fill_opacity=0.3,
-                                        opacity=0.2).add_to(figure)
-
-        text = "Transfers {:.2f} <br> Cost {:.2f}".format(u[0], u[1])
-        cm = np.mean(dfxy.values[vertices], axis=0)
-
-        folium.map.Marker([cm[1], cm[0]],
-                            icon=DivIcon(icon_size=(150,36),
-                            icon_anchor=(75,18),
-                            html='<div style="font-size: 12pt">%s</div>' % text)).add_to(figure)
-
-def get_results(form: FormInput):
-    """Generate problem based on user input and solve the BQM for results.
-    
-    Args:
-        form:
-            User input form.
-    
-    Returns:
-        A 2-tuple containing:
-            folium.Map: Map with markers displaying hospital partitions.
-
-            Result/None: Result object containing info on the problem and solution.
-    """
-    # Set default values
-    figure = get_empty_map(form.num_hospitals)
-    run_time = 0
-    result = None
-
     # Get problem
     makedirs('saved_problems/', exist_ok=True)
     name = "saved_problems/main_problem_{}_{}_{}_{:.2f}".format(form.partition_size, 
@@ -337,96 +190,306 @@ def get_results(form: FormInput):
                                                                 form.dof)
     try:
         with open(name, 'rb') as f:
-            p_combinations, utility, dataframe, objective = pickle.load(f)
+            utility, objective = pickle.load(f)
             print('Load saved problem file: ', name)
     except:
         print('Writing new problem file: ', name)
-        p_combinations, utility, dataframe, objective = create_utility_function(form)
-        with open(name, 'wb') as f:
-            pickle.dump((p_combinations, utility, dataframe, objective), f)
+        utility, objective = create_utility_function(form, hospital_df)
+        if utility and objective:
+            with open(name, 'wb') as f:
+                pickle.dump((utility, objective), f)
 
-    bqm, p_combinations = k_clique_from_combinations(utility=objective, lagrange=10)
+    # Get BQM and all combinations of hospitals to use later
+    bqm, p_combinations = k_clique_from_combinations(objective, lagrange=10)
 
     # Solve problem
-    sampler, params = get_sampler(form)
-    try:
-        if form.solver == 'SimulatedAnnealing':
-            response = sampler.sample(bqm)
-            beta_range = response.info['beta_range']
+    if form.solver == 'SimulatedAnnealing':
+        response = sampler.sample(bqm)
+        beta_range = response.info['beta_range']
 
-            t0 = time.perf_counter()
-            response = sampler.sample(bqm, beta_range=beta_range)
+        t0 = time.perf_counter()
+        response = sampler.sample(bqm, beta_range=beta_range)
+        run_time = time.perf_counter() - t0
+
+        nsw = int(float(form.time_limit) / run_time * 1000 / 10)
+
+        run_time = 0
+        t0 = time.perf_counter()
+        while run_time < float(form.time_limit):
+            onerun = sampler.sample(bqm, num_sweeps=nsw, beta_range=beta_range).truncate(1)
+            response = dimod.concatenate((response, onerun)).truncate(1)
             run_time = time.perf_counter() - t0
 
-            nsw = int(float(form.time_limit) / run_time * 1000 / 10)
+    else:
+        t0 = time.perf_counter()
+        response = sampler.sample(bqm, **params).truncate(1)
+        run_time = time.perf_counter() - t0
 
-            run_time = 0
-            t0 = time.perf_counter()
-            while run_time < float(form.time_limit):
-                onerun = sampler.sample(bqm, num_sweeps=nsw, beta_range=beta_range).truncate(1)
-                response = dimod.concatenate((response, onerun)).truncate(1)
-                run_time = time.perf_counter() - t0
-
-        else:
-            t0 = time.perf_counter()
-            response = sampler.sample(bqm, **params).truncate(1)
-            run_time = time.perf_counter() - t0
-
-            if form.solver == 'LeapHybridSampler':
-                run_time = response.info['run_time'] / 1e6
-
-    except ValueError as err:
-        return figure, None
+        if form.solver == 'LeapHybridSampler':
+            run_time = response.info['run_time'] / 1e6
 
     variables = np.array(response.variables)
-
-    num_partitions = form.num_hospitals // form.partition_size
-
-    response = Result(response, p_combinations, variables, form.num_hospitals, utility,
-                      num_partitions, run_time, solver=form.solver)
-
-    if response.total_cost is None or response.total_utility is None or response.energy is None:
-        # No feasible solution found
-        return figure, None
-
-    sample = response.sample
+    sample = response.record.sample[0]
+    energy = response.record.energy[0]
+    
+    # Parse sample and get the previously calculated transfer and cost for each group
     sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
+    group_data = dict()
+    for group in sol:
+        transfer, cost = utility[group]
+        group_data[group] = (transfer, cost)
 
-    for sorg in sol:
-        add_result_marker(figure, dataframe, sorg, utility)
-
-    return figure, response
+    return group_data, energy, run_time
 
 
-class Result:
-    def __init__(self, response, p_combinations, variables, num_hospitals, utility, k, t, solver):
-        total_cost = None
-        self.solver = solver
-        total_utility = None
-        self.t = t
-        energy = None
-        for sample, energy, occ in response.record:
-            if k != sum(sample):
-                continue
-            sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
-            union = set().union(*sol)
-            inter = [set().intersection(a, b) for a, b in combinations(sol, 2)]
-            inter = [len(x) for x in inter]
-            intersect_length = sum(inter)
-            if intersect_length > 0:
-                continue
-            if len(union) != num_hospitals:
-                continue
-            total_utility = np.sum([utility[x][0] for x in sol])
-            total_cost = np.sum([utility[x][1] for x in sol])
-        self.sample = response.truncate(1).record.sample[0]
-        self.total_utility = total_utility
-        self.total_cost = total_cost
-        self.energy = energy
+def build_cqm(hospital_df: pd.DataFrame, distances: dict) -> dimod.ConstrainedQuadraticModel:
+    """Build CQM from data provided.
+    
+    Args:
+        hospital_df: Contains hospital data for all hospitals in the problem.
 
+        distances: Keys are pairs of hospital names and values are the distances between the 
+                   two hospitals.
+
+    Return:
+        The CQM.
+    """
+    # put the data into forms that are easier to manage
+    hospitals = dict(zip(hospital_df['name'], hospital_df['excess_beds']))
+
+    # easy optimization, the number of groups cannot be larger than the number
+    # of hospitals with a positive excess_beds
+    num_groups = sum(beds >= 0 for beds in hospitals.values())
+
+    # create a variable matching each hospital to a group
+    variables = {}
+    for hospital in hospitals:
+        for group in range(num_groups):
+            variables[hospital, group] = dimod.Binary((hospital, group))
+
+    # build the CQM
+    cqm = dimod.ConstrainedQuadraticModel()
+
+    # enforce the constraint that no hospital can be in more than one group
+    for hospital in hospitals:
+        cqm.add_discrete([(hospital, group) for group in range(num_groups)])
+
+    # enforce the constraint that each group must have a net positive number of beds
+    for group in range(num_groups):
+        cqm.add_constraint(sum(variables[hospital, group]*beds for hospital, beds in hospitals.items()) >= 0)
+
+    # minimize the transfer cost
+    objective = 0
+    for h0, beds0 in hospitals.items():
+        for h1, beds1 in hospitals.items():
+            if beds0 > 0 and beds1 < 0:
+                for group in range(num_groups):
+                    objective += variables[h0, group]*variables[h1, group]*distances[h0, h1]
+    cqm.set_objective(objective)
+
+    return cqm
+
+
+def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) -> Result:
+    """Generate problem based on user input and solve.
+    
+    Args:
+        form: User input form.
+
+        hospital_df: Contains hospital data for all hospitals in the problem.
+
+        figure: Map to add result markers to.
+    
+    Returns:
+        Result tuple containing solution.
+    """
+    # Calculate the distances between hospitals
+    distance_matrix = distance_matrix_haversine(hospital_df[['longitude', 'latitude']].values)
+    distances = dict(((hospital_df['name'][i], hospital_df['name'][j]), distance_matrix[i, j])
+                    for i in range(form.num_hospitals) for j in range(form.num_hospitals))
+
+    print("distances: ", distances)
+
+    sampler, params = get_sampler(form)
+
+    print("Solving problem with the {}".format(sampler))
+
+    if form.solver == 'LeapHybridCQMSampler':
+        cqm = build_cqm(hospital_df, distances)
+
+        sampleset = sampler.sample_cqm(cqm, **params)
+        run_time = sampleset.info['run_time'] / 1e6
+
+        try:
+            # get the lowest-energy feasible solution
+            solution = next(filterfalse(lambda d: not getattr(d, 'is_feasible'), list(sampleset.data())))
+        except:
+            # no feasible solution, so use the first one
+            solution = sampleset.first
+
+        energy = solution.energy
+    else:
+        # solve problem as a bqm
+        if form.page == 'cqm':
+            # on the cqm page, a bunch of bqm tuning parameters are missing -> fill them in here
+            partition_size = 0
+            sizes = [5, 4, 3, 2]
+            for size in sizes:
+                if size != form.num_hospitals and form.num_hospitals % size == 0:
+                    # make sure partition size is divisible by the number of hospitals
+                    partition_size = size
+                    break
+
+            if partition_size == 0:
+                # no other option, one partition
+                partition_size = form.num_hospitals
+
+            form = FormInput(num_hospitals=form.num_hospitals,
+                             partition_size=partition_size,
+                             num_neighbors=form.num_hospitals,
+                             dof=0.2,   # decreasing dof maximizes transfer
+                             solver=form.solver,
+                             time_limit=form.time_limit)
+
+        try:
+            solution, energy, run_time = solve_bqm(hospital_df, form, sampler, params)
+        except ValueError as err:
+            print(err)  # report error but move on
+            return None
+
+    # parse solution (and get cost and transfer data for each group)
+    groups = get_group_data(hospital_df, distances, solution)
+    for group in groups:
+        print(group)
+
+        max_cost = get_cost(group.names, group.excess_beds, distances)
+        if max_cost < group.cost:
+            # TODO: find out why optimal cost is sometimes greater than max cost
+            print("Something strange: max cost: {}, old cost: {}".format(max_cost, group.cost))
+            # raise ValueError("Something strange with cost."
+            #                  "max cost: {}, old cost: {}".format(max_cost, group.cost))
+        
+        calculated_transfer = get_transfer(group.excess_beds)
+        if calculated_transfer != group.transfer:
+            raise ValueError("Wrong transfer calculated: ", group)
+
+    # check feasibility of solution
+    net_positive_beds, only_one_group = check_feasibility(groups)
+
+    error_msgs = []
+    if not net_positive_beds:
+        error_msgs.append("One or more groups did not have a net positive number of excess beds.")
+    
+    if not only_one_group:
+        error_msgs.append("One or more hospitals were in more than one group.")
+
+    # add results to the map
+    add_result_markers(figure, groups)
+
+    # calculate totals
+    total_cost = 0
+    total_transfer = 0
+
+    assigned_hospitals = []
+    for group in groups:
+        total_cost += group.cost
+        total_transfer += group.transfer
+
+    print("Total cost: ", total_cost)
+    print("Total transfer: ", total_transfer)
+
+    return Result(figure=figure, total_cost=total_cost, total_transfer=total_transfer, energy=energy, 
+                  error_msgs=error_msgs, run_time=run_time)
+
+
+def get_group_data(hospital_df: pd.DataFrame, distances: dict, solution: Union[tuple, dict]) -> list:
+    """Parse the solution provided and return a list of hospital group information in the form of a
+    HospitalGroup tuple.
+
+    Args:
+        hospital_df: DataFrame containing hospital data for all hospitals in the problem.
+
+        distances: Keys are pairs of hospital names and values are the distances between the 
+                   two hospitals.
+
+        solution: Either the lowest energy sample containing the solution, or a list of array-like 
+                  objects that each represent a group of hospitals.
+
+    Return:
+        List of HospitalGroup.
+    """
+    group_data = []
+
+    if isinstance(solution, tuple):
+        is_satisfied = solution.is_feasible if hasattr(solution, 'is_feasible') else None
+
+        # split hospitals into groups according to the sample
+        groups = defaultdict(list)
+        for var, value in solution.sample.items():
+            if isinstance(var, tuple) and value:
+                groups[var[1]].append(var[0])
+
+        # get data for each group
+        for _, hospital_names in groups.items():
+            group_df = hospital_df.loc[hospital_df['name'].isin(hospital_names)][['name', 
+                                                                                  'longitude', 
+                                                                                  'latitude', 
+                                                                                  'excess_beds']]
+            group_data.append(HospitalGroup(group_df, distances, net_positive_beds=is_satisfied))
+    
+    elif isinstance(solution, dict):
+        for group in solution:
+            transfer, cost = solution[group]    # already calculated when building the bqm
+            group_df = hospital_df.iloc[np.array(list(group))][['name', 
+                                                                'longitude', 
+                                                                'latitude', 
+                                                                'excess_beds']]
+            group_data.append(HospitalGroup(group_df, distances, transfer=transfer, cost=cost))
+
+    else:
+        raise ValueError("Wrong solution type.")
+
+    return group_data
+
+
+class HospitalGroup:
+    def __init__(self, group_df, distances, transfer=None, cost=None, net_positive_beds=None):
+        """Class for holding information about hospital groupings.
+        
+        Args:
+            group_df (pd.DataFrame):
+                Contains hospital data for one group.
+
+            distances (dict):
+                Keys are pairs of hospital names and values are the distances between the two hospitals.
+
+            transfer (float, optional):
+                Number of beds that can be transferred in the group. Calculated if not passed in.
+
+            cost (float, optional):
+                Sum of distances between pairs of hospitals in the group, in which one hospital has 
+                a shortage of beds and the other has a surplus. Calculated if not passed in.
+
+            net_positive_beds (bool, optional):
+                True if the group has a net positive number of beds. Calculated if not passed in.
+        """
+        self.names = group_df['name'].values
+        self.positions = group_df[['longitude', 'latitude']].values
+        self.excess_beds = group_df['excess_beds'].values
+
+
+        self.transfer = transfer if transfer else get_transfer(self.excess_beds)
+        self.cost = cost if cost else get_cost(self.names, self.excess_beds, distances)
+
+        if net_positive_beds is None:
+            total_beds = np.sum(self.excess_beds)
+            net_positive_beds = total_beds >= 0
+
+        self.net_positive_beds = net_positive_beds
+
+    
     def __repr__(self):
-        return "{:40s}: Utility {:.2f}, cost {:.2f}, energy {:.2f}, in {:.2f} seconds".format(self.solver, 
-                                                                                              self.total_utility, 
-                                                                                              self.total_cost, 
-                                                                                              self.energy, 
-                                                                                              self.t)
+        return "\nGroup: {}\n, Excess Beds: {}\n, Transfer: {}\n, Cost: {}\n".format(self.names,
+                                                                                     self.excess_beds,
+                                                                                     self.transfer,
+                                                                                     self.cost)
