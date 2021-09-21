@@ -9,6 +9,7 @@ import pandas as pd
 
 from utils import us_hospitals
 from resource_distribution import FormInput, get_empty_map, get_results
+from pages.home import render_header
 
 map_width, map_height = 1200, 600
 
@@ -68,9 +69,7 @@ def render_sidebar():
 def run_page():
     """Runs when user visits optimization page, and on any user input."""
     render_style()
-
-    st.markdown("<h1>Resource Distribution Demonstration</h1>", unsafe_allow_html=True)
-
+    render_header()
     run_button, form = render_sidebar()
 
     # Generate hospital data

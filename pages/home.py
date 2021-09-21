@@ -10,6 +10,17 @@ def img_to_bytes(img_path: str) -> str:
     encoded = base64.b64encode(img_bytes).decode()
     return encoded
 
+def render_header():
+    """Display header."""
+    logo = img_to_bytes("assets/logo_dots.png")
+    st.markdown(
+        f'<div class="header"> \
+          <img src="data:image/gif;base64,{logo}"> \
+          <h1>Resource Distribution Demonstration</h1> \
+          </div>',
+        unsafe_allow_html=True,
+    )
+
 def run_page():
     """Runs when user visits home page."""
     template_dir = Path(__file__).absolute().parent.parent.joinpath('templates')
@@ -21,7 +32,7 @@ def run_page():
     st.write(style, unsafe_allow_html=True)
 
     # Display header
-    st.markdown("<h1>Resource Distribution Demonstration</h1>", unsafe_allow_html=True)
+    render_header()
 
     # Display rest of home page
     home = env.get_template('home.html')
