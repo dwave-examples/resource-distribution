@@ -47,7 +47,7 @@ h2 {
     font-size: 20px;
     line-height: 1;
     font-weight: 600;
-    margin: 0 0 1.25rem;
+    margin: 60px 0px 30px;
     border-left: 3px solid var(--orange);
     padding: 0 0 0 1rem;
 }
@@ -89,6 +89,7 @@ hr {
     padding: 0px;
     font-size: 40px;
     margin-left: 50px;
+    margin-bottom: 40px;
 }
 
 /* Streamlit elements */

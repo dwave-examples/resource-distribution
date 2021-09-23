@@ -13,7 +13,7 @@
 
 <img src='data:image/png;base64,{{partitioning}}' class='home-img'/>
 
-<h2>Utility Function</h2>
+<h2>BQM: Utility Function</h2>
 <p>
     The goal is to divide the medical centers into groups such that the maximum amount of transfer is achieved at minimum cost.
     The transfer is quantified as the smaller number of total excess and total shortage. The cost is the sum of all costs associated 
@@ -24,17 +24,18 @@
     The values a_i can be positive (excess) or negative (shortage). Let’s assume that \(u_p = (a_1, ..., a_4)\) are positive
     and \(u_n = (a_5, ..., a_8)\) are negative.
 </p>
-    The transfer is equal to
+<p>
+    The maximum transfer is equal to
 
     \begin{equation}
         t = min(\sum_{i \in u_p} a_i, -\sum_{i \in u_n} a_i).
     \end{equation}
 
     For example, if the magnitude of positive ones is smaller,
-    transfer is equal to the magnitude of \(\sum_{i \in u_p} a_i\).
+    maximum transfer is equal to the magnitude of \(\sum_{i \in u_p} a_i\).
 
     The cost for each group \(u\) is calculated for pairs of centers for which a transfer only occurs, i.e. between members of \(u_p\) and \(u_n\) and not within.
-    So all the possibilities are:
+    So the maximum cost is:
 
     \begin{equation}
     c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,j}
@@ -46,7 +47,7 @@
     \end{equation}
 </p>
 <img src='data:image/png;base64,{{partition_with_distance}}' class='home-img'/>
-<h2>Formulation</h2>
+<h2>BQM: Formulation</h2>
 <p>
     Given the utility function above, or any utility function that can compute a value for a given subset \(u\), we can use
     the following k-clique problem to find the best division of medical centers to k groups [1].
@@ -71,7 +72,69 @@
     \end{equation}
 
     where, \(x_u\) is a binary variable that decides if the group \(u\) is selected.
-
+</p>
+<h2>CQM: Formulation</h2>
+<p>
+    The BQM formulation requires multiple mathematical transformations in its implementation, with 
+    the original problem needing to be translated into a maximum independent set problem in order to 
+    run on an unconstrained solver.
+</p>
+<p>
+    The CQM allows us to skip these transformations and solve the original problem in a more intuitive
+    way.
+</p>
+<p>
+    We start with our constraints.
+</p>
+<p>
+    <b>Constraint #1: No hospital can be in more than one group</b>
+</p>
+<p>
+    <pre><code>
+    for hospital in hospitals:
+        cqm.add_discrete([(hospital, group) for group in range(num_groups)])
+    </code></pre>
+</p>
+<p>
+    <b>Constraint #2: Each group must have a net positive number of beds</b>
+</p>
+<p>
+    <pre><code>
+    for group in range(num_groups):
+        cqm.add_constraint(sum(variables[hospital, group]*beds for hospital, beds in hospitals.items()) >= 0)
+    </code></pre>
+</p>
+<p>
+    Our last step is to <b>minimize the transfer cost</b> by adding an objective to the CQM. See above 
+    for the definition of cost.
+</p>
+<p>
+    <pre><code>
+    objective = 0
+    for h0, beds0 in hospitals.items():
+        for h1, beds1 in hospitals.items():
+            if beds0 > 0 and beds1 < 0:
+                for group in range(num_groups):
+                    objective += variables[h0, group]*variables[h1, group]*distances[h0, h1]
+    cqm.set_objective(objective)
+    </code></pre>
+</p>
+<p>
+    We now have a CQM that is ready to be sampled with the <code>LeapHybridCQMSampler</code>.
+</p>
+<p>
+    In the code above, note that:
+    <ul>
+        <li><code>cqm</code> is a <code>dimod.ConstrainedQuadraticModel</code></li>
+        <li><code>hospitals</code> is a <code>dict</code> in which keys are hospital names and values
+        are the number of excess beds in each hospital</li>
+        <li><code>num_groups</code> is the number of groups to separate the hospitals into</li>
+        <li><code>variables</code> is a <code>dict</code> in which keys are <code>(hospital, group)</code> 
+        and values are the binary variables that determine whether <code>hospital</code> should be 
+        in <code>group</code></li>
+        <li><code>distances</code> is a <code>dict</code> in which keys are pairs of hospitals and 
+        values are the distances between the two hospitals</li>
+    </ul>
 </p>
 <p id='refs'>
     [1] Bass, Gideon, et al. "Heterogeneous quantum computing for satellite constellation optimization:
