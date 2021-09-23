@@ -3,11 +3,11 @@
 {% block content %}
 <div id="home">
 <p>
-    The ongoing Covid-19 pandemic has infected millions of people and has overwhelmed health systems.
-    Many hospitals are facing a critical shortage of essential resources such as invasive ventilators, 
-    ICU beds, and personal protective gear. It is imperative to optimize the allocation of resources. 
-    The goal is to group hospitals in such a way that shared resources are maximized within each group 
-    while ensuring fair distribution across different groups.
+    The ongoing Covid-19 pandemic has resulted in millions of people being infected and has 
+    overwhelmed health systems. Many hospitals are facing a critical shortage of essential resources 
+    such as invasive ventilators, ICU beds, and personal protective gear. It is imperative to 
+    optimize the allocation of resources. The goal is to group hospitals in such a way that shared 
+    resources are maximized within each group while ensuring fair distribution across different groups.
 </p>
 
 <img src='data:image/png;base64,{{partitioning}}' class='home-img'/>
@@ -15,8 +15,8 @@
 
 <h2>BQM</h2>
 <p>
-    When formulating the problem as a BQM, the goal is to divide the hospitals into groups such that 
-    the maximum amount of transfer is achieved at minimum cost. Transfer is quantified as the smaller 
+    In the BQM formulation, the goal is to divide the hospitals into groups such that the maximum 
+    amount of transfer is achieved at minimum cost. Transfer is quantified as the smaller 
     number between total excess and total shortage in a group of hospitals. Cost is the sum of all 
     costs associated with transferring resources from one hospital to another: In this demonstration, 
     only distance is considered as a cost. 
@@ -40,9 +40,9 @@
     For example, if there are fewer hospitals with a positive a_i (excess), maximum transfer is equal 
     to the magnitude of \(\sum_{i \in u_p} a_i\).
 
-    The cost for each group \(u\) is determined by summing up the distances between hospitals involved
-    in a transfer. A transfer can only occur between members of \(u_p\) and \(u_n\) and not within.
-    
+    The cost for each group \(u\) is determined by summing up the distances of transfers between 
+    hospitals. Transfers occur only between members of \(u_p\) and \(u_n\).
+
     So the maximum cost is:
 
     \begin{equation}
@@ -117,8 +117,8 @@
     </code></pre>
 </p>
 <p>
-    Our last step is to <b>minimize the transfer cost</b> by adding an objective to the CQM. See above 
-    for the definition of cost.
+    Our last step is to <b>minimize the transfer cost</b> by adding an objective to the CQM. Cost is 
+    equivalent to the maximum cost possible in a group: \(c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,j}\)
 </p>
 <p>
     <pre><code>

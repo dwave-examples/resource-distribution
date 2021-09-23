@@ -44,7 +44,7 @@ h1, h2, h3, .css-zue355 {
 }
 
 h2 {
-    font-size: 20px;
+    font-size: 25px;
     line-height: 1;
     font-weight: 600;
     margin: 60px 0px 30px;
@@ -53,9 +53,9 @@ h2 {
 }
 
 h3 {
-    font-size: 20px;
-    font-weight: 400;
-    margin: 0 0 0.75rem;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 30px 0 15px;
 }
 
 hr {
