@@ -4,9 +4,10 @@
 <div id="home">
 <p>
     The ongoing Covid-19 pandemic has infected millions of people and has overwhelmed health systems.
-    Many hospitals are facing a critical shortage of essential resources such as invasive ventilators, ICU beds, and personal protective gear.
-    It is imperative to optimize the allocation of resources. The goal is to group hospitals in such 
-    a way that shared resources are maximized within each group while ensuring fair distribution across different groups.
+    Many hospitals are facing a critical shortage of essential resources such as invasive ventilators, 
+    ICU beds, and personal protective gear. It is imperative to optimize the allocation of resources. 
+    The goal is to group hospitals in such a way that shared resources are maximized within each group 
+    while ensuring fair distribution across different groups.
 </p>
 
 <img src='data:image/png;base64,{{partitioning}}' class='home-img'/>
@@ -26,8 +27,8 @@
 </p>
 <p>
     Let's say that there are eight hospitals with the various number of ICU beds \(u = (a_1, ..., a_8)\).
-    The values a_i can be positive (excess) or negative (shortage). Let’s assume that \(u_p = (a_1, ..., a_4)\) are positive
-    and \(u_n = (a_5, ..., a_8)\) are negative.
+    The values a_i can be positive (excess) or negative (shortage). Let’s assume that \(u_p = (a_1, ..., a_4)\) 
+    are positive and \(u_n = (a_5, ..., a_8)\) are negative.
 </p>
 <p>
     The maximum transfer is equal to
@@ -56,8 +57,9 @@
 <img src='data:image/png;base64,{{partition_with_distance}}' class='home-img'/>
 <h3>Formulation</h3>
 <p>
-    Given the utility function above, or any utility function that can compute a value for a given subset \(u\), we can use
-    the following k-clique problem to find the best division of medical centers to k groups [1].
+    Given the utility function above, or any utility function that can compute a value for a given 
+    subset \(u\), we can use the following k-clique problem to find the best division of medical 
+    centers to k groups [1].
 
     First, we define the set of partitions of size \(n/k\) as
 
@@ -72,8 +74,11 @@
         \mathcal{E} = \left\{ (u, v): \forall ~ u,v \in \mathcal{V} ~\land ~~ u \cap v \neq \{\} \right\}.
     \end{equation}
 
-    Because the nodes in \(\mathcal{E}\) are derived from partitions of size \(n/k\), there can be no clique larger than \(k\).
-    Therefore, all we need to do is to solve the weighted maximum-independent-set problem with weights equal to the utility function and some regularization factor. If the utility function is defined as \(U: \mathcal{V} \rightarrow R\), we can write the objective function as,
+    Because the nodes in \(\mathcal{E}\) are derived from partitions of size \(n/k\), there can be 
+    no clique larger than \(k\). Therefore, all we need to do is to solve the weighted 
+    maximum-independent-set problem with weights equal to the utility function and some regularization 
+    factor. If the utility function is defined as \(U: \mathcal{V} \rightarrow R\), we can write the 
+    objective function as,
 
     \begin{equation}
         H = - \sum_u (U_u + R)~ x_u + \lambda \sum_{u, n \in \mathcal{E}} x_u x_u
