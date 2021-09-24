@@ -39,4 +39,4 @@ def run_page():
     home_html = home.render(partitioning=img_to_bytes("assets/partitioning.png"),
                             partition_with_distance=img_to_bytes("assets/partition_with_distance.png"))
 
-    st.components.v1.html(home_html, height=3000, scrolling=True)
+    st.components.v1.html(home_html, height=3400, scrolling=True)
