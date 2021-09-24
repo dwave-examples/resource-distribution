@@ -72,6 +72,13 @@ hr {
     width: 50%;
 }
 
+.home-code-img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
 #refs {
     border-top: 1px solid var(--orange);
     padding-top: 30px;

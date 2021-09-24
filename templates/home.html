@@ -101,36 +101,16 @@
 <p>
     <b>Constraint #1: No hospital can be in more than one group</b>
 </p>
-<p>
-    <pre><code>
-    for hospital in hospitals:
-        cqm.add_discrete([(hospital, group) for group in range(num_groups)])
-    </code></pre>
-</p>
+<img src='data:image/png;base64,{{c1}}' class='home-code-img'/>
 <p>
     <b>Constraint #2: Each group must have a net positive number of beds</b>
 </p>
-<p>
-    <pre><code>
-    for group in range(num_groups):
-        cqm.add_constraint(sum(variables[hospital, group]*beds for hospital, beds in hospitals.items()) >= 0)
-    </code></pre>
-</p>
+<img src='data:image/png;base64,{{c2}}' class='home-code-img'/>
 <p>
     Our last step is to <b>minimize the transfer cost</b> by adding an objective to the CQM. Cost is 
     equivalent to the maximum cost possible in a group: \(c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,j}\)
 </p>
-<p>
-    <pre><code>
-    objective = 0
-    for h0, beds0 in hospitals.items():
-        for h1, beds1 in hospitals.items():
-            if beds0 > 0 and beds1 < 0:
-                for group in range(num_groups):
-                    objective += variables[h0, group]*variables[h1, group]*distances[h0, h1]
-    cqm.set_objective(objective)
-    </code></pre>
-</p>
+<img src='data:image/png;base64,{{obj}}' class='home-code-img'/>
 <p>
     We now have a CQM that is ready to be sampled with the <code>LeapHybridCQMSampler</code>.
 </p>

@@ -36,7 +36,10 @@ def run_page():
 
     # Display rest of home page
     home = env.get_template('home.html')
-    home_html = home.render(partitioning=img_to_bytes("assets/partitioning.png"),
+    home_html = home.render(c1=img_to_bytes("assets/c1.png"),
+                            c2=img_to_bytes("assets/c2.png"),
+                            obj=img_to_bytes("assets/obj.png"),
+                            partitioning=img_to_bytes("assets/partitioning.png"),
                             partition_with_distance=img_to_bytes("assets/partition_with_distance.png"))
 
     st.components.v1.html(home_html, height=3000, scrolling=True)
