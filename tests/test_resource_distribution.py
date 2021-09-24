@@ -16,6 +16,7 @@ import os
 import unittest
 
 from resource_distribution import get_results, FormInput
+from utils import us_hospitals, get_empty_map
 
 class TestResourceDistribution(unittest.TestCase):
     def test_get_results(self):
@@ -25,12 +26,14 @@ class TestResourceDistribution(unittest.TestCase):
                          dof=0.2, 
                          solver="SimulatedAnnealing", 
                          time_limit=15)
-        figure, result = get_results(form)
+        hospital_df = us_hospitals(form.num_hospitals)
+        folium_map = get_empty_map(hospital_df)
+        result = get_results(form, hospital_df, folium_map)
 
         self.assertTrue(result)
-        self.assertAlmostEqual(result.t, 15, places=0)
+        self.assertAlmostEqual(result.run_time, 15, places=0)
 
-        output = figure.to_json()
+        output = result.figure.to_json()
         num_markers = output.count("CircleMarker")
         self.assertEqual(num_markers, 6)   # Checking hospital markers
         self.assertIn("Polygon", output)   # Checking result markers
