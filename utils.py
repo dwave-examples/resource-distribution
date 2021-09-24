@@ -71,7 +71,6 @@ def get_empty_map(df: pd.DataFrame) -> folium.Map:
     Returns:
         Folium map with markers for hospitals in `df`.
     """
-    # df = us_hospitals(num_hospitals)
     df['size'] = np.abs(df['excess_beds'])
 
     start_coords = (40.758896, -73.985130)

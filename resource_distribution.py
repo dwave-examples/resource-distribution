@@ -30,8 +30,7 @@ from neal import SimulatedAnnealingSampler
 from tabu import TabuSampler
 
 from solve_lp import lp_problem, distance_matrix_haversine
-from utils import (check_feasibility, us_hospitals, get_empty_map, add_result_markers, 
-                   get_transfer, get_cost)
+from utils import check_feasibility, add_result_markers, get_transfer, get_cost
 
 form_fields = ['page', 'num_hospitals', 'partition_size', 'num_neighbors', 'dof', 'solver', 
                'time_limit']
