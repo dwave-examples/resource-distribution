@@ -151,13 +151,15 @@ def get_sampler(form: FormInput) -> Tuple[dimod.Sampler, dict]:
     if name == 'SimulatedAnnealing':
         return SimulatedAnnealingSampler(), {}
     elif name == 'LeapHybridBQMSampler':
-        sampler = LeapHybridSampler()
+        # TODO: update once cqm solver is released in prod
+        sampler = LeapHybridSampler(solver=dict(name='hybrid_binary_quadratic_model_version2_test'))
         return sampler, {'time_limit': float(form.time_limit), 
                          'label': 'Demo from Leap - Resource Distribution Optimization'}
     elif name == 'TabuSampler':
         return TabuSampler(), {'timeout': int(form.time_limit) * 1000}
     elif name == 'LeapHybridCQMSampler':
-        sampler = LeapHybridCQMSampler()
+        # TODO: update once cqm solver is released in prod
+        sampler = LeapHybridCQMSampler(solver=dict(name='hybrid_constrained_quadratic_model_version1_test'))
         return sampler, {'time_limit': float(form.time_limit),
                          'label': 'Demo from Leap - Resource Distribution Optimization'}
     else:
