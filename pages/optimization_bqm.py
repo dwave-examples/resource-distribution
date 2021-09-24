@@ -7,8 +7,8 @@ import streamlit as st
 from streamlit_folium import folium_static
 import pandas as pd
 
-from utils import us_hospitals
-from resource_distribution import FormInput, get_empty_map, get_results
+from utils import us_hospitals, get_empty_map
+from resource_distribution import FormInput, get_results
 from pages.home import render_header
 
 map_width, map_height = 1200, 600

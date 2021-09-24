@@ -30,8 +30,7 @@ from neal import SimulatedAnnealingSampler
 from tabu import TabuSampler
 
 from solve_lp import lp_problem, distance_matrix_haversine
-from utils import (check_feasibility, us_hospitals, get_empty_map, add_result_markers, 
-                   get_transfer, get_cost)
+from utils import check_feasibility, add_result_markers, get_transfer, get_cost
 
 form_fields = ['page', 'num_hospitals', 'partition_size', 'num_neighbors', 'dof', 'solver', 
                'time_limit']
@@ -78,10 +77,6 @@ def create_utility_function(form: FormInput, hospital_df: pd.DataFrame,
 
         partitions = partitions.union(set(combs))
 
-    if not partitions:
-        # TODO: take care of corner cases
-        return None, None
-
     # for each partition compute the cost and utility
     utility = []
     utility_dict = {}
@@ -99,7 +94,11 @@ def create_utility_function(form: FormInput, hospital_df: pd.DataFrame,
 
     alpha = form.dof
     for partition, transfer, cst in utility:
-        objective[partition] = (1 - alpha) * transfer / transfer_stdev - alpha * cst / cost_stdev
+        if transfer_stdev != 0 and cost_stdev != 0:
+            objective[partition] = (1 - alpha) * transfer / transfer_stdev - alpha * cst / cost_stdev
+        else:
+            objective[partition] = (1 - alpha) * transfer - alpha * cst
+
         utility_dict[partition] = (transfer, cst)
 
     return utility_dict, objective
@@ -151,13 +150,15 @@ def get_sampler(form: FormInput) -> Tuple[dimod.Sampler, dict]:
     if name == 'SimulatedAnnealing':
         return SimulatedAnnealingSampler(), {}
     elif name == 'LeapHybridBQMSampler':
-        sampler = LeapHybridSampler()
+        # TODO: update once cqm solver is released in prod
+        sampler = LeapHybridSampler(solver=dict(name='hybrid_binary_quadratic_model_version2_test'))
         return sampler, {'time_limit': float(form.time_limit), 
                          'label': 'Demo from Leap - Resource Distribution Optimization'}
     elif name == 'TabuSampler':
         return TabuSampler(), {'timeout': int(form.time_limit) * 1000}
     elif name == 'LeapHybridCQMSampler':
-        sampler = LeapHybridCQMSampler()
+        # TODO: update once cqm solver is released in prod
+        sampler = LeapHybridCQMSampler(solver=dict(name='hybrid_constrained_quadratic_model_version1_test'))
         return sampler, {'time_limit': float(form.time_limit),
                          'label': 'Demo from Leap - Resource Distribution Optimization'}
     else:
@@ -202,31 +203,36 @@ def solve_bqm(hospital_df: pd.DataFrame, form: FormInput,
     # Get BQM and all combinations of hospitals to use later
     bqm, p_combinations = k_clique_from_combinations(objective, lagrange=10)
 
-    # Solve problem
-    if form.solver == 'SimulatedAnnealing':
-        response = sampler.sample(bqm)
-        beta_range = response.info['beta_range']
-
-        t0 = time.perf_counter()
-        response = sampler.sample(bqm, beta_range=beta_range)
-        run_time = time.perf_counter() - t0
-
-        nsw = int(float(form.time_limit) / run_time * 1000 / 10)
-
+    if len(bqm) == 1:
+        # Only one group, so no need to sample
+        response = dimod.SampleSet.from_samples_bqm({0: 1}, bqm)
         run_time = 0
-        t0 = time.perf_counter()
-        while run_time < float(form.time_limit):
-            onerun = sampler.sample(bqm, num_sweeps=nsw, beta_range=beta_range).truncate(1)
-            response = dimod.concatenate((response, onerun)).truncate(1)
+    else:
+        # Solve problem
+        if form.solver == 'SimulatedAnnealing':
+            response = sampler.sample(bqm)
+            beta_range = response.info['beta_range']
+
+            t0 = time.perf_counter()
+            response = sampler.sample(bqm, beta_range=beta_range)
             run_time = time.perf_counter() - t0
 
-    else:
-        t0 = time.perf_counter()
-        response = sampler.sample(bqm, **params).truncate(1)
-        run_time = time.perf_counter() - t0
+            nsw = int(float(form.time_limit) / run_time * 1000 / 10)
 
-        if form.solver == 'LeapHybridBQMSampler':
-            run_time = response.info['run_time'] / 1e6
+            run_time = 0
+            t0 = time.perf_counter()
+            while run_time < float(form.time_limit):
+                onerun = sampler.sample(bqm, num_sweeps=nsw, beta_range=beta_range).truncate(1)
+                response = dimod.concatenate((response, onerun)).truncate(1)
+                run_time = time.perf_counter() - t0
+
+        else:
+            t0 = time.perf_counter()
+            response = sampler.sample(bqm, **params).truncate(1)
+            run_time = time.perf_counter() - t0
+
+            if form.solver == 'LeapHybridBQMSampler':
+                run_time = response.info['run_time'] / 1e6
 
     variables = np.array(response.variables)
     sample = response.record.sample[0]
@@ -307,7 +313,6 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
     distance_matrix = distance_matrix_haversine(hospital_df[['longitude', 'latitude']].values)
     distances = dict(((hospital_df['name'][i], hospital_df['name'][j]), distance_matrix[i, j])
                     for i in range(form.num_hospitals) for j in range(form.num_hospitals))
-    print("distances: ", distances)
 
     sampler, params = get_sampler(form)
 
@@ -358,20 +363,19 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
 
     # parse solution (and get cost and transfer data for each group)
     groups = get_group_data(hospital_df, distances, solution)
+
+    # Print out groups and do some validation
     for group in groups:
         print(group)
 
-        # While we're at it, do some validation. Can probably remove eventually.
         max_cost = get_cost(group.names, group.excess_beds, distances)
         if max_cost < group.cost:
             # TODO: find out why optimal cost is sometimes greater than max cost
-            print("Something strange: max cost: {}, old cost: {}".format(max_cost, group.cost))
-            # raise ValueError("Something strange with cost."
-            #                  "max cost: {}, old cost: {}".format(max_cost, group.cost))
-        
-        calculated_transfer = get_transfer(group.excess_beds)
-        if calculated_transfer != group.transfer:
-            raise ValueError("Wrong transfer calculated: ", group)
+            print("Something strange: max cost: {}, optimal cost: {}".format(max_cost, group.cost))
+
+        max_transfer = get_transfer(group.excess_beds)
+        if max_transfer < group.transfer:
+            print("Something strange: max transfer: {}, optimal transfer: {}".format(max_transfer, group.transfer))
 
     # check feasibility of solution
     net_positive_beds, only_one_group = check_feasibility(groups)
@@ -412,8 +416,9 @@ def get_group_data(hospital_df: pd.DataFrame, distances: dict, solution: Union[t
         distances: Keys are pairs of hospital names and values are the distances between the 
                    two hospitals.
 
-        solution: Either the lowest energy sample containing the solution, or a list of array-like 
-                  objects that each represent a group of hospitals.
+        solution: Either the lowest energy sample containing the solution, or a dict in which keys 
+                  are array-like objects that each represent a group of hospitals and values are the
+                  (transfer, cost) of the group.
 
     Return:
         List of HospitalGroup.

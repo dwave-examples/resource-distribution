@@ -7,16 +7,16 @@ import streamlit as st
 from streamlit_folium import folium_static
 import pandas as pd
 
-from pages.optimization_bqm import render_style, ResultsTable, map_width, map_height
-from resource_distribution import FormInput, get_empty_map, get_results
-from utils import us_hospitals
 from pages.home import render_header
+from pages.optimization_bqm import render_style, ResultsTable, map_width, map_height
+from resource_distribution import FormInput, get_results
+from utils import us_hospitals, get_empty_map
 
 
 def render_sidebar():
     """Render sidebar. Returns the user input (button, form)."""
     st.sidebar.markdown("---")
-    num_hospitals = st.sidebar.number_input("Number of Hospitals", value=12, min_value=6)
+    num_hospitals = st.sidebar.number_input("Number of Hospitals", value=12, min_value=2)
     update_button = st.sidebar.button("Update Map", key="update")
     solver = st.sidebar.radio("Solver", ["LeapHybridCQMSampler", 
                                          "LeapHybridBQMSampler", 
