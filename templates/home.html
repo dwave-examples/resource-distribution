@@ -102,7 +102,7 @@
     <b>Constraint #1: No hospital can be in more than one group</b>
 </p>
 <p>
-    <pre><code>
+    <pre><code class='python'>
     for hospital in hospitals:
         cqm.add_discrete([(hospital, group) for group in range(num_groups)])
     </code></pre>
@@ -111,7 +111,7 @@
     <b>Constraint #2: Each group must have a net positive number of beds</b>
 </p>
 <p>
-    <pre><code>
+    <pre><code class='python'>
     for group in range(num_groups):
         cqm.add_constraint(sum(variables[hospital, group]*beds for hospital, beds in hospitals.items()) >= 0)
     </code></pre>
@@ -121,7 +121,7 @@
     equivalent to the maximum cost possible in a group: \(c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,j}\)
 </p>
 <p>
-    <pre><code>
+    <pre><code class='python'>
     objective = 0
     for h0, beds0 in hospitals.items():
         for h1, beds1 in hospitals.items():
