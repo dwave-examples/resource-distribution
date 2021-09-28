@@ -96,38 +96,58 @@
 </p>
 <h3>Formulation</h3>
 <p>
-    We start with our constraints.
+    We define a binary variable \(x\) for each pair \((i, g)\), where \(i\) is a hospital and \(g\)
+    is a hospital group. If the solution returns variable \((i, g) = 1\), then hospital \(i\) is 
+    assigned to group \(g\).
 </p>
 <p>
-    <b>Constraint #1: No hospital can be in more than one group</b>
+    Let's start with our constraints.
+</p>
+<p>
+    <b>Constraint 1: Each hospital must be assigned to exactly one group</b>
+</p>
+<p>
+    \(\sum_{g} x_{i,g} = 1\), for each hospital \(i\).
 </p>
 <p>
     <pre><code class='python'>
-    for hospital in hospitals:
-        cqm.add_discrete([(hospital, group) for group in range(num_groups)])
+    for i in hospitals:
+        cqm.add_discrete([(i, g) for g in range(num_groups)])
     </code></pre>
 </p>
 <p>
-    <b>Constraint #2: Each group must have a net positive number of beds</b>
+    <b>Constraint 2: Each group must have a net positive number of beds</b>
+</p>
+<p>
+    \(\sum_{i} a_{i} x_{i,g} >= 0\), for each group \(g\), where \(a_{i}\) refers to the number of beds that hospital \(i\) has.
 </p>
 <p>
     <pre><code class='python'>
-    for group in range(num_groups):
-        cqm.add_constraint(sum(variables[hospital, group]*beds for hospital, beds in hospitals.items()) >= 0)
+    for g in range(num_groups):
+        cqm.add_constraint(sum(variables[i, g] * a for i, a in hospitals.items()) >= 0)
     </code></pre>
+</p>
+<p>
+    <b>Objective</b>
 </p>
 <p>
     Our last step is to <b>minimize the transfer cost</b> by adding an objective to the CQM. Cost is 
-    equivalent to the maximum cost possible in a group: \(c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,j}\)
+    equivalent to the sum of the maximum transfer distance in each group.
+    
+    Given that \(u_p\) are hospitals with a positive number of beds (surplus), \(u_n\) are hospitals
+    with a negative number of beds (shortage), and \(d_{i,j}\) is the distance between hospital \(i\)
+    and hospital \(j\), the cost can be defined as: <br><br>
+    
+    \(c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,g} x_{j,g}\), for each group \(g\)
 </p>
 <p>
     <pre><code class='python'>
     objective = 0
-    for h0, beds0 in hospitals.items():
-        for h1, beds1 in hospitals.items():
+    for i, beds0 in hospitals.items():
+        for j, beds1 in hospitals.items():
             if beds0 > 0 and beds1 < 0:
-                for group in range(num_groups):
-                    objective += variables[h0, group]*variables[h1, group]*distances[h0, h1]
+                for g in range(num_groups):
+                    objective += distances[i, j]*variables[i, g]*variables[j, g]
     cqm.set_objective(objective)
     </code></pre>
 </p>
@@ -141,9 +161,9 @@
         <li><code>hospitals</code> is a <code>dict</code> in which keys are hospital names and values
         are the number of excess beds in each hospital</li>
         <li><code>num_groups</code> is the number of groups to separate the hospitals into</li>
-        <li><code>variables</code> is a <code>dict</code> in which keys are <code>(hospital, group)</code> 
-        and values are the binary variables that determine whether <code>hospital</code> should be 
-        in <code>group</code></li>
+        <li><code>variables</code> is a <code>dict</code> in which keys are <code>(i, g)</code> 
+        and values are the binary variables that determine whether hospital <code>i</code> should be 
+        in group <code>g</code></li>
         <li><code>distances</code> is a <code>dict</code> in which keys are pairs of hospitals and 
         values are the distances between the two hospitals</li>
     </ul>
