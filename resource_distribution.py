@@ -404,11 +404,12 @@ class Result:
         self.solver = solver
         total_utility = None
         self.t = t
-        energy = None
-        for sample, energy, occ in response.record:
-            if k != sum(sample):
+        self.energy = None
+        for record in response.record:
+            self.energy = record.energy
+            if k != sum(record.sample):
                 continue
-            sol = [p_combinations[x] for idx, x in enumerate(variables) if sample[idx]]
+            sol = [p_combinations[x] for idx, x in enumerate(variables) if record.sample[idx]]
             union = set().union(*sol)
             inter = [set().intersection(a, b) for a, b in combinations(sol, 2)]
             inter = [len(x) for x in inter]
@@ -422,7 +423,6 @@ class Result:
         self.sample = response.truncate(1).record.sample[0]
         self.total_utility = total_utility
         self.total_cost = total_cost
-        self.energy = energy
 
     def __repr__(self):
         return "{:40s}: Utility {:.2f}, cost {:.2f}, energy {:.2f}, in {:.2f} seconds".format(self.solver, 
