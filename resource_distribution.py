@@ -350,7 +350,7 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
 
             form = FormInput(num_hospitals=form.num_hospitals,
                              partition_size=partition_size,
-                             num_neighbors=form.num_hospitals,
+                             num_neighbors=min(2*partition_size, 8),
                              dof=0.2,   # decreasing dof maximizes transfer
                              solver=form.solver,
                              time_limit=form.time_limit)
