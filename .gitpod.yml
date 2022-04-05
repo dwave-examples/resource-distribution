@@ -1,7 +1,7 @@
 tasks:
   - init: pip install -r requirements.txt
-    command: streamlit run app.py
+    command: streamlit run --server.port 22222 app.py
 
 ports:
-  - port: 5000
+  - port: 22222
     onOpen: open-browser
