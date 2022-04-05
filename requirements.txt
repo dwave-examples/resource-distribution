@@ -1,13 +1,10 @@
 dwave-ocean-sdk>=3.3.0
 
-matplotlib==3.3.4; python_version>='3.6'
-matplotlib==3.0.3; python_version<'3.6'
+matplotlib==3.3.4
 
-scipy==1.5.4; python_version>='3.6'
-scipy==1.4.1; python_version<'3.6'
+scipy==1.5.4
 
-pandas==1.2.1; python_version>='3.6.1'
-pandas==0.25.3; python_version<'3.6.1'
+pandas==1.2.1
 
 numpy==1.18.5
 PuLP==2.1
