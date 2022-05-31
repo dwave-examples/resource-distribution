@@ -12,5 +12,5 @@ pandas==0.25.3; python_version<'3.6.1'
 numpy==1.19.4
 PuLP==2.1
 
-streamlit==0.83.0
+streamlit==1.9.2
 streamlit-folium==0.4.0
