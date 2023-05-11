@@ -13,7 +13,7 @@ from pages.home import render_header
 
 map_width, map_height = 1200, 600
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data
 def ResultsTable(model: str = None) -> DefaultDict:
     """Cached object for storing results. Allows us to keep results from previous runs.
     
