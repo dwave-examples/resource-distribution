@@ -1,3 +1,7 @@
+[![Open in Leap IDE](
+  https://cdn-assets.cloud.dwavesys.com/shared/latest/badges/leapide.svg)](
+  https://ide.dwavesys.io/#https://github.com/dwave-examples/resource-distribution/tree/cqm)
+
 # Resource Distribution
 
 The ongoing Covid-19 pandemic has resulted in millions of people being infected and 
