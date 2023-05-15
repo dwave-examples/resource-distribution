@@ -1,21 +1,28 @@
-from pathlib import Path
 from collections import defaultdict
 from typing import DefaultDict
 
-import jinja2
 import streamlit as st
 from streamlit_folium import folium_static
 import pandas as pd
 
-from pages.home import render_header
-from pages.optimization_bqm import render_style, ResultsTable, map_width, map_height
-from resource_distribution import FormInput, get_results
 from utils import us_hospitals, get_empty_map
+from page_utils import print_header, print_style
+from resource_distribution import FormInput, get_results
 
+
+map_width, map_height = 1200, 600
+
+@st.cache_resource
+def ResultsTable(model: str = None) -> DefaultDict:
+    """Cached object for storing results. Allows us to keep results from previous runs.
+    
+    Args:
+        model: Used to keep the two cached dicts (BQM and CQM) separate.
+    """
+    return defaultdict(list)
 
 def render_sidebar():
     """Render sidebar. Returns the user input (button, form)."""
-    st.sidebar.markdown("---")
     num_hospitals = st.sidebar.number_input("Number of Hospitals", value=12, min_value=2)
     update_button = st.sidebar.button("Update Map", key="update")
     solver = st.sidebar.radio("Solver", ["LeapHybridCQMSampler", 
@@ -34,10 +41,9 @@ def render_sidebar():
 
 def run_page():
     """Runs when user visits optimization page, and on any user input."""
-    render_style()
 
-    render_header()
-
+    print_style()
+    print_header()
     run_button, form = render_sidebar()
 
     # Generate hospital data
@@ -94,3 +100,5 @@ def run_page():
     if clear_button:
         results_dict.clear()
         placeholder.empty()
+
+run_page()

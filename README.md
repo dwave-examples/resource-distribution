@@ -21,7 +21,7 @@ To run the web app:
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run Home.py
 ```
 
 The web app should automatically open in your browser. Alternatively, copy and paste 
