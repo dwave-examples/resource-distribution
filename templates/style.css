@@ -1,31 +1,31 @@
  @font-face {
       font-family: 'proximanova-light';
-      src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-light-webfont.woff2') format('woff2'),
-          url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-light-webfont.woff') format('woff');
+      src: url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-light-webfont.woff2') format('woff2'),
+          url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-light-webfont.woff') format('woff');
       font-weight: normal;
       font-style: normal;
 }
 
 @font-face {
     font-family: 'Proxima Nova';
-    src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff2') format('woff2'),
-        url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff') format('woff');
+    src: url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-regular-webfont.woff2') format('woff2'),
+        url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-regular-webfont.woff') format('woff');
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'proximanova-regular';
-    src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff2') format('woff2'),
-        url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff') format('woff');
+    src: url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-regular-webfont.woff2') format('woff2'),
+        url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-regular-webfont.woff') format('woff');
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'proximanova-semibold';
-    src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-semibold-webfont.woff2') format('woff2'),
-        url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-semibold-webfont.woff') format('woff');
+    src: url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-semibold-webfont.woff2') format('woff2'),
+        url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-semibold-webfont.woff') format('woff');
     font-weight: normal;
     font-style: normal;
 }
