@@ -23,6 +23,7 @@ def ResultsTable(model: str = None) -> DefaultDict:
 
 def render_sidebar():
     """Render sidebar. Returns the user input (button, form)."""
+
     num_hospitals = st.sidebar.number_input("Number of Hospitals", value=12, min_value=2)
     update_button = st.sidebar.button("Update Map", key="update")
     solver = st.sidebar.radio("Solver", ["LeapHybridCQMSampler", 
@@ -42,6 +43,8 @@ def render_sidebar():
 def run_page():
     """Runs when user visits optimization page, and on any user input."""
 
+    st.set_page_config(
+        page_title="Resource Distribution Optimization", layout="wide")
     print_style()
     print_header()
     run_button, form = render_sidebar()

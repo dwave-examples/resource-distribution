@@ -22,6 +22,7 @@ def render_template(name, **values):
 
 def print_header():
     """Display header."""
+
     logo = img_to_bytes("assets/logo_dots.png")
     st.markdown(
         f'<div class="header"> \
