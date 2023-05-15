@@ -1,5 +1,6 @@
 import base64
 from pathlib import Path
+from collections import defaultdict
 
 import jinja2
 import streamlit as st
@@ -34,3 +35,13 @@ def print_header():
 
 def print_style():
     st.write(render_template('style.html'), unsafe_allow_html=True)
+
+@st.cache_resource
+def persisted(key, _object_factory=lambda: defaultdict(list)):
+    """Cached object for storing results between runs and app reloads.
+
+    Args:
+        key: Unique cached object id.
+        _object_factory: default object factory.
+    """
+    return _object_factory()

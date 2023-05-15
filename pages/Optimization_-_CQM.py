@@ -1,25 +1,13 @@
-from collections import defaultdict
-from typing import DefaultDict
-
 import streamlit as st
 from streamlit_folium import folium_static
 import pandas as pd
 
 from utils import us_hospitals, get_empty_map
-from page_utils import print_header, print_style
+from page_utils import print_header, print_style, persisted
 from resource_distribution import FormInput, get_results
 
 
 map_width, map_height = 1200, 600
-
-@st.cache_resource
-def ResultsTable(model: str = None) -> DefaultDict:
-    """Cached object for storing results. Allows us to keep results from previous runs.
-    
-    Args:
-        model: Used to keep the two cached dicts (BQM and CQM) separate.
-    """
-    return defaultdict(list)
 
 def render_sidebar():
     """Render sidebar. Returns the user input (button, form)."""
@@ -54,7 +42,7 @@ def run_page():
 
     # Initialize map and results
     folium_map = get_empty_map(hospital_df)
-    results_dict = ResultsTable(model='cqm')   # cache containing previous results
+    results_dict = persisted('cqm-results')
 
     # On run, update map and results
     if run_button:
