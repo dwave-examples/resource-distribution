@@ -1,8 +1,8 @@
  @font-face {
-      font-family: 'proximanova-light';
+      font-family: 'Proxima Nova';
       src: url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-light-webfont.woff2') format('woff2'),
           url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-light-webfont.woff') format('woff');
-      font-weight: normal;
+      font-weight: 100;
       font-style: normal;
 }
 
@@ -15,24 +15,16 @@
 }
 
 @font-face {
-    font-family: 'proximanova-regular';
-    src: url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-regular-webfont.woff2') format('woff2'),
-        url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-regular-webfont.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'proximanova-semibold';
+    font-family: 'Proxima Nova';
     src: url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-semibold-webfont.woff2') format('woff2'),
         url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-semibold-webfont.woff') format('woff');
-    font-weight: normal;
+    font-weight: 600;
     font-style: normal;
 }
 
 body {
     color: #222222;
-    font-family: 'proximanova-regular', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 :root {
@@ -40,7 +32,7 @@ body {
 }
 
 h1, h2, h3, .css-zue355 {
-    font-family: 'proximanova-regular', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 h2 {
