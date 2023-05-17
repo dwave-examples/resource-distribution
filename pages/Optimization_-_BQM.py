@@ -1,29 +1,17 @@
-from pathlib import Path
-from collections import defaultdict
-from typing import DefaultDict
-
-import jinja2
 import streamlit as st
 from streamlit_folium import folium_static
 import pandas as pd
 
 from utils import us_hospitals, get_empty_map
+from page_utils import write_header, persisted
 from resource_distribution import FormInput, get_results
-from pages.home import render_header
+
 
 map_width, map_height = 1200, 600
 
-@st.cache(allow_output_mutation=True)
-def ResultsTable(model: str = None) -> DefaultDict:
-    """Cached object for storing results. Allows us to keep results from previous runs.
-    
-    Args:
-        model: Used to keep the two cached dicts (BQM and CQM) separate.
-    """
-    return defaultdict(list)
-
 def validate_input(form: FormInput) -> bool:
     """Validate form input from user."""
+
     if form.num_hospitals <= form.partition_size or form.num_hospitals % form.partition_size != 0:
         st.sidebar.error("The partition size must be less than and divisible by the number of hospitals.")
         return False
@@ -33,18 +21,9 @@ def validate_input(form: FormInput) -> bool:
     
     return True
 
-def render_style():
-    """Render 'templates/style.html'."""
-    template_dir = Path(__file__).absolute().parent.parent.joinpath('templates')
-    loader = jinja2.FileSystemLoader(template_dir)
-    env = jinja2.Environment(loader=loader)
-
-    style = env.get_template('style.html').render()
-    st.write(style, unsafe_allow_html=True)
-
 def render_sidebar():
     """Render sidebar. Returns the user input (button, form)."""
-    st.sidebar.markdown("---")
+
     num_hospitals = st.sidebar.number_input("Number of Hospitals", value=12, min_value=2)
     update_button = st.sidebar.button("Update Map", key="update")
     partition_size = st.sidebar.number_input("Partition Size", value=4, min_value=1)
@@ -68,8 +47,10 @@ def render_sidebar():
 
 def run_page():
     """Runs when user visits optimization page, and on any user input."""
-    render_style()
-    render_header()
+
+    title = "Resource Distribution Optimization"
+    st.set_page_config(page_title=title, layout="wide")
+    write_header(title=title)
     run_button, form = render_sidebar()
 
     # Generate hospital data
@@ -77,7 +58,7 @@ def run_page():
 
     # Initialize map and results
     folium_map = get_empty_map(hospital_df)
-    results_dict = ResultsTable(model='bqm')   # cache containing previous results
+    results_dict = persisted('bqm-results')
 
     # On run, update map and results
     if run_button:
@@ -131,3 +112,5 @@ def run_page():
     if clear_button:
         results_dict.clear()
         placeholder.empty()
+
+run_page()
