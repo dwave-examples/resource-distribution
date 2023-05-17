@@ -1,15 +1,9 @@
-import base64
 from pathlib import Path
 from collections import defaultdict
 
 import jinja2
 import streamlit as st
 
-
-def img_to_bytes(img_path: str) -> str:
-    img_bytes = Path(img_path).read_bytes()
-    encoded = base64.b64encode(img_bytes).decode()
-    return encoded
 
 def render_template(name, **values):
     """Render 'templates/{name}' Jinja2 template."""
@@ -25,10 +19,7 @@ def write_style():
     st.write(render_template('style.html'), unsafe_allow_html=True)
 
 def write_title(title):
-    html = render_template(
-        'title.html',
-        logo=img_to_bytes("assets/logo_dots.png"),
-        title=title)
+    html = render_template('title.html', title=title)
     st.write(html, unsafe_allow_html=True)
 
 def write_header(title):
