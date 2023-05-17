@@ -3,7 +3,7 @@ from streamlit_folium import folium_static
 import pandas as pd
 
 from utils import us_hospitals, get_empty_map
-from page_utils import print_header, print_style, persisted
+from page_utils import write_header, persisted
 from resource_distribution import FormInput, get_results
 
 
@@ -48,10 +48,9 @@ def render_sidebar():
 def run_page():
     """Runs when user visits optimization page, and on any user input."""
 
-    st.set_page_config(
-        page_title="Resource Distribution Optimization", layout="wide")
-    print_style()
-    print_header()
+    title = "Resource Distribution Optimization"
+    st.set_page_config(page_title=title, layout="wide")
+    write_header(title=title)
     run_button, form = render_sidebar()
 
     # Generate hospital data

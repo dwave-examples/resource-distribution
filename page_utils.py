@@ -21,20 +21,19 @@ def render_template(name, **values):
 
     return html
 
-def print_header():
-    """Display header."""
-
-    logo = img_to_bytes("assets/logo_dots.png")
-    st.markdown(
-        f'<div class="header"> \
-          <img src="data:image/gif;base64,{logo}"> \
-          <h1>Resource Distribution Demonstration</h1> \
-          </div>',
-        unsafe_allow_html=True,
-    )
-
-def print_style():
+def write_style():
     st.write(render_template('style.html'), unsafe_allow_html=True)
+
+def write_title(title):
+    html = render_template(
+        'title.html',
+        logo=img_to_bytes("assets/logo_dots.png"),
+        title=title)
+    st.write(html, unsafe_allow_html=True)
+
+def write_header(title):
+    write_style()
+    write_title(title)
 
 @st.cache_resource
 def persisted(key, _object_factory=lambda: defaultdict(list)):
