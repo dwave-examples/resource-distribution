@@ -48,9 +48,7 @@ def render_sidebar():
 def run_page():
     """Runs when user visits optimization page, and on any user input."""
 
-    title = "Resource Distribution Optimization"
-    st.set_page_config(page_title=title, layout="wide")
-    write_header(title=title)
+    write_header(title="Resource Distribution Optimization")
     run_button, form = render_sidebar()
 
     # Generate hospital data

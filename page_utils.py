@@ -18,13 +18,13 @@ def render_template(name, **values):
 def write_style():
     st.write(render_template('style.html'), unsafe_allow_html=True)
 
-def write_title(title):
-    html = render_template('title.html', title=title)
-    st.write(html, unsafe_allow_html=True)
+def write_title():
+    st.write(render_template('title.html'), unsafe_allow_html=True)
 
 def write_header(title):
+    st.set_page_config(page_title=title, layout="wide")
     write_style()
-    write_title(title)
+    write_title()
 
 @st.cache_resource
 def persisted(key, _object_factory=lambda: defaultdict(list)):
