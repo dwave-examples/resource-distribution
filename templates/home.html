@@ -8,24 +8,29 @@
     such as invasive ventilators, ICU beds, and personal protective gear. It is imperative to 
     optimize the allocation of resources. The goal is to group hospitals in such a way that shared 
     resources are maximized within each group while ensuring fair distribution across different groups.
-    In resource-distribution optimization, we would like to find the optimal partitioning of a fixed 
-    amount of resources to users or processes such that the total cost is minimized or utility is maximized.
 </p>
 
 <img src='data:image/png;base64,{{partitioning}}' class='home-img'/>
 
-<h2>Utility Function</h2>
+
+<h2>BQM</h2>
 <p>
-    The goal is to divide the medical centers into groups such that the maximum number of transfers is 
-    achieved at minimum cost. The transfer is quantified as the smaller number of total excess and 
-    total shortage. The cost is the sum of all costs associated with transferring resources from one 
-    place to another.
+    In the BQM formulation, the goal is to divide the hospitals into groups such that the maximum 
+    number of transfers is achieved at minimum cost. Transfer is quantified as the smaller 
+    number between total excess and total shortage in a group of hospitals. Cost is the sum of all 
+    costs associated with transferring resources from one hospital to another: In this demonstration, 
+    only distance is considered as a cost. 
+</p>
+<h3>Utility Function</h3>
+<p>
+    Before formulating the BQM, a utility function must be defined.
 </p>
 <p>
-    Let's say that there are eight medical centers with the various number of ICU beds \(u = (a_1, ..., a_8)\).
-    The values a_i can be positive (excess) or negative (shortage). Let’s assume that \(u_p = (a_1, ..., a_4)\) are positive
-    and \(u_n = (a_5, ..., a_8)\) are negative.
+    Let's say that there are eight hospitals with the various number of ICU beds \(u = (a_1, ..., a_8)\).
+    The values a_i can be positive (excess) or negative (shortage). Let’s assume that \(u_p = (a_1, ..., a_4)\) 
+    are positive and \(u_n = (a_5, ..., a_8)\) are negative.
 </p>
+<p>
     The maximum transfer is equal to
 
     \begin{equation}
@@ -50,10 +55,11 @@
     \end{equation}
 </p>
 <img src='data:image/png;base64,{{partition_with_distance}}' class='home-img'/>
-<h2>Formulation</h2>
+<h3>Formulation</h3>
 <p>
-    Given the utility function above, or any utility function that can compute a value for a given subset \(u\), we can use
-    the following k-clique problem to find the best division of medical centers to k groups [1].
+    Given the utility function above, or any utility function that can compute a value for a given 
+    subset \(u\), we can use the following k-clique problem to find the best division of medical 
+    centers to k groups [1].
 
     First, we define the set of partitions of size \(n/k\) as
 
@@ -61,21 +67,106 @@
         \mathcal{V} = \left\{ u: \forall ~ u \subset S ~\land ~|u| = \frac{n}{k} \right\}.
     \end{equation}
 
-    We can define the set of edges as a pair of nodes that share elements (this is the complement set of the original definition in [1]).
+    We can define the set of edges as a pair of nodes that share elements (this is the complement 
+    set of the original as defined in [1]).
 
     \begin{equation}
         \mathcal{E} = \left\{ (u, v): \forall ~ u,v \in \mathcal{V} ~\land ~~ u \cap v \neq \{\} \right\}.
     \end{equation}
 
-    Because the nodes in \(\mathcal{E}\) are derived from partitions of size \(n/k\), there can be no clique larger than \(k\).
-    Therefore, all we need to do is to solve the weighted maximum independent set problem with weights equal to the utility function and some regularization factor. If the utility function is defined as \(U: \mathcal{V} \rightarrow R\), we can write the objective function as,
+    Because the nodes in \(\mathcal{E}\) are derived from partitions of size \(n/k\), there can be 
+    no clique larger than \(k\). Therefore, all we need to do is to solve the weighted 
+    maximum-independent-set problem with weights equal to the utility function and some regularization 
+    factor. If the utility function is defined as \(U: \mathcal{V} \rightarrow R\), we can write the 
+    objective function as,
 
     \begin{equation}
         H = - \sum_u (U_u + R)~ x_u + \lambda \sum_{u, n \in \mathcal{E}} x_u x_u
     \end{equation}
 
     where, \(x_u\) is a binary variable that decides if the group \(u\) is selected.
-
+</p>
+<h2>CQM</h2>
+<p>
+    The BQM formulation requires multiple mathematical transformations to run on an unconstrained 
+    solver: the original problem is reformulated as a maximum-independent-set problem.
+</p>
+<p>
+    The CQM formulation enables the direct solution of the original problem in an intuitive way.
+</p>
+<h3>Formulation</h3>
+<p>
+    We define a binary variable \(x\) for each pair \((i, g)\), where \(i\) is a hospital and \(g\)
+    is a hospital group. If the solution returns variable \((i, g) = 1\), then hospital \(i\) is 
+    assigned to group \(g\).
+</p>
+<p>
+    Let's start with our constraints.
+</p>
+<p>
+    <b>Constraint 1: Each hospital must be assigned to exactly one group</b>
+</p>
+<p>
+    \(\sum_{g} x_{i,g} = 1\), for each hospital \(i\).
+</p>
+<p>
+    <pre><code class='python'>
+    for i in hospitals:
+        cqm.add_discrete([(i, g) for g in range(num_groups)])
+    </code></pre>
+</p>
+<p>
+    <b>Constraint 2: Each group must have a net positive number of beds</b>
+</p>
+<p>
+    \(\sum_{i} a_{i} x_{i,g} >= 0\), for each group \(g\), where \(a_{i}\) refers to the number of beds that hospital \(i\) has.
+</p>
+<p>
+    <pre><code class='python'>
+    for g in range(num_groups):
+        cqm.add_constraint(sum(variables[i, g] * a for i, a in hospitals.items()) >= 0)
+    </code></pre>
+</p>
+<p>
+    <b>Objective</b>
+</p>
+<p>
+    Our last step is to <b>minimize the transfer cost</b> by adding an objective to the CQM. Cost is 
+    equivalent to the sum of the maximum transfer distance in each group.
+    
+    Given that \(u_p\) are hospitals with a positive number of beds (surplus), \(u_n\) are hospitals
+    with a negative number of beds (shortage), and \(d_{i,j}\) is the distance between hospital \(i\)
+    and hospital \(j\), the cost can be defined as: <br><br>
+    
+    \(c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,g} x_{j,g}\), for each group \(g\)
+</p>
+<p>
+    <pre><code class='python'>
+    objective = 0
+    for i, beds0 in hospitals.items():
+        for j, beds1 in hospitals.items():
+            if beds0 > 0 and beds1 < 0:
+                for g in range(num_groups):
+                    objective += distances[i, j]*variables[i, g]*variables[j, g]
+    cqm.set_objective(objective)
+    </code></pre>
+</p>
+<p>
+    We now have a CQM that is ready to be sampled with the <code>LeapHybridCQMSampler</code>.
+</p>
+<p>
+    In the code above, note that:
+    <ul>
+        <li><code>cqm</code> is a <code>dimod.ConstrainedQuadraticModel</code></li>
+        <li><code>hospitals</code> is a <code>dict</code> in which keys are hospital names and values
+        are the number of excess beds in each hospital</li>
+        <li><code>num_groups</code> is the number of groups to separate the hospitals into</li>
+        <li><code>variables</code> is a <code>dict</code> in which keys are <code>(i, g)</code> 
+        and values are the binary variables that determine whether hospital <code>i</code> should be 
+        in group <code>g</code></li>
+        <li><code>distances</code> is a <code>dict</code> in which keys are pairs of hospitals and 
+        values are the distances between the two hospitals</li>
+    </ul>
 </p>
 <p id='refs'>
     [1] Bass, Gideon, et al. "Heterogeneous quantum computing for satellite constellation optimization:

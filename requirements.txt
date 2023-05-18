@@ -1,7 +1,8 @@
-dwave-ocean-sdk>=4.4.0
-matplotlib==3.5.1
-scipy==1.8.0
-pandas==1.4.2
-PuLP==2.6
-streamlit==1.9.2
-streamlit-folium==0.6.4
+dwave-ocean-sdk>=6.3.0
+matplotlib==3.6.3
+scipy==1.10.0
+pandas==1.5.3
+numpy==1.24.2
+PuLP==2.7.0
+streamlit==1.22.0
+streamlit-folium==0.9.0

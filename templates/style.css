@@ -1,38 +1,37 @@
  @font-face {
-      font-family: 'proximanova-light';
-      src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-light-webfont.woff2') format('woff2'),
-          url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-light-webfont.woff') format('woff');
-      font-weight: normal;
+      font-family: 'Proxima Nova';
+      src: url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-light-webfont.woff2') format('woff2'),
+          url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-light-webfont.woff') format('woff');
+      font-weight: 100;
       font-style: normal;
 }
 
 @font-face {
     font-family: 'Proxima Nova';
-    src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff2') format('woff2'),
-        url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff') format('woff');
+    src: url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-regular-webfont.woff2') format('woff2'),
+        url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-regular-webfont.woff') format('woff');
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
-    font-family: 'proximanova-regular';
-    src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff2') format('woff2'),
-        url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-regular-webfont.woff') format('woff');
-    font-weight: normal;
+    font-family: 'Proxima Nova';
+    src: url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-semibold-webfont.woff2') format('woff2'),
+        url('https://cdn-assets.cloud.dwavesys.com/shared/fonts/proximanova-semibold-webfont.woff') format('woff');
+    font-weight: 600;
     font-style: normal;
 }
 
-@font-face {
-    font-family: 'proximanova-semibold';
-    src: url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-semibold-webfont.woff2') format('woff2'),
-        url('https://cdn-assets.cloud.dwavesys.com/cd9a4ddd-a209-b6cd-00bc-5acf2c2823e3/qubist_static/fonts/proximanova-semibold-webfont.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
+/* Fix math text size for proxima nova */
+.MathJax {
+    font-size: 110% !important;
+    padding-top: 5px;
+    padding-bottom: 5px;
 }
 
 body {
     color: #222222;
-    font-family: 'proximanova-regular', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 :root {
@@ -40,22 +39,22 @@ body {
 }
 
 h1, h2, h3, .css-zue355 {
-    font-family: 'proximanova-regular', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 h2 {
-    font-size: 20px;
+    font-size: 25px;
     line-height: 1;
     font-weight: 600;
-    margin: 0 0 1.25rem;
+    margin: 60px 0px 30px;
     border-left: 3px solid var(--orange);
     padding: 0 0 0 1rem;
 }
 
 h3 {
-    font-size: 20px;
-    font-weight: 400;
-    margin: 0 0 0.75rem;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 30px 0 15px;
 }
 
 hr {
@@ -76,6 +75,20 @@ hr {
     border-top: 1px solid var(--orange);
     padding-top: 30px;
     margin-top: 30px;
+}
+
+.title img {
+    float: left;
+    height: 40px;
+    padding: 0px;
+}
+
+.title h1 {
+    position: relative;
+    padding: 0px;
+    font-size: 40px;
+    margin-left: 50px;
+    margin-bottom: 40px;
 }
 
 /* Streamlit elements */
