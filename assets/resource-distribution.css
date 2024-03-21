@@ -1,0 +1,367 @@
+/*
+This file is forked from apps/dash-clinical-analytics/assets/clinical-analytics.css
+under the following license
+
+MIT License
+
+Copyright (c) 2019 Plotly
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Modifications are licensed under
+
+Apache License, Version 2.0
+(see ./LICENSE for details)
+
+*/
+
+:root {
+    --blue-bright: #03B8FF;
+    --blue-light: #2A7DE1;
+    --blue-dark: #074C91;
+    --red-light: #C70039;
+    --red-dark: #900C3F;
+    --orange: #FF7006;
+    --teal-light: #06ECDC;
+    --teal-dark: #17BEBB;
+    --teal-darker: #008C82;
+    --grey-light: #EEEEEE;
+    --grey: #DDDDDD;
+    --grey-dark: #222222;
+}
+
+body {
+    background-color: #f9f9f9;
+    color: var(--grey-dark);
+    font-size: 1.4rem;
+    margin: 0rem;
+}
+
+hr {
+    margin: 0.3rem 0rem;
+}
+
+#description-card {
+    margin: 2rem 0rem;
+}
+
+#banner {
+    height: 5.5rem;
+    background-color: var(--blue-dark);
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+#banner img {
+    position: relative;
+    height: 3rem;
+    width: auto;
+    margin-left: 2rem;
+}
+
+h1, h2, h3, h4, h5, h6, td, th, span, a, p, label {
+    font-family: "Helvetica Neue", sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--blue-dark);
+    font-weight: 400;
+}
+
+h1 {
+    font-size: 3rem;
+    margin-top: 3rem;
+}
+
+h3 {
+    font-size: 2.5rem;
+    margin: 2.5rem 0 1rem;
+}
+
+h4 {
+    font-size: 2rem;
+    margin-top: 2rem;
+    font-weight: 500;
+}
+
+h4.table-label {
+    margin: 0;
+}
+
+label {
+    margin: 2rem 0 0.2rem;
+    font-weight: 500;
+}
+
+#columns {
+    display: flex;
+}
+
+#left-column {
+    padding: 0 2rem;
+    flex: 0 0 38rem;
+}
+
+#right-column {
+    background-color: var(--grey);
+    padding: 2rem 0 0;
+    width: 100%;
+}
+
+#solution-stats-table {
+    font-size: 1.6rem;
+}
+
+.result-table-div {
+    display: inline-block;
+    margin-right: 3rem;
+}
+
+.result-table {
+    font-size: 1.6rem;
+    border: 4px var(--blue-dark);
+    border-style: solid none none solid;
+    background-color: white;
+}
+
+#solution-cost-table-div:not(:has(> table > thead)),
+#solution-cost-table-classical-div:not(:has(> table > thead)) {
+    display: none;
+}
+
+table {
+    margin-bottom: 2rem;
+}
+
+th {
+    color: white;
+    background-color: var(--blue-dark);
+    font-weight: 400;
+}
+
+td {
+    color: var(--grey-dark);
+}
+
+th, td {
+    padding: 0.6rem 1.2rem;
+}
+
+th:first-child, td:first-child {
+    padding-left: 1.2rem;
+}
+
+th:last-child, td:last-child {
+    padding-right: 1.2rem;
+}
+
+.total-cost-row td {
+    font-weight: 600;
+}
+
+.select {
+    padding-left: 6px !important;
+}
+
+.rc-slider-handle,
+.rc-slider-dot-active {
+    border-color: var(--blue-light);
+}
+
+.rc-slider-handle:active,
+.rc-slider-handle:hover,
+.rc-slider-handle-click-focused,
+.rc-slider-handle-click-focused:focus {
+    border-color: var(--blue-dark);
+}
+
+.rc-slider-track {
+    background-color: var(--blue-light);
+}
+
+#solution-map {
+    border: none;
+
+    width: 100%;
+    /* set height to viewport - (banner + tabs) */
+    height: calc(100vh - 15rem);
+    min-height: 70rem;
+}
+
+#control-card > p {
+    font-weight: bold;
+}
+
+button {
+    width: 100%;
+    font-size: 1.4rem;
+    line-height: 1.4rem;
+    padding: 1.8rem;
+    height: auto;
+    color: white;
+    transition: background-color 0.2s ease-in-out;
+    margin-bottom: 2rem;
+}
+
+#run-button {
+    background-color: var(--blue-light);
+}
+
+#run-button:hover {
+    background-color: var(--blue-dark);
+}
+
+#cancel-button {
+    background-color: var(--red-light);
+}
+
+#cancel-button:hover {
+    background-color: var(--red-dark);
+}
+
+.tab-container {
+    border-bottom: 3px solid var(--blue-light);
+}
+
+.tab {
+    margin: 0 2rem;
+    border-top-left-radius: 0.6rem;
+    border-top-right-radius: 0.6rem;
+}
+
+div.tab.tab--selected {
+    border: 3px solid var(--blue-light) !important;
+    border-bottom: none !important;
+    cursor: default !important;
+    box-shadow: 0 6px 0 -3px white;
+}
+
+div.tab.tab--disabled {
+    cursor: not-allowed !important;
+}
+
+.tab:first-child {
+    margin-right: 1rem;
+}
+
+.tab:last-child {
+    margin-left: 1rem;
+}
+
+.tab-content,
+.tab-parent {
+    height: 100%;
+}
+
+.tab-content {
+    background-color: white;
+}
+
+.tab-content--results {
+    padding: 0 3rem 3rem;
+}
+
+.tab-fail {
+    border-top: 2px solid var(--red-light) !important;
+}
+
+.tab-success {
+    border-top: 2px solid var(--teal-darker) !important;
+}
+
+.tab-warning {
+    border-top: 2px solid var(--orange) !important;
+}
+
+#solver-time-limit {
+    margin-bottom: 2rem;
+}
+
+.tab-loading {
+    overflow: hidden;
+    position: relative;
+}
+
+.tab-loading::before,
+.tab-loading::after {
+    content: '';
+    box-sizing: border-box;
+    position: absolute;
+    border: 3px solid transparent;
+    border-top-left-radius: 0.6rem;
+    border-top-right-radius: 0.6rem;
+    width: 0;
+    height: 0;
+}
+
+.tab-loading::before {
+    bottom: 0;
+    left: 0;
+    border-left-color: var(--teal-dark);
+    border-top-color: var(--teal-dark);
+    animation: border1 2s infinite;
+}
+
+.tab-loading::after {
+    top: 0;
+    right: 0;
+    border-bottom-color: var(--teal-dark);
+    border-right-color: var(--teal-dark);
+    animation: border1 2s 1s infinite, borderColor1 2s 1s infinite;
+}
+
+@keyframes border1 {
+    0% {
+        width: 0;
+        height: 0;
+    }
+    25% {
+        width: 0;
+        height: 100%;
+    }
+    50% {
+        width: 100%;
+        height: 100%;
+    }
+    100% {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+@keyframes borderColor1 {
+    0% {
+        border-bottom-color: var(--teal-dark);
+        border-right-color: var(--teal-dark);
+    }
+    50% {
+        border-bottom-color: var(--teal-dark);
+        border-right-color: var(--teal-dark);
+    }
+    51% {
+        border-bottom-color: transparent;
+        border-right-color: transparent;
+    }
+    100% {
+        border-bottom-color: transparent;
+        border-right-color: transparent;
+    }
+}
