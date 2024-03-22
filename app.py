@@ -26,9 +26,10 @@ from dash import DiskcacheManager, callback_context, ctx
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+from utils import us_hospitals, get_empty_map
+
 from dash_html import set_html
-# from map import (generate_mapping_information, plot_solution_routes_on_map,
-#                  show_locations_on_initial_map)
+
 # from solver.solver import RoutingProblemParameters, SamplerType, Solver, VehicleType
 
 cache = diskcache.Cache("./cache")
@@ -55,48 +56,52 @@ BASE_PATH = Path(__file__).parent.resolve()
 DATA_PATH = BASE_PATH.joinpath("input").resolve()
 
 
-# def generate_inital_map(num_clients: int) -> folium.Map:
-#     """Generates the initial map.
+def generate_inital_map(num_hospitals: int) -> folium.Map:
+    """Generates the initial map.
 
-#     Args:
-#         num_clients (int): Number of force locations.
+    Args:
+        num_hospitals (int): Number of hospitals.
 
-#     Returns:
-#         folium.Map: Initial map shown on the map tab.
-#     """
-#     map_network, depot_id, force_locations = generate_mapping_information(num_clients)
-#     initial_map = show_locations_on_initial_map(map_network, depot_id, force_locations)
-#     return initial_map
+    Returns:
+        folium.Map: Initial map shown on the map tab.
+    """
+    # Generate hospital data
+    hospital_df = us_hospitals(num_hospitals)
+
+    # Initialize map
+    initial_map = get_empty_map(hospital_df)
+
+    return initial_map
 
 
-# @app.callback(
-#     Output("solution-map", "srcDoc", allow_duplicate=True),
-#     inputs=[
-#         Input("num-clients-select", "value"),
-#         Input("run-button", "n_clicks"),
-#     ],
-# )
-# def render_initial_map(num_clients: int, _) -> str:
-#     """Generates and saves and HTML version of the initial map.
+@app.callback(
+    Output("solution-map", "srcDoc", allow_duplicate=True),
+    inputs=[
+        Input("num-hospitals", "value"),
+        Input("run-button", "n_clicks"),
+    ],
+)
+def render_initial_map(num_hospitals: int, _) -> str:
+    """Generates and saves and HTML version of the initial map.
 
-#     Note that 'run-button' is required as an Input to reload the map each time
-#     a run is started. This resets the solution map to the initial map but does
-#     NOT regenerate the initial map unless 'num-clients-select' is changed.
+    Note that 'run-button' is required as an Input to reload the map each time
+    a run is started. This resets the solution map to the initial map but does
+    NOT regenerate the initial map unless 'num-hospitals' is changed.
 
-#     Args:
-#         num_clients: Number of force locations.
+    Args:
+        num_hospitals: Number of hospitals.
 
-#     Returns:
-#         str: Initial map shown on the map tab as HTML.
-#     """
-#     map_path = Path("initial_map.html")
+    Returns:
+        str: Initial map shown on the map tab as HTML.
+    """
+    map_path = Path("initial_map.html")
 
-#     # only regenerate map if num_clients is changed (i.e., if run buttons is NOT clicked)
-#     if ctx.triggered_id != "run-button" or not map_path.exists():
-#         initial_map = generate_inital_map(num_clients)
-#         initial_map.save(map_path)
+    # only regenerate map if num_hospitals is changed (i.e., if run buttons is NOT clicked)
+    if ctx.triggered_id != "run-button" or not map_path.exists():
+        initial_map = generate_inital_map(num_hospitals)
+        initial_map.save(map_path)
 
-#     return open(map_path, "r").read()
+    return open(map_path, "r").read()
 
 
 # @app.callback(

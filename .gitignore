@@ -1,2 +1,5 @@
 *.pyc
 /saved_problems/
+cache
+initial_map.html
+solution_map.html
