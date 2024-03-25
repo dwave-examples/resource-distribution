@@ -68,13 +68,33 @@ hr {
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
 }
 
 #banner img {
     position: relative;
     height: 3rem;
     width: auto;
-    margin-left: 2rem;
+}
+
+#banner > div {
+    display: flex;
+}
+
+#banner a {
+    color: white;
+    opacity: 0.6;
+    text-transform: uppercase;
+    font-size: 2rem;
+    font-weight: 500;
+    padding: 1.2rem 3rem;
+    text-underline-offset: 0.5rem;
+}
+
+#banner a.active {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.2);
 }
 
 h1, h2, h3, h4, h5, h6, td, th, span, a, p, label {

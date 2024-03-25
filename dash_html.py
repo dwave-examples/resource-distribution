@@ -41,13 +41,25 @@ def set_html(app):
                 id="run-in-progress", data=False
             ),  # callback blocker to signal that the run is complete
             dcc.Store(id="parameter-hash"),  # hash string to detect changed parameters
+            dcc.Location(id="url"),
             # Banner
-            html.Div(id="banner", children=[html.Img(src=THUMBNAIL)]),
-            html.Div([
-                html.Div(
-                    dcc.Link(f"{page['name']} - {page['path']}", href=page["relative_path"])
-                ) for page in page_registry.values()
-            ]),
+            html.Div(
+                id="banner",
+                children=[
+                    html.Img(src=THUMBNAIL),
+                    html.Div([
+                        html.Div(
+                            dcc.Link(
+                                page['name'],
+                                href=page["relative_path"],
+                                id={
+                                    "class": "nav-links",
+                                    "path": page['path']
+                                },
+                            )
+                        ) for page in page_registry.values()
+                    ]),
+                ]),
             page_container
         ],
     )

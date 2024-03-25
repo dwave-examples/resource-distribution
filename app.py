@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Union
 import dash
 import diskcache
 import folium
-from dash import DiskcacheManager, callback_context, ctx
+from dash import DiskcacheManager, callback_context, ctx, ALL
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -57,6 +57,17 @@ app.config.suppress_callback_exceptions = True
 
 BASE_PATH = Path(__file__).parent.resolve()
 DATA_PATH = BASE_PATH.joinpath("input").resolve()
+
+
+@app.callback(
+    Output({"class": "nav-links", "path": ALL}, "className"),
+    [
+        Input("url", "pathname"),
+        Input({"class": "nav-links", "path": ALL}, "id")
+    ]
+)
+def intialize_nav(pathname, nav_links):
+    return ["active" if link["path"] == pathname else "" for link in nav_links]
 
 
 def generate_inital_map(num_hospitals: int) -> folium.Map:
