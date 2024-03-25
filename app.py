@@ -26,9 +26,12 @@ from dash import DiskcacheManager, callback_context, ctx
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+from resource_distribution import FormInput, get_results
+from page_utils import persisted
+
 from utils import us_hospitals, get_empty_map
 
-from dash_html import set_html
+from dash_html import create_table, set_html
 
 # from solver.solver import RoutingProblemParameters, SamplerType, Solver, VehicleType
 
@@ -104,194 +107,217 @@ def render_initial_map(num_hospitals: int, _) -> str:
     return open(map_path, "r").read()
 
 
-# @app.callback(
-#     Output("solution-cost-table", "children"),
-#     Output("solution-cost-table-classical", "children"),
-#     inputs=[
-#         Input("run-in-progress", "data"),
-#         State("stored-results", "data"),
-#         State("reset-results", "data"),
-#         State("sampler-type", "data"),
-#     ],
-#     prevent_initial_call=True,
-# )
-# def update_tables(
-#     run_in_progress, stored_results, reset_results, sampler_type
-# ) -> tuple[list, list]:
-#     """Update the results tables each time a run is made.
+@app.callback(
+    Output("solution-table", "children"),
+    inputs=[
+        Input("run-in-progress", "data"),
+        State("stored-results", "data"),
+        State("reset-results", "data"),
+        State("sampler-type", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def update_tables(
+    run_in_progress, stored_results, reset_results, sampler_type
+) -> list:
+    """Update the results tables each time a run is made.
 
-#     Args:
-#         run_in_progress: Whether or not the ``run_optimiation`` callback is running.
-#         stored_results: The results tab from the latest run.
-#         reset_results: Whether or not to reset the results tables before applying the new one.
-#         sampler_type: The sampler type used in the latest run (``"quantum"`` or ``"classical"``)
+    Args:
+        run_in_progress: Whether or not the ``run_optimiation`` callback is running.
+        stored_results: The results tab from the latest run.
+        reset_results: Whether or not to reset the results tables before applying the new one.
+        sampler_type: The sampler type used in the latest run (``"quantum"`` or ``"classical"``)
 
-#     Returns:
-#         tuple: A tuple containing the two results tables.
-#     """
-#     empty_or_no_update = [] if reset_results else dash.no_update
+    Returns:
+        tuple: A tuple containing the two results tables.
+    """
+    empty_or_no_update = [] if reset_results else dash.no_update
 
-#     if run_in_progress is True:
-#         raise PreventUpdate
+    if run_in_progress is True:
+        raise PreventUpdate
 
-#     if sampler_type == "classical":
-#         return empty_or_no_update, stored_results
+    # if sampler_type == "classical":
+    #     return empty_or_no_update, stored_results
+    print("stored_results")
+    print(stored_results)
 
-#     return stored_results, empty_or_no_update
+    return stored_results
 
 
-# @app.long_callback(
-#     # update map and results
-#     Output("solution-map", "srcDoc", allow_duplicate=True),
-#     Output("stored-results", "data"),
-#     # store the solver used, whether or not to reset results tabs and the
-#     # parameter hash value used to detect parameter changes
-#     Output("sampler-type", "data"),
-#     Output("reset-results", "data"),
-#     Output("parameter-hash", "data"),
-#     # update table values in top results tab
-#     Output("problem-size", "children"),
-#     Output("search-space", "children"),
-#     Output("wall-clock-time", "children"),
-#     Output("force-elements", "children"),
-#     Output("vehicles-deployed", "children"),
-#     inputs=[
-#         Input("run-button", "n_clicks"),
-#         State("vehicle-type-select", "value"),
-#         State("sampler-type-select", "value"),
-#         State("num-vehicles-select", "value"),
-#         State("solver-time-limit", "value"),
-#         State("num-clients-select", "value"),
-#         # input and output result table (to update it dynamically)
-#         State("solution-cost-table", "children"),
-#         State("parameter-hash", "data"),
-#     ],
-#     running=[
-#         # show cancel button and disable run button, and disable and animate results tab
-#         (Output("cancel-button", "style"), {"display": "inline-block"}, {"display": "none"}),
-#         (Output("run-button", "style"), {"display": "none"}, {"display": "inline-block"}),
-#         (Output("results-tab", "disabled"), True, False),
-#         (Output("results-tab", "className"), "tab-loading", "tab"),
-#         # switch to map tab while running
-#         (Output("tabs", "value"), "map-tab", "map-tab"),
-#         # block certain callbacks from running until this is done
-#         (Output("run-in-progress", "data"), True, False),
-#     ],
-#     cancel=[Input("cancel-button", "n_clicks")],
-#     prevent_initial_call=True,
-# )
-# def run_optimiation(
-#     run_click: int,
-#     vehicle_type: Union[VehicleType, int],
-#     sampler_type: Union[SamplerType, int],
-#     num_vehicles: int,
-#     time_limit: float,
-#     num_clients: int,
-#     cost_table: list[html.Tr],
-#     previous_parameter_hash: str,
-# ) -> tuple[str, list[html.Tr], int, str, str, int, int]:
-#     """Run the optimization and update map and results tables.
 
-#     This is the main optimization function which is called when the Run optimization button is
-#     clicked. It used all inputs from the drop-down lists, sliders and text entries and runs the
-#     optimization, updates the run/cancel buttons, animates (and deactivates) the results tab,
-#     moves focus to the map tab and updates all relevant HTML entries.
+def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) -> bool:
+    """Validate form input from user."""
 
-#     Args:
-#         run_click: The (total) number of times the run button has been clicked.
-#         vehicle_type: Either Trucks (``0`` or ``VehicleType.TRUCKS``) or
-#             Delivery Drones (``1`` or ``VehicleType.DELIVERY_DRONES``).
-#         sampler_type: Either Quantum Hybrid (DQM) (``0`` or ``SamplerType.DQM``) or
-#             Classical (K-Means) (``1`` or ``SamplerType.KMEANS``).
-#         num_vehicles: The number of vehicles.
-#         time_limit: The solver time limit.
-#         num_clients: The number of force locations.
-#         cost_table: The html 'Solution cost' table. Used to update it dynamically.
+    if num_hospitals <= partition_size or num_hospitals % partition_size != 0:
+        raise ValueError("The partition size must be less than and divisible by the number of hospitals.")
+        return False
+    elif num_neighbors < partition_size - 1 or num_neighbors > num_hospitals:
+        raise ValueError("Number of neighbors must be greater than or equal to the partition size and less than or equal to the number of hospitals.")
+        return False
 
-#     Returns:
-#         A tuple containing all outputs to be used when updating the HTML template (in
-#         ``dash_html,py``). These are:
+    return True
 
-#             solution-map: Updates the 'srcDoc' entry for the 'solution-map' IFrame in the map tab.
-#                 This is the map (initial and solution map).
-#             stored-results: Stores the Solution cost table in the results tab.
-#             sampler-type: The sampler used (``"quantum"`` or ``"classical"``).
-#             reset-results: Whether or not to reset the results tables before applying the new one.
-#             parameter-hash: Hash string to detect changed parameters.
-#             problem-size: Updates the problem-size entry in the Solution stats table.
-#             search-space: Updates the search-space entry in the Solution stats table.
-#             wall-clock-time: Updates the wall-clock-time entry in the Solution stats table.
-#             force-elements: Updates the force-elements entry in the Solution stats table.
-#             vehicles-deployed: Updates the vehicles-deployed entry in the Solution stats table.
-#     """
-#     if run_click == 0 or ctx.triggered_id != "run-button":
-#         return ""
-#     if isinstance(vehicle_type, int):
-#         vehicle_type = VehicleType(vehicle_type)
 
-#     if isinstance(sampler_type, int):
-#         sampler_type = SamplerType(sampler_type)
 
-#     if ctx.triggered_id == "run-button":
-#         map_network, depot_id, force_locations = generate_mapping_information(num_clients)
-#         initial_map = show_locations_on_initial_map(map_network, depot_id, force_locations)
+@app.long_callback(
+    # update map and results
+    Output("solution-map", "srcDoc", allow_duplicate=True),
+    Output("stored-results", "data"),
+    # store the solver used, whether or not to reset results tabs and the
+    # parameter hash value used to detect parameter changes
+    Output("sampler-type", "data"),
+    # Output("reset-results", "data"),
+    # Output("parameter-hash", "data"),
+    Output("num-hospitals", "children"),
+    # Output("num-neighbors", "children"),
+    inputs=[
+        Input("run-button", "n_clicks"),
+        State("sampler-type-select", "value"),
+        State("solver-time-limit", "value"),
+        State("num-hospitals", "value"),
+        State("partition-size", "value"),
+        State("num-neighbors", "value"),
+        State("distance-objective-fraction", "value"),
+        # input and output result table (to update it dynamically)
+        State("solution-table", "children"),
+        # State("parameter-hash", "data"),
+    ],
+    running=[
+        # show cancel button and disable run button, and disable and animate results tab
+        (Output("cancel-button", "style"), {"display": "inline-block"}, {"display": "none"}),
+        (Output("run-button", "style"), {"display": "none"}, {"display": "inline-block"}),
+        (Output("results-tab", "disabled"), True, False),
+        (Output("results-tab", "className"), "tab-loading", "tab"),
+        # switch to map tab while running
+        (Output("tabs", "value"), "map-tab", "map-tab"),
+        # block certain callbacks from running until this is done
+        (Output("run-in-progress", "data"), True, False),
+    ],
+    cancel=[Input("cancel-button", "n_clicks")],
+    prevent_initial_call=True,
+)
+def run_optimiation(
+    run_click: int,
+    sampler_type: str,
+    time_limit: float,
+    num_hospitals: int,
+    partition_size: int,
+    num_neighbors: int,
+    distance_objective_fraction: int,
+    results_table: list[html.Thead, html.Tbody],
+    # previous_parameter_hash: str,
+) -> tuple[str, list[html.Thead, html.Tbody], str, int, int]:
+    """Run the optimization and update map and results tables.
 
-#         routing_problem_parameters = RoutingProblemParameters(
-#             map_network=map_network,
-#             depot_id=depot_id,
-#             client_subset=force_locations,
-#             num_clients=num_clients,
-#             num_vehicles=num_vehicles,
-#             vehicle_type=vehicle_type,
-#             sampler_type=sampler_type,
-#             time_limit=time_limit,
-#         )
-#         routing_problem_solver = Solver(routing_problem_parameters)
+    This is the main optimization function which is called when the Run optimization button is
+    clicked. It used all inputs from the drop-down lists, sliders and text entries and runs the
+    optimization, updates the run/cancel buttons, animates (and deactivates) the results tab,
+    moves focus to the map tab and updates all relevant HTML entries.
 
-#         # run problem and generate solution (stored in Solver)
-#         wall_clock_time = routing_problem_solver.generate()
+    Args:
+        run_click: The (total) number of times the run button has been clicked.
+        sampler_type: Either Quantum Hybrid (DQM) (``0`` or ``SamplerType.DQM``) or
+            Classical (K-Means) (``1`` or ``SamplerType.KMEANS``).
+        time_limit: The solver time limit.
+        num_hospitals: The number of hospitals.
+        partition_size: The partition size.
+        num_neighbors: The number of neighbors.
+        distance_objective_fraction: The distance objective fraction.
+        results_table: The html 'Solution cost' table. Used to update it dynamically.
 
-#         solution_map, solution_cost = plot_solution_routes_on_map(
-#             initial_map,
-#             routing_problem_parameters,
-#             routing_problem_solver,
-#         )
+    Returns:
+        A tuple containing all outputs to be used when updating the HTML template (in
+        ``dash_html,py``). These are:
 
-#         problem_size = num_vehicles * num_clients
-#         search_space = f"{num_vehicles**num_clients:.2e}"
-#         wall_clock_time = f"{wall_clock_time:.3f}"
+            solution-map: Updates the 'srcDoc' entry for the 'solution-map' IFrame in the map tab.
+                This is the map (initial and solution map).
+            stored-results: Stores the Solution cost table in the results tab.
+            sampler-type: The sampler used (``"quantum"`` or ``"classical"``).
+            reset-results: Whether or not to reset the results tables before applying the new one.
+            parameter-hash: Hash string to detect changed parameters.
+            problem-size: Updates the problem-size entry in the Solution stats table.
+            search-space: Updates the search-space entry in the Solution stats table.
+            wall-clock-time: Updates the wall-clock-time entry in the Solution stats table.
+            force-elements: Updates the force-elements entry in the Solution stats table.
+            vehicles-deployed: Updates the vehicles-deployed entry in the Solution stats table.
+    """
+    if run_click == 0 or ctx.triggered_id != "run-button":
+        return ""
 
-#         solution_cost = dict(sorted(solution_cost.items()))
-#         total_cost = defaultdict(int)
-#         for _, cost_info_dict in solution_cost.items():
-#             for key, value in cost_info_dict.items():
-#                 total_cost[key] += value
+    if ctx.triggered_id == "run-button" and validate_input(num_hospitals, partition_size, num_neighbors):
+        # Generate hospital data
+        hospital_df = us_hospitals(num_hospitals)
 
-#         cost_table = create_table(
-#             list(solution_cost.values()), list(total_cost.values())
-#         )
-#         solution_map.save("solution_map.html")
+        form_input = FormInput(
+            page='bqm', # TODO: need to update this
+            num_hospitals=num_hospitals,
+            partition_size=partition_size,
+            num_neighbors=num_neighbors,
+            dof=distance_objective_fraction,
+            solver=sampler_type,
+            time_limit=time_limit,
+        )
 
-#         parameter_hash = _get_parameter_hash(**callback_context.states)
-#         if parameter_hash != previous_parameter_hash:
-#             reset_results = True
-#         else:
-#             reset_results = False
+        folium_map = get_empty_map(hospital_df)
+        results_dict = persisted('bqm-results')
 
-#         return (
-#             open("solution_map.html", "r").read(),
-#             cost_table,
-#             "classical" if sampler_type is SamplerType.KMEANS else "quantum",
-#             reset_results,
-#             str(parameter_hash),
-#             problem_size,
-#             search_space,
-#             wall_clock_time + "s",
-#             num_clients,
-#             num_vehicles,
-#         )
+        result = get_results(form_input, hospital_df, folium_map)
 
-#     raise PreventUpdate
+        constraints_satisfied = False
+
+        if result is None:
+            raise ValueError("Something went wrong while solving problem. Refresh and try again.")
+        elif result.total_transfer == 0:
+            raise ValueError("No solution found.")
+            # st.sidebar.warning("No solution found.")
+        else:
+            results_dict['Hospitals'].append(form_input.num_hospitals)
+            results_dict['Partition Size'].append(form_input.partition_size)
+            results_dict['Neighbors'].append(form_input.num_neighbors)
+            results_dict['DOF'].append(form_input.dof)
+            results_dict['Solver'].append(form_input.solver)
+
+            if not result.error_msgs:
+                # st.sidebar.success("Found feasible solution!")
+                results_dict['Constraints Satisfied'].append("True")
+            else:
+                # for msg in result.error_msgs:
+                #     st.sidebar.warning(msg)
+                results_dict['Constraints Satisfied'].append("False")
+
+            results_dict['Transfer'].append(str(round(result.total_transfer, 2)))
+            results_dict['Cost'].append(str(round(result.total_cost, 2)))
+            results_dict['Energy'].append(str(round(result.energy, 2)))
+            results_dict['Run Time'].append(str(round(result.run_time, 2)))
+
+            if results_dict:
+                try:
+                    results_table = create_table(results_dict)
+                except Exception as e:
+                    # Something wrong with cached dictionary -> reset and give warning
+                    results_dict.clear()
+                    # st.error("Something went wrong. Clear results and try again please.")
+                    print(e)
+
+            result.figure.save("solution_map.html")
+
+            # parameter_hash = _get_parameter_hash(**callback_context.states)
+            # if parameter_hash != previous_parameter_hash:
+            #     reset_results = True
+            # else:
+            #     reset_results = False
+
+            return (
+                open("solution_map.html", "r").read(),
+                results_table,
+                sampler_type,
+                # reset_results,
+                # str(parameter_hash),
+                num_hospitals,
+                # num_neighbors,
+            )
+
+    raise PreventUpdate
 
 
 # def _get_parameter_hash(**states) -> str:

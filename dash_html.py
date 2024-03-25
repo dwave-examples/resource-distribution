@@ -51,3 +51,39 @@ def set_html(app):
             page_container
         ],
     )
+
+def create_table(
+    values_dicts: defaultdict
+) -> list[html.Thead, html.Tbody]:
+    """Create a row in the table dynamically.
+
+    Args:
+        values_dicts: List of dictionaries with vehicle number as results data as values.
+        values_tot: List of total results data (sum of individual vehicle data).
+    """
+
+    table = [
+        html.Thead(
+            [
+                html.Tr(
+                    [
+                        html.Th(header) for header in values_dicts.keys()
+                    ]
+                )
+            ]
+        ),
+        html.Tbody(
+            [
+                html.Tr(
+                    [
+                        html.Td(
+                            value
+                        )
+                        for value in values_dicts.values()
+                    ]
+                )
+            ]
+        )
+    ]
+
+    return table

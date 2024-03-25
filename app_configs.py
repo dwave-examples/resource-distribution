@@ -38,6 +38,21 @@ The CQM formulation enables the direct solution of the original problem in an in
 # Sliders, buttons and option entries #
 #######################################
 
+
+SAMPLER_TYPES_BQM = [
+       {'label': 'Simulated Annealing', 'value': 'SimulatedAnnealing'},
+       {'label': 'Tabu Sampler', 'value': 'TabuSampler'},
+       {'label': 'Leap Hybrid BQM Sampler', 'value': 'LeapHybridBQMSampler'},
+   ]
+
+
+SAMPLER_TYPES_CQM = [
+       {'label': 'Leap Hybrid CQM Sampler', 'value': 'LeapHybridCQMSampler'},
+       {'label': 'Leap Hybrid BQM Sampler', 'value': 'LeapHybridBQMSampler'},
+       {'label': 'Simulated Annealing', 'value': 'SimulatedAnnealing'},
+       {'label': 'Tabu Sampler', 'value': 'TabuSampler'},
+   ]
+
 NUM_HOSPITALS = {
     "min": 2,
     "max": 100,
