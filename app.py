@@ -181,8 +181,6 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
     Output("sampler-type", "data", allow_duplicate=True),
     # Output("reset-results", "data"),
     # Output("parameter-hash", "data"),
-    # Output("num-hospitals", "children", allow_duplicate=True),
-    # Output("num-neighbors", "children"),
     Output("warning", "children", allow_duplicate=True),
     inputs=[
         Input("run-button", "n_clicks"),
@@ -207,6 +205,7 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
         (Output("tabs", "value"), "map-tab", "map-tab"),
         # block certain callbacks from running until this is done
         (Output("run-in-progress", "data"), True, False),
+        (Output("warning", "style"), {"display": "none"}, {"display": "block"}),
     ],
     cancel=[Input("cancel-button", "n_clicks")],
     prevent_initial_call=True,
@@ -319,11 +318,10 @@ def run_optimiation(
             results_dict['Solver'].append(form_input.solver)
 
             if not result.error_msgs:
-                # st.sidebar.success("Found feasible solution!")
-                results_dict['Constraints Satisfied'].append("True")
+                results_dict['Constraints'].append("Satisfied")
             else:
                 warning = create_warning(result.error_msgs)
-                results_dict['Constraints Satisfied'].append("False")
+                results_dict['Constraints'].append("Not Satisfied")
 
             results_dict['Transfer'].append(str(round(result.total_transfer, 2)))
             results_dict['Cost'].append(str(round(result.total_cost, 2)))
