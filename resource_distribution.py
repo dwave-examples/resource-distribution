@@ -147,17 +147,17 @@ def get_sampler(form: FormInput) -> Tuple[dimod.Sampler, dict]:
         The user selected solver and default parameters for the solver.
     """
     name = form.solver
-    if name == 'SimulatedAnnealing':
+    if name == 'Simulated Annealing':
         return SimulatedAnnealingSampler(), {}
-    elif name == 'LeapHybridBQMSampler':
+    elif name == 'Leap Hybrid BQM Sampler':
         solver = LeapHybridSampler.default_solver
         solver.update(name__regex=".*(?<!bulk)$")  
         sampler = LeapHybridSampler(solver=solver)
         return sampler, {'time_limit': float(form.time_limit), 
                          'label': 'Demo from Leap - Resource Distribution Optimization'}
-    elif name == 'TabuSampler':
+    elif name == 'Tabu Sampler':
         return TabuSampler(), {'timeout': int(form.time_limit) * 1000}
-    elif name == 'LeapHybridCQMSampler':
+    elif name == 'Leap Hybrid CQM Sampler':
         solver = LeapHybridCQMSampler.default_solver
         solver.update(name__regex=".*(?<!bulk)$")  
         sampler = LeapHybridCQMSampler(solver=solver)
@@ -211,7 +211,7 @@ def solve_bqm(hospital_df: pd.DataFrame, form: FormInput,
         run_time = 0
     else:
         # Solve problem
-        if form.solver == 'SimulatedAnnealing':
+        if form.solver == 'Simulated Annealing':
             response = sampler.sample(bqm)
             beta_range = response.info['beta_range']
 
@@ -233,7 +233,7 @@ def solve_bqm(hospital_df: pd.DataFrame, form: FormInput,
             response = sampler.sample(bqm, **params).truncate(1)
             run_time = time.perf_counter() - t0
 
-            if form.solver == 'LeapHybridBQMSampler':
+            if form.solver == 'Leap Hybrid BQM Sampler':
                 run_time = response.info['run_time'] / 1e6
 
     variables = np.array(response.variables)
@@ -320,7 +320,7 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
 
     print("Solving problem with the {}".format(sampler))
 
-    if form.solver == 'LeapHybridCQMSampler':
+    if form.solver == 'Leap Hybrid CQM Sampler':
         cqm = build_cqm(hospital_df, distances)
 
         sampleset = sampler.sample_cqm(cqm, **params)

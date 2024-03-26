@@ -31,7 +31,7 @@ from page_utils import persisted
 
 from utils import us_hospitals, get_empty_map
 
-from dash_html import create_table, set_html
+from dash_html import create_table, update_table, set_html
 
 # from solver.solver import RoutingProblemParameters, SamplerType, Solver, VehicleType
 
@@ -149,8 +149,6 @@ def update_tables(
 
     # if sampler_type == "classical":
     #     return empty_or_no_update, stored_results
-    print("stored_results")
-    print(stored_results)
 
     return stored_results
 
@@ -303,7 +301,10 @@ def run_optimiation(
 
             if results_dict:
                 try:
-                    results_table = create_table(results_dict)
+                    if results_table:
+                        results_table = update_table(results_table, results_dict)
+                    else:
+                        results_table = create_table(results_dict)
                 except Exception as e:
                     # Something wrong with cached dictionary -> reset and give warning
                     results_dict.clear()

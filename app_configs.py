@@ -40,17 +40,17 @@ The CQM formulation enables the direct solution of the original problem in an in
 
 
 SAMPLER_TYPES_BQM = [
-       {'label': 'Simulated Annealing', 'value': 'SimulatedAnnealing'},
-       {'label': 'Tabu Sampler', 'value': 'TabuSampler'},
-       {'label': 'Leap Hybrid BQM Sampler', 'value': 'LeapHybridBQMSampler'},
+       {'label': 'Leap Hybrid BQM Sampler', 'value': 'Leap Hybrid BQM Sampler'},
+       {'label': 'Tabu Sampler', 'value': 'Tabu Sampler'},
+       {'label': 'Simulated Annealing', 'value': 'Simulated Annealing'},
    ]
 
 
 SAMPLER_TYPES_CQM = [
-       {'label': 'Leap Hybrid CQM Sampler', 'value': 'LeapHybridCQMSampler'},
-       {'label': 'Leap Hybrid BQM Sampler', 'value': 'LeapHybridBQMSampler'},
-       {'label': 'Simulated Annealing', 'value': 'SimulatedAnnealing'},
-       {'label': 'Tabu Sampler', 'value': 'TabuSampler'},
+       {'label': 'Leap Hybrid CQM Sampler', 'value': 'Leap Hybrid CQM Sampler'},
+       {'label': 'Leap Hybrid BQM Sampler', 'value': 'Leap Hybrid BQM Sampler'},
+       {'label': 'Simulated Annealing', 'value': 'Simulated Annealing'},
+       {'label': 'Tabu Sampler', 'value': 'Tabu Sampler'},
    ]
 
 NUM_HOSPITALS = {

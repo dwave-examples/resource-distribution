@@ -99,3 +99,34 @@ def create_table(
     ]
 
     return table
+
+def update_table(
+    prev_table: list[html.Thead, html.Tbody], values_dicts: defaultdict
+) -> list[html.Thead, html.Tbody]:
+    """Create a row in the table dynamically.
+
+    Args:
+        values_dicts: List of dictionaries with vehicle number as results data as values.
+        values_tot: List of total results data (sum of individual vehicle data).
+    """
+
+    thead, tfoot = prev_table
+
+    table = [
+        thead,
+        html.Tbody(
+            [
+                *tfoot['props']['children'],
+                html.Tr(
+                    [
+                        html.Td(
+                            value
+                        )
+                        for value in values_dicts.values()
+                    ]
+                )
+            ]
+        )
+    ]
+
+    return table

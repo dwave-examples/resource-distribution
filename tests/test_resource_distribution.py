@@ -24,7 +24,7 @@ class TestResourceDistribution(unittest.TestCase):
                          partition_size=2, 
                          num_neighbors=4, 
                          dof=0.2, 
-                         solver="SimulatedAnnealing", 
+                         solver="Simulated Annealing",
                          time_limit=15)
         hospital_df = us_hospitals(form.num_hospitals)
         folium_map = get_empty_map(hospital_df)

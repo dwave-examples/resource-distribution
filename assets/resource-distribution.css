@@ -175,10 +175,12 @@ th {
     color: white;
     background-color: var(--blue-dark);
     font-weight: 400;
+    font-size: 1.4rem;
 }
 
 td {
     color: var(--grey-dark);
+    font-size: 1.5rem;
 }
 
 th, td {
