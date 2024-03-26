@@ -57,6 +57,10 @@ hr {
     margin: 0.3rem 0rem;
 }
 
+.display-none {
+    display: none;
+}
+
 #description-card {
     margin: 2rem 0rem;
 }
@@ -69,7 +73,7 @@ hr {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 0 2rem;
+    padding-left: 2rem;
 }
 
 #banner img {
@@ -88,7 +92,7 @@ hr {
     text-transform: uppercase;
     font-size: 2rem;
     font-weight: 500;
-    padding: 1.2rem 3rem;
+    padding: 1.55rem 5rem;
     text-underline-offset: 0.5rem;
 }
 

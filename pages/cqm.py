@@ -49,6 +49,9 @@ def generate_control_card() -> html.Div:
                     "always_visible": True,
                 },
             ),
+            dcc.Slider(0, 2, 1, id="partition-size", className="display-none"), # Dash does not support optional parameters yet
+            dcc.Slider(0, 2, 1, id="num-neighbors", className="display-none"),  # creating "fake" sliders allows us to use the same functions for both pages
+            dcc.Slider(0, 2, 1, id="distance-objective-fraction", className="display-none"),
             html.Label("Solver"),
             dcc.Dropdown(
                 id="sampler-type-select",

@@ -61,7 +61,7 @@ DATA_PATH = BASE_PATH.joinpath("input").resolve()
 
 @app.callback(
     Output({"class": "nav-links", "path": ALL}, "className"),
-    [
+    inputs=[
         Input("url", "pathname"),
         Input({"class": "nav-links", "path": ALL}, "id")
     ]
@@ -171,16 +171,17 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
 @app.long_callback(
     # update map and results
     Output("solution-map", "srcDoc", allow_duplicate=True),
-    Output("stored-results", "data"),
+    Output("stored-results", "data", allow_duplicate=True),
     # store the solver used, whether or not to reset results tabs and the
     # parameter hash value used to detect parameter changes
-    Output("sampler-type", "data"),
+    Output("sampler-type", "data", allow_duplicate=True),
     # Output("reset-results", "data"),
     # Output("parameter-hash", "data"),
-    Output("num-hospitals", "children"),
+    # Output("num-hospitals", "children", allow_duplicate=True),
     # Output("num-neighbors", "children"),
     inputs=[
         Input("run-button", "n_clicks"),
+        State("url", "pathname"),
         State("sampler-type-select", "value"),
         State("solver-time-limit", "value"),
         State("num-hospitals", "value"),
@@ -207,6 +208,7 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
 )
 def run_optimiation(
     run_click: int,
+    pathname: str,
     sampler_type: str,
     time_limit: float,
     num_hospitals: int,
@@ -253,19 +255,34 @@ def run_optimiation(
     if run_click == 0 or ctx.triggered_id != "run-button":
         return ""
 
-    if ctx.triggered_id == "run-button" and validate_input(num_hospitals, partition_size, num_neighbors):
+    validate_input = True
+    page = pathname[1:]
+
+    if page == "bqm":
+        validate_input = validate_input(num_hospitals, partition_size, num_neighbors)
+
+
+    if ctx.triggered_id == "run-button" and validate_input:
         # Generate hospital data
         hospital_df = us_hospitals(num_hospitals)
 
-        form_input = FormInput(
-            page='bqm', # TODO: need to update this
-            num_hospitals=num_hospitals,
-            partition_size=partition_size,
-            num_neighbors=num_neighbors,
-            dof=distance_objective_fraction,
-            solver=sampler_type,
-            time_limit=time_limit,
-        )
+        if page == "bqm":
+            form_input = FormInput(
+                page=page,
+                num_hospitals=num_hospitals,
+                partition_size=partition_size,
+                num_neighbors=num_neighbors,
+                dof=distance_objective_fraction,
+                solver=sampler_type,
+                time_limit=time_limit,
+            )
+        else:
+            form_input = FormInput(
+                page=page,
+                num_hospitals=num_hospitals,
+                solver=sampler_type,
+                time_limit=time_limit,
+            )
 
         folium_map = get_empty_map(hospital_df)
         results_dict = persisted('bqm-results')
@@ -281,9 +298,12 @@ def run_optimiation(
             # st.sidebar.warning("No solution found.")
         else:
             results_dict['Hospitals'].append(form_input.num_hospitals)
-            results_dict['Partition Size'].append(form_input.partition_size)
-            results_dict['Neighbors'].append(form_input.num_neighbors)
-            results_dict['DOF'].append(form_input.dof)
+
+            if page == "bqm":
+                results_dict['Partition Size'].append(form_input.partition_size)
+                results_dict['Neighbors'].append(form_input.num_neighbors)
+                results_dict['DOF'].append(form_input.dof)
+
             results_dict['Solver'].append(form_input.solver)
 
             if not result.error_msgs:
@@ -325,7 +345,7 @@ def run_optimiation(
                 sampler_type,
                 # reset_results,
                 # str(parameter_hash),
-                num_hospitals,
+                # num_hospitals,
                 # num_neighbors,
             )
 
