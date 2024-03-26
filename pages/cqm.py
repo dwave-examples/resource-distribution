@@ -36,21 +36,14 @@ def generate_control_card() -> html.Div:
         id="control-card",
         children=[
             html.Label("Number of Hospitals"),
-            dcc.Slider(
+            dcc.Input(
                 id="num-hospitals",
                 className="select",
+                type="number",
                 **NUM_HOSPITALS,
-                marks={
-                    NUM_HOSPITALS["min"]: str(NUM_HOSPITALS["min"]),
-                    NUM_HOSPITALS["max"]: str(NUM_HOSPITALS["max"]),
-                },
-                tooltip={
-                    "placement": "top",
-                    "always_visible": True,
-                },
             ),
             dcc.Slider(0, 2, 1, id="partition-size", className="display-none"), # Dash does not support optional parameters yet
-            dcc.Slider(0, 2, 1, id="num-neighbors", className="display-none"),  # creating "fake" sliders allows us to use the same functions for both pages
+            dcc.Slider(0, 2, 1, id="num-neighbors", className="display-none"),  # Creating "fake" sliders allows us to use the same functions for both pages
             dcc.Slider(0, 2, 1, id="distance-objective-fraction", className="display-none"),
             html.Label("Solver"),
             dcc.Dropdown(
@@ -65,6 +58,10 @@ def generate_control_card() -> html.Div:
                 id="solver-time-limit",
                 type="number",
                 **SOLVER_TIME,
+            ),
+            html.Div(
+                id="warning",
+                children=[]
             ),
             html.Div(
                 id="button-group",

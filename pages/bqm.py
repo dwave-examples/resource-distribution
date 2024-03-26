@@ -36,18 +36,11 @@ def generate_control_card() -> html.Div:
         id="control-card",
         children=[
             html.Label("Number of Hospitals"),
-            dcc.Slider(
+            dcc.Input(
                 id="num-hospitals",
                 className="select",
+                type="number",
                 **NUM_HOSPITALS,
-                marks={
-                    NUM_HOSPITALS["min"]: str(NUM_HOSPITALS["min"]),
-                    NUM_HOSPITALS["max"]: str(NUM_HOSPITALS["max"]),
-                },
-                tooltip={
-                    "placement": "top",
-                    "always_visible": True,
-                },
             ),
             html.Label("Partition Size"),
             dcc.Slider(
@@ -63,6 +56,7 @@ def generate_control_card() -> html.Div:
                     "always_visible": True,
                 },
             ),
+            # html.Caption("The number of hospitals must be divisible by this value."),
             html.Label("Number of Neighbors"),
             dcc.Slider(
                 id="num-neighbors",
@@ -77,6 +71,7 @@ def generate_control_card() -> html.Div:
                     "always_visible": True,
                 },
             ),
+            # html.Caption("This value must be greater than or equal to the partition size and less than or equal to the number of hospitals."),
             html.Label("Distance Objective Fraction"),
             dcc.Slider(
                 id="distance-objective-fraction",
@@ -104,6 +99,10 @@ def generate_control_card() -> html.Div:
                 id="solver-time-limit",
                 type="number",
                 **SOLVER_TIME,
+            ),
+            html.Div(
+                id="warning",
+                children=[]
             ),
             html.Div(
                 id="button-group",

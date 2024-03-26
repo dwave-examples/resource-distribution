@@ -43,6 +43,7 @@ Apache License, Version 2.0
     --teal-darker: #008C82;
     --grey-light: #EEEEEE;
     --grey: #DDDDDD;
+    --grey-medium: #777777;
     --grey-dark: #222222;
 }
 
@@ -101,7 +102,20 @@ hr {
     background: rgba(255, 255, 255, 0.2);
 }
 
-h1, h2, h3, h4, h5, h6, td, th, span, a, p, label {
+#warning > div {
+    border: 2px solid var(--red-light);
+    border-radius: 0.4rem;
+    background-color: rgba(199, 0, 57, 0.15);
+    padding: 2rem;
+    color: var(--red-dark);
+    margin-bottom: 1rem;
+}
+
+#warning p:last-child {
+    margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6, td, th, span, a, p, label, caption {
     font-family: "Helvetica Neue", sans-serif;
 }
 
@@ -133,6 +147,13 @@ h4.table-label {
 label {
     margin: 2rem 0 0.2rem;
     font-weight: 500;
+}
+
+caption {
+    display: block;
+    text-align: left;
+    font-size: 1.2rem;
+    color: var(--grey-medium);
 }
 
 #columns {

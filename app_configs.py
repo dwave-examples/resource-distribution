@@ -55,7 +55,6 @@ SAMPLER_TYPES_CQM = [
 
 NUM_HOSPITALS = {
     "min": 2,
-    "max": 100,
     "step": 1,
     "value": 12,
 }

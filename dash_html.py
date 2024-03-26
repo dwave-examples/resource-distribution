@@ -59,7 +59,8 @@ def set_html(app):
                             )
                         ) for page in page_registry.values()
                     ]),
-                ]),
+                ]
+            ),
             page_container
         ],
     )
@@ -130,3 +131,15 @@ def update_table(
     ]
 
     return table
+
+
+def create_warning(
+    warnings: list[str]
+) -> html.Div:
+    """Outputs a div containing a list of warnings
+
+    Args:
+        warnings: A list of warning strings
+    """
+
+    return html.Div([html.P(warning) for warning in warnings])

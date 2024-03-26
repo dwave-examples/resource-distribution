@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Union
 import dash
 import diskcache
 import folium
-from dash import DiskcacheManager, callback_context, ctx, ALL
+from dash import DiskcacheManager, callback_context, ctx, ALL, no_update
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -31,7 +31,7 @@ from page_utils import persisted
 
 from utils import us_hospitals, get_empty_map
 
-from dash_html import create_table, update_table, set_html
+from dash_html import create_table, update_table, create_warning, set_html
 
 # from solver.solver import RoutingProblemParameters, SamplerType, Solver, VehicleType
 
@@ -154,17 +154,21 @@ def update_tables(
 
 
 
-def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) -> bool:
+def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) -> list[str]:
     """Validate form input from user."""
 
-    if num_hospitals <= partition_size or num_hospitals % partition_size != 0:
-        raise ValueError("The partition size must be less than and divisible by the number of hospitals.")
-        return False
-    elif num_neighbors < partition_size - 1 or num_neighbors > num_hospitals:
-        raise ValueError("Number of neighbors must be greater than or equal to the partition size and less than or equal to the number of hospitals.")
-        return False
+    warnings = []
 
-    return True
+    if num_hospitals <= partition_size:
+        warnings.append("The number of hospitals must be greater than the partition size.")
+    if num_hospitals % partition_size != 0:
+        warnings.append("The number of hospitals must be divisible by the partition size.")
+    if num_neighbors < partition_size:
+        warnings.append("The number of neighbors must be greater than or equal to the partition size.")
+    if num_neighbors > num_hospitals:
+        warnings.append("The number of neighbors must be less than or equal to the number of hospitals.")
+
+    return warnings
 
 
 
@@ -179,6 +183,7 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
     # Output("parameter-hash", "data"),
     # Output("num-hospitals", "children", allow_duplicate=True),
     # Output("num-neighbors", "children"),
+    Output("warning", "children", allow_duplicate=True),
     inputs=[
         Input("run-button", "n_clicks"),
         State("url", "pathname"),
@@ -217,18 +222,17 @@ def run_optimiation(
     distance_objective_fraction: int,
     results_table: list[html.Thead, html.Tbody],
     # previous_parameter_hash: str,
-) -> tuple[str, list[html.Thead, html.Tbody], str, int, int]:
+) -> tuple[str, list[html.Thead, html.Tbody], str, int, int, str]:
     """Run the optimization and update map and results tables.
 
     This is the main optimization function which is called when the Run optimization button is
-    clicked. It used all inputs from the drop-down lists, sliders and text entries and runs the
-    optimization, updates the run/cancel buttons, animates (and deactivates) the results tab,
+    clicked. It uses all inputs from the drop-down lists, sliders and text entries and runs the
+    optimization, updates the run/cancel buttons, animates (and disables) the results tab,
     moves focus to the map tab and updates all relevant HTML entries.
 
     Args:
         run_click: The (total) number of times the run button has been clicked.
-        sampler_type: Either Quantum Hybrid (DQM) (``0`` or ``SamplerType.DQM``) or
-            Classical (K-Means) (``1`` or ``SamplerType.KMEANS``).
+        sampler_type: A string stating the sampler type as in SAMPLER_TYPES_CQM or SAMPLER_TYPES_BQM.
         time_limit: The solver time limit.
         num_hospitals: The number of hospitals.
         partition_size: The partition size.
@@ -246,23 +250,26 @@ def run_optimiation(
             sampler-type: The sampler used (``"quantum"`` or ``"classical"``).
             reset-results: Whether or not to reset the results tables before applying the new one.
             parameter-hash: Hash string to detect changed parameters.
-            problem-size: Updates the problem-size entry in the Solution stats table.
-            search-space: Updates the search-space entry in the Solution stats table.
-            wall-clock-time: Updates the wall-clock-time entry in the Solution stats table.
-            force-elements: Updates the force-elements entry in the Solution stats table.
-            vehicles-deployed: Updates the vehicles-deployed entry in the Solution stats table.
     """
     if run_click == 0 or ctx.triggered_id != "run-button":
         return ""
 
-    validate_input = True
+    warning = ""
     page = pathname[1:]
 
     if page == "bqm":
-        validate_input = validate_input(num_hospitals, partition_size, num_neighbors)
+        validate_warnings = validate_input(num_hospitals, partition_size, num_neighbors)
+        if validate_warnings:
+            warning = create_warning(validate_warnings)
 
+            return (
+                no_update,
+                no_update,
+                no_update,
+                warning
+            )
 
-    if ctx.triggered_id == "run-button" and validate_input:
+    if ctx.triggered_id == "run-button":
         # Generate hospital data
         hospital_df = us_hospitals(num_hospitals)
 
@@ -294,8 +301,13 @@ def run_optimiation(
         if result is None:
             raise ValueError("Something went wrong while solving problem. Refresh and try again.")
         elif result.total_transfer == 0:
-            raise ValueError("No solution found.")
-            # st.sidebar.warning("No solution found.")
+            warning = create_warning(["No solution found."])
+            return (
+                no_update,
+                no_update,
+                no_update,
+                warning
+            )
         else:
             results_dict['Hospitals'].append(form_input.num_hospitals)
 
@@ -310,8 +322,7 @@ def run_optimiation(
                 # st.sidebar.success("Found feasible solution!")
                 results_dict['Constraints Satisfied'].append("True")
             else:
-                # for msg in result.error_msgs:
-                #     st.sidebar.warning(msg)
+                warning = create_warning(result.error_msgs)
                 results_dict['Constraints Satisfied'].append("False")
 
             results_dict['Transfer'].append(str(round(result.total_transfer, 2)))
@@ -328,8 +339,14 @@ def run_optimiation(
                 except Exception as e:
                     # Something wrong with cached dictionary -> reset and give warning
                     results_dict.clear()
-                    # st.error("Something went wrong. Clear results and try again please.")
+                    warning = create_warning(["Something went wrong. Clear results and try again please."])
                     print(e)
+                    return (
+                        no_update,
+                        no_update,
+                        no_update,
+                        warning
+                    )
 
             result.figure.save("solution_map.html")
 
@@ -347,6 +364,7 @@ def run_optimiation(
                 # str(parameter_hash),
                 # num_hospitals,
                 # num_neighbors,
+                warning
             )
 
     raise PreventUpdate
