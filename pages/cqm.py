@@ -101,9 +101,16 @@ layout = html.Div(
                     id="left-column",
                     className="four-columns",
                     children=[
-                        description_card(),
-                        generate_control_card(),
-                        html.Div(["initial child"], id="output-clientside", style={"display": "none"}),
+                        html.Div([
+                            html.Div([
+                                description_card(),
+                                generate_control_card(),
+                                html.Div(["initial child"], id="output-clientside", style={"display": "none"}),
+                            ])
+                        ]),
+                        html.Div(
+                            html.Button(id="left-column-collapse", children=[html.Div()]),
+                        )
                     ],
                 ),
                 # Right column

@@ -41,8 +41,9 @@ Apache License, Version 2.0
     --teal-light: #06ECDC;
     --teal-dark: #17BEBB;
     --teal-darker: #008C82;
-    --grey-light: #EEEEEE;
-    --grey: #DDDDDD;
+    --grey-lighter: #EEEEEE;
+    --grey-light: #DDDDDD;
+    --grey: #AAAAAA;
     --grey-medium: #777777;
     --grey-dark: #222222;
 }
@@ -52,10 +53,6 @@ body {
     color: var(--grey-dark);
     font-size: 1.4rem;
     margin: 0rem;
-}
-
-hr {
-    margin: 0.3rem 0rem;
 }
 
 .display-none {
@@ -158,15 +155,32 @@ caption {
 
 #columns {
     display: flex;
+
+    /* Height of screen minus height of banner */
+    min-height: calc(100vh - 5.5rem);
 }
 
 #left-column {
+    display: flex;
+}
+
+#left-column > div > div {
     padding: 0 2rem;
-    flex: 0 0 38rem;
+    width: 38rem;
+}
+
+#left-column > div:first-child {
+    width: 42rem;
+    transition: width 0.6s ease-in-out;
+    overflow: hidden;
+}
+
+#left-column.collapsed > div:first-child {
+    width: 0;
 }
 
 #right-column {
-    background-color: var(--grey);
+    background-color: var(--grey-light);
     padding: 2rem 0 0;
     width: 100%;
 }
@@ -210,6 +224,7 @@ td {
 
 th, td {
     padding: 0.6rem 1.2rem;
+    text-align: right;
 }
 
 th:first-child, td:first-child {
@@ -244,20 +259,67 @@ th:last-child, td:last-child {
     background-color: var(--blue-light);
 }
 
+.rc-slider-track {
+    background-color: var(--blue-light);
+}
+
+.rc-slider-tooltip-inner {
+    background-color: white;
+    color: var(--grey-dark);
+    border: 1px solid var(--grey);
+    border-radius: 2px;
+}
+
+.rc-slider-tooltip .rc-slider-tooltip-arrow {
+    display: none;
+}
+
+.rc-slider-tooltip-inner:before,
+.rc-slider-tooltip-inner:after {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+
+.rc-slider-tooltip-inner:before {
+    left: 6px;
+    top: -11px;
+    border: 6px solid transparent;
+    border-bottom-color: var(--grey);
+}
+
+.rc-slider-tooltip-inner:after {
+    left: 7px;
+    top: -9px;
+    border: 5px solid transparent;
+    border-bottom-color: white;
+}
+
+.rc-slider-tooltip-placement-top .rc-slider-tooltip-inner:before {
+    bottom: -3px;
+    top: auto;
+    transform: rotate(180deg);
+}
+
+.rc-slider-tooltip-placement-top .rc-slider-tooltip-inner:after {
+    bottom: -1px;
+    top: auto;
+    transform: rotate(180deg);
+}
+
 #solution-map {
     border: none;
-
     width: 100%;
-    /* set height to viewport - (banner + tabs) */
-    height: calc(100vh - 15rem);
-    min-height: 70rem;
+    height: 100%;
 }
 
 #control-card > p {
     font-weight: bold;
 }
 
-button {
+button:not(#left-column-collapse) {
     width: 100%;
     font-size: 1.4rem;
     line-height: 1.4rem;
@@ -265,7 +327,39 @@ button {
     height: auto;
     color: white;
     transition: background-color 0.2s ease-in-out;
-    margin-bottom: 2rem;
+    margin-bottom: 4rem;
+    border: none;
+}
+
+#left-column-collapse {
+    background: white;
+    border: 1px var(--grey-lighter);
+    border-style: none solid none none;
+    height: 100%;
+    border-radius: 0;
+    padding: 0 0 0 0.5rem;
+}
+
+#left-column-collapse div {
+    border-right: 4px solid var(--grey-light);
+    border-bottom: 4px solid var(--grey-light);
+    transform: rotate(135deg) skew(165deg, 165deg);
+    height: 2rem;
+    width: 2rem;
+    margin-right: -0.3rem;
+    transition: border-color 0.25s ease-in-out;
+}
+
+#left-column-collapse:hover div {
+    border-color: var(--grey);
+}
+
+.collapsed #left-column-collapse {
+    padding: 0 0.5rem 0 0;
+}
+
+.collapsed #left-column-collapse div {
+    transform: rotate(315deg) skew(160deg, 160deg);
 }
 
 #run-button {
@@ -286,12 +380,14 @@ button {
 
 .tab-container {
     border-bottom: 3px solid var(--blue-light);
+    flex-direction: row !important;
 }
 
 .tab {
     margin: 0 2rem;
     border-top-left-radius: 0.6rem;
     border-top-right-radius: 0.6rem;
+    width: calc(100% / 2) !important;
 }
 
 div.tab.tab--selected {
@@ -318,12 +414,16 @@ div.tab.tab--disabled {
     height: 100%;
 }
 
+.tab-content > div:not(.tab-content--results) {
+    height: inherit;
+}
+
 .tab-content {
     background-color: white;
 }
 
 .tab-content--results {
-    padding: 0 3rem 3rem;
+    padding: 0 3rem;
 }
 
 .tab-fail {
@@ -347,68 +447,28 @@ div.tab.tab--disabled {
     position: relative;
 }
 
-.tab-loading::before,
-.tab-loading::after {
-    content: '';
-    box-sizing: border-box;
+.tab-loading:before {
+    content: "";
     position: absolute;
-    border: 3px solid transparent;
-    border-top-left-radius: 0.6rem;
-    border-top-right-radius: 0.6rem;
-    width: 0;
-    height: 0;
+    bottom: calc(-100% + 5px);
+    left: calc(-100% + 5px);
+    width: 100%;
+    height: 100%;
+    background: var(--teal-dark);
+    animation: rotate 4s linear infinite;
 }
 
-.tab-loading::before {
-    bottom: 0;
-    left: 0;
-    border-left-color: var(--teal-dark);
-    border-top-color: var(--teal-dark);
-    animation: border1 2s infinite;
-}
-
-.tab-loading::after {
-    top: 0;
-    right: 0;
-    border-bottom-color: var(--teal-dark);
-    border-right-color: var(--teal-dark);
-    animation: border1 2s 1s infinite, borderColor1 2s 1s infinite;
-}
-
-@keyframes border1 {
-    0% {
-        width: 0;
-        height: 0;
-    }
-    25% {
-        width: 0;
-        height: 100%;
+@keyframes rotate {
+    20% {
+        transform: translate(0px, calc(-200% + 10px))
     }
     50% {
-        width: 100%;
-        height: 100%;
+        transform: translate(calc(200% - 10px), calc(-200% + 10px))
+    }
+    70% {
+        transform: translate(calc(200% - 10px), 0px)
     }
     100% {
-        width: 100%;
-        height: 100%;
-    }
-}
-
-@keyframes borderColor1 {
-    0% {
-        border-bottom-color: var(--teal-dark);
-        border-right-color: var(--teal-dark);
-    }
-    50% {
-        border-bottom-color: var(--teal-dark);
-        border-right-color: var(--teal-dark);
-    }
-    51% {
-        border-bottom-color: transparent;
-        border-right-color: transparent;
-    }
-    100% {
-        border-bottom-color: transparent;
-        border-right-color: transparent;
+        transform: translate(0px, 0px)
     }
 }

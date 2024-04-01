@@ -38,7 +38,6 @@ def generate_control_card() -> html.Div:
             html.Label("Number of Hospitals"),
             dcc.Input(
                 id="num-hospitals",
-                className="select",
                 type="number",
                 **NUM_HOSPITALS,
             ),
@@ -52,7 +51,7 @@ def generate_control_card() -> html.Div:
                     PARTITION_SIZE["max"]: str(PARTITION_SIZE["max"]),
                 },
                 tooltip={
-                    "placement": "top",
+                    "placement": "bottom",
                     "always_visible": True,
                 },
             ),
@@ -67,7 +66,7 @@ def generate_control_card() -> html.Div:
                     NUM_NEIGHBORS["max"]: str(NUM_NEIGHBORS["max"]),
                 },
                 tooltip={
-                    "placement": "top",
+                    "placement": "bottom",
                     "always_visible": True,
                 },
             ),
@@ -82,7 +81,7 @@ def generate_control_card() -> html.Div:
                     DISTANCE_OBJECTIVE_FRACTION["max"]: str(DISTANCE_OBJECTIVE_FRACTION["max"]),
                 },
                 tooltip={
-                    "placement": "top",
+                    "placement": "bottom",
                     "always_visible": True,
                 },
             ),
@@ -140,11 +139,17 @@ layout = html.Div(
                 # Left column
                 html.Div(
                     id="left-column",
-                    className="four-columns",
                     children=[
-                        description_card(),
-                        generate_control_card(),
-                        html.Div(["initial child"], id="output-clientside", style={"display": "none"}),
+                        html.Div([
+                            html.Div([
+                                description_card(),
+                                generate_control_card(),
+                                html.Div(["initial child"], id="output-clientside", style={"display": "none"}),
+                            ])
+                        ]),
+                        html.Div(
+                            html.Button(id="left-column-collapse", children=[html.Div()]),
+                        )
                     ],
                 ),
                 # Right column
