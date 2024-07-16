@@ -15,22 +15,23 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 import dash
 import diskcache
 import folium
-from dash import DiskcacheManager, ctx, ALL, MATCH, no_update
+from dash import DiskcacheManager, ctx, ALL, MATCH
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from app_configs import APP_TITLE, DEBUG, THEME_COLOR, THEME_COLOR_SECONDARY
+from app_configs import APP_TITLE, DEBUG, DESCRIPTION_BQM, DESCRIPTION_CQM, MAIN_HEADER_BQM, MAIN_HEADER_CQM, THEME_COLOR, THEME_COLOR_SECONDARY
 from resource_distribution import FormInput, get_results
 from page_utils import persisted
 
+from src.enums import Formulation, SamplerType
 from utils import us_hospitals, get_empty_map
 
-from dash_html import create_table, update_table, create_warning, set_html
+from dash_html import SAMPLER_OPTIONS_ALL, SAMPLER_TYPES, create_table, update_table, create_warning, set_html
 
 # from solver.solver import RoutingProblemParameters, SamplerType, Solver, VehicleType
 
@@ -52,7 +53,6 @@ app = dash.Dash(
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     prevent_initial_callbacks="initial_duplicate",
     background_callback_manager=background_callback_manager,
-    use_pages=True,
 )
 app.title = APP_TITLE
 
@@ -71,17 +71,6 @@ css = f"""/* Automatically generated theme settings css file, see app.py */
 """
 with open("assets/c10_theme.css", "w") as f:
     f.write(css)
-
-
-@app.callback(
-    Output({"class": "nav-links", "path": ALL}, "className"),
-    inputs=[
-        Input("url", "pathname"),
-        Input({"class": "nav-links", "path": ALL}, "id")
-    ]
-)
-def intialize_nav(pathname, nav_links):
-    return ["active" if link["path"] == pathname else "" for link in nav_links]
 
 
 @app.callback(
@@ -108,6 +97,50 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> str:
         classes.remove("collapsed")
         return " ".join(classes)
     return to_collapse_class + " collapsed" if to_collapse_class else "collapsed"
+
+
+@app.callback(
+    Output({"type": "formulation-option", "index": ALL}, "className"),
+    Output({"type": "slider", "index": ALL}, "className"),
+    Output("header", "children"),
+    Output("description", "children"),
+    Output("selected-formulation", "data"),
+    Output("sampler-type-select", "options"),
+    Output("sampler-type-select", "value"),
+    inputs=[
+        Input({"type": "formulation-option", "index": ALL}, "n_clicks"),
+        State({"type": "slider", "index": ALL}, "className"),
+    ],
+)
+def update_selected_formulation(formulation_options, sliders):
+    """Updates the formulation that is selected (BQM or CQM), hides/shows settings accordingly,
+        and updates the navigation options to show which is active"""
+    nav_class_names = [""] * len(formulation_options)
+
+    if not ctx.triggered_id or ctx.triggered_id["index"] is Formulation.BQM.value:
+        nav_class_names[Formulation.BQM.value] = "active"
+        sampler_options_bqm = [option for option in SAMPLER_OPTIONS_ALL if option["value"] is not SamplerType.CQM.value]
+
+        return (
+            nav_class_names,
+            [""] * len(sliders),
+            MAIN_HEADER_BQM,
+            DESCRIPTION_BQM,
+            Formulation.BQM.value,
+            sampler_options_bqm,
+            sampler_options_bqm[0]["value"]
+        )
+
+    nav_class_names[Formulation.CQM.value] = "active"
+    return (
+        nav_class_names,
+        ["display-none"] * len(sliders),
+        MAIN_HEADER_CQM,
+        DESCRIPTION_CQM,
+        Formulation.CQM.value,
+        SAMPLER_OPTIONS_ALL,
+        SAMPLER_OPTIONS_ALL[0]["value"]
+    )
 
 
 def generate_inital_map(num_hospitals: int) -> folium.Map:
@@ -224,7 +257,6 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
     Output("warning", "children", allow_duplicate=True),
     inputs=[
         Input("run-button", "n_clicks"),
-        State("url", "pathname"),
         State("sampler-type-select", "value"),
         State("solver-time-limit", "value"),
         State("num-hospitals", "value"),
@@ -233,6 +265,7 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
         State("distance-objective-fraction", "value"),
         # input and output result table (to update it dynamically)
         State("solution-table", "children"),
+        State("selected-formulation", "data"),
         # State("parameter-hash", "data"),
     ],
     running=[
@@ -250,7 +283,6 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
 )
 def run_optimiation(
     run_click: int,
-    pathname: str,
     sampler_type: str,
     time_limit: float,
     num_hospitals: int,
@@ -258,6 +290,7 @@ def run_optimiation(
     num_neighbors: int,
     distance_objective_fraction: int,
     results_table: list[html.Thead, html.Tbody],
+    selected_formulation: Union[Formulation, int],
     # previous_parameter_hash: str,
 ) -> tuple[str, list[html.Thead, html.Tbody], str, int, int, str]:
     """Run the optimization and update map and results tables.
@@ -289,20 +322,25 @@ def run_optimiation(
             parameter-hash: Hash string to detect changed parameters.
     """
     if run_click == 0 or ctx.triggered_id != "run-button":
-        return ""
+        raise PreventUpdate
+
+    if isinstance(sampler_type, int):
+        sampler_type = SamplerType(sampler_type)
+
+    if isinstance(selected_formulation, int):
+        selected_formulation = Formulation(selected_formulation)
 
     warning = ""
-    page = pathname[1:]
 
-    if page == "bqm":
+    if selected_formulation is Formulation.BQM:
         validate_warnings = validate_input(num_hospitals, partition_size, num_neighbors)
         if validate_warnings:
             warning = create_warning(validate_warnings)
 
             return (
-                no_update,
-                no_update,
-                no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
                 warning
             )
 
@@ -310,9 +348,9 @@ def run_optimiation(
         # Generate hospital data
         hospital_df = us_hospitals(num_hospitals)
 
-        if page == "bqm":
+        if selected_formulation is Formulation.BQM:
             form_input = FormInput(
-                page=page,
+                formulation=selected_formulation,
                 num_hospitals=num_hospitals,
                 partition_size=partition_size,
                 num_neighbors=num_neighbors,
@@ -322,7 +360,7 @@ def run_optimiation(
             )
         else:
             form_input = FormInput(
-                page=page,
+                formulation=selected_formulation,
                 num_hospitals=num_hospitals,
                 solver=sampler_type,
                 time_limit=time_limit,
@@ -340,26 +378,26 @@ def run_optimiation(
         elif result.total_transfer == 0:
             warning = create_warning(["No solution found."])
             return (
-                no_update,
-                no_update,
-                no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
                 warning
             )
         else:
             results_dict['Hospitals'].append(form_input.num_hospitals)
 
-            if page == "bqm":
+            if selected_formulation is Formulation.BQM:
                 results_dict['Partition Size'].append(form_input.partition_size)
                 results_dict['Neighbors'].append(form_input.num_neighbors)
                 results_dict['DOF'].append(form_input.dof)
 
-            results_dict['Solver'].append(form_input.solver)
+            results_dict['Solver'].append(SAMPLER_TYPES[sampler_type])
 
-            if not result.error_msgs:
-                results_dict['Constraints'].append("Satisfied")
-            else:
+            if result.error_msgs:
                 warning = create_warning(result.error_msgs)
                 results_dict['Constraints'].append("Not Satisfied")
+            else:
+                results_dict['Constraints'].append("Satisfied")
 
             results_dict['Transfer'].append(str(round(result.total_transfer, 2)))
             results_dict['Cost'].append(str(round(result.total_cost, 2)))
@@ -368,19 +406,16 @@ def run_optimiation(
 
             if results_dict:
                 try:
-                    if results_table:
-                        results_table = update_table(results_table, results_dict)
-                    else:
-                        results_table = create_table(results_dict)
+                    results_table = update_table(results_table, results_dict) if results_table else create_table(results_dict)
                 except Exception as e:
                     # Something wrong with cached dictionary -> reset and give warning
                     results_dict.clear()
                     warning = create_warning(["Something went wrong. Clear results and try again please."])
                     print(e)
                     return (
-                        no_update,
-                        no_update,
-                        no_update,
+                        dash.no_update,
+                        dash.no_update,
+                        dash.no_update,
                         warning
                     )
 

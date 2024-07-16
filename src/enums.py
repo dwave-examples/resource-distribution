@@ -15,6 +15,11 @@
 from enum import Enum
 
 
+class Formulation(Enum):
+    BQM = 0
+    CQM = 1
+
+
 class SamplerType(Enum):
     CQM = 0
     BQM = 1

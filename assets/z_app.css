@@ -21,7 +21,7 @@ div.dash-sk-circle {
     display: flex;
 }
 
-.banner a {
+.banner button {
     color: white;
     opacity: 0.6;
     text-transform: uppercase;
@@ -31,7 +31,7 @@ div.dash-sk-circle {
     text-underline-offset: 0.5rem;
 }
 
-.banner a.active {
+.banner button.active {
     opacity: 1;
     background: rgba(255, 255, 255, 0.2);
 }

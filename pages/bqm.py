@@ -160,8 +160,8 @@ layout = html.Div(
                                         html.Div(
                                             className="description-card",
                                             children=[
-                                                html.H1(MAIN_HEADER_BQM),
-                                                html.P(DESCRIPTION_BQM),
+                                                html.H1(id="header", children=[MAIN_HEADER_BQM]),
+                                                html.P(id="description", children=[DESCRIPTION_BQM]),
                                             ],
                                         ),
                                         generate_control_card(),
