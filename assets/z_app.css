@@ -1,0 +1,68 @@
+/* CSS style rules for all custom CSS. */
+
+div.dash-sk-circle {
+    height: 6rem;
+    width: 6rem;
+}
+
+.input {
+    height: 100%;
+}
+
+.tab-content--results {
+    display: block;
+}
+
+.banner {
+    justify-content: space-between;
+}
+
+.banner > div {
+    display: flex;
+}
+
+.banner a {
+    color: white;
+    opacity: 0.6;
+    text-transform: uppercase;
+    font-size: 2rem;
+    font-weight: 500;
+    padding: 1.55rem 5rem;
+    text-underline-offset: 0.5rem;
+}
+
+.banner a.active {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#warning > div {
+    border: 2px solid var(--red-light);
+    border-radius: 0.4rem;
+    background-color: rgba(199, 0, 57, 0.15);
+    padding: 2rem;
+    color: var(--red-dark);
+    margin-bottom: 1rem;
+}
+
+#warning p:last-child {
+    margin: 0;
+}
+
+caption {
+    display: block;
+    text-align: left;
+    font-size: 1.2rem;
+    color: var(--grey-medium);
+}
+
+#solution-map {
+    border: none;
+    width: 100%;
+    height: 100%;
+}
+
+#solver-time-limit {
+    margin-bottom: 2rem;
+}
+

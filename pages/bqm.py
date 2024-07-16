@@ -1,36 +1,78 @@
-import streamlit as st
-from streamlit_folium import folium_static
-import pandas as pd
-
-from utils import us_hospitals, get_empty_map
-from page_utils import write_header, persisted
-from resource_distribution import FormInput, get_results
-
 from app_configs import (DESCRIPTION_BQM, MAIN_HEADER_BQM, NUM_HOSPITALS, PARTITION_SIZE, DISTANCE_OBJECTIVE_FRACTION, NUM_NEIGHBORS, SOLVER_TIME,
-                         THUMBNAIL, SAMPLER_TYPES_BQM)
+                         THEME_COLOR_SECONDARY)
 from dash import dcc, html, register_page
-
-
-map_width, map_height = 1200, 600
+from dash_html import SAMPLER_TYPES
+from src.enums import SamplerType
 
 register_page(__name__)
 
-def description_card():
-    """A Div containing dashboard title & descriptions."""
+
+def slider(label: str, id: str, config: dict) -> html.Div:
+    """Slider element for value selection.
+
+    Args:
+        label: The title that goes above the slider.
+        id: A unique selector for this element.
+        config: A dictionary of slider configerations, see dcc.Slider docs.
+    """
     return html.Div(
-        id="description-card",
-        children=[html.H1(MAIN_HEADER_BQM), html.P(DESCRIPTION_BQM)],
+        className="slider-wrapper",
+        children=[
+            html.Label(label),
+            dcc.Slider(
+                id=id,
+                className="slider",
+                **config,
+                marks={
+                    config["min"]: str(config["min"]),
+                    config["max"]: str(config["max"]),
+                },
+                tooltip={
+                    "placement": "bottom",
+                    "always_visible": True,
+                },
+            ),
+        ],
     )
 
-def generate_control_card() -> html.Div:
+
+def dropdown(label: str, id: str, options: list) -> html.Div:
+    """Dropdown element for option selection.
+
+    Args:
+        label: The title that goes above the dropdown.
+        id: A unique selector for this element.
+        options: A list of dictionaries of labels and values.
     """
-    This function generates the control card for the dashboard, which
-    contains the dropdowns for selecting the scenario, model, and solver.
+    return html.Div(
+        className="dropdown-wrapper",
+        children=[
+            html.Label(label),
+            dcc.Dropdown(
+                id=id,
+                options=options,
+                value=options[0]["value"],
+                clearable=False,
+                searchable=False,
+            ),
+        ],
+    )
+
+
+def generate_control_card() -> html.Div:
+    """This function generates the control card for the dashboard, which
+        contains the settings for selecting the scenario, model, and solver.
 
     Returns:
-        html.Div: A Div containing the dropdowns for selecting the scenario,
-        model, and solver.
+        html.Div: A Div containing the settings for selecting the scenario,
+            model, and solver.
     """
+
+    sampler_options = []
+    for sampler_type, label in SAMPLER_TYPES.items():
+        if sampler_type != SamplerType.CQM:
+            sampler_options.append({"label": label, "value": sampler_type.value})
+
 
     return html.Div(
         id="control-card",
@@ -41,57 +83,27 @@ def generate_control_card() -> html.Div:
                 type="number",
                 **NUM_HOSPITALS,
             ),
-            html.Label("Partition Size"),
-            dcc.Slider(
-                id="partition-size",
-                className="select",
-                **PARTITION_SIZE,
-                marks={
-                    PARTITION_SIZE["min"]: str(PARTITION_SIZE["min"]),
-                    PARTITION_SIZE["max"]: str(PARTITION_SIZE["max"]),
-                },
-                tooltip={
-                    "placement": "bottom",
-                    "always_visible": True,
-                },
+            slider(
+                "Partition Size",
+                "partition-size",
+                PARTITION_SIZE,
             ),
             # html.Caption("The number of hospitals must be divisible by this value."),
-            html.Label("Number of Neighbors"),
-            dcc.Slider(
-                id="num-neighbors",
-                className="select",
-                **NUM_NEIGHBORS,
-                marks={
-                    NUM_NEIGHBORS["min"]: str(NUM_NEIGHBORS["min"]),
-                    NUM_NEIGHBORS["max"]: str(NUM_NEIGHBORS["max"]),
-                },
-                tooltip={
-                    "placement": "bottom",
-                    "always_visible": True,
-                },
+            slider(
+                "Number of Neighbors",
+                "num-neighbors",
+                NUM_NEIGHBORS,
             ),
             # html.Caption("This value must be greater than or equal to the partition size and less than or equal to the number of hospitals."),
-            html.Label("Distance Objective Fraction"),
-            dcc.Slider(
-                id="distance-objective-fraction",
-                className="select",
-                **DISTANCE_OBJECTIVE_FRACTION,
-                marks={
-                    DISTANCE_OBJECTIVE_FRACTION["min"]: str(DISTANCE_OBJECTIVE_FRACTION["min"]),
-                    DISTANCE_OBJECTIVE_FRACTION["max"]: str(DISTANCE_OBJECTIVE_FRACTION["max"]),
-                },
-                tooltip={
-                    "placement": "bottom",
-                    "always_visible": True,
-                },
+            slider(
+                "Distance Objective Fraction",
+                "distance-objective-fraction",
+                DISTANCE_OBJECTIVE_FRACTION,
             ),
-            html.Label("Solver"),
-            dcc.Dropdown(
-                id="sampler-type-select",
-                options=SAMPLER_TYPES_BQM,
-                value=SAMPLER_TYPES_BQM[0]["value"],
-                clearable=False,
-                searchable=False,
+            dropdown(
+                "Solver",
+                "sampler-type-select",
+                sampler_options,
             ),
             html.Label("Solver Time Limit (seconds)"),
             dcc.Input(
@@ -99,10 +111,8 @@ def generate_control_card() -> html.Div:
                 type="number",
                 **SOLVER_TIME,
             ),
-            html.Div(
-                id="warning",
-                children=[]
-            ),
+            html.Div(id="warning", className="display-none"),
+            # Run and cancel buttons to run the optimization.
             html.Div(
                 id="button-group",
                 children=[
@@ -113,7 +123,7 @@ def generate_control_card() -> html.Div:
                         id="cancel-button",
                         children="Cancel Optimization",
                         n_clicks=0,
-                        style={"display": "none"},
+                        className="display-none",
                     ),
                 ],
             ),
@@ -134,42 +144,59 @@ layout = html.Div(
         ),  # callback blocker to signal that the run is complete
         dcc.Store(id="parameter-hash"),  # hash string to detect changed parameters
         html.Div(
-            id="columns",
+            className="columns-main",
             children=[
                 # Left column
                 html.Div(
-                    id="left-column",
+                    id={"type": "to-collapse-class", "index": 0},
+                    className="left-column",
                     children=[
-                        html.Div([
-                            html.Div([
-                                description_card(),
-                                generate_control_card(),
-                                html.Div(["initial child"], id="output-clientside", style={"display": "none"}),
-                            ])
-                        ]),
                         html.Div(
-                            html.Button(id="left-column-collapse", children=[html.Div()]),
-                        )
+                            className="left-column-layer-1",  # Fixed width Div to collapse
+                            children=[
+                                html.Div(
+                                    className="left-column-layer-2",  # Padding and content wrapper
+                                    children=[
+                                        html.Div(
+                                            className="description-card",
+                                            children=[
+                                                html.H1(MAIN_HEADER_BQM),
+                                                html.P(DESCRIPTION_BQM),
+                                            ],
+                                        ),
+                                        generate_control_card(),
+                                    ],
+                                )
+                            ],
+                        ),
+                        # Left column collapse button
+                        html.Div(
+                            html.Button(
+                                id={"type": "collapse-trigger", "index": 0},
+                                className="left-column-collapse",
+                                children=[html.Div(className="collapse-arrow")],
+                            ),
+                        ),
                     ],
                 ),
                 # Right column
                 html.Div(
-                    id="right-column",
+                    className="right-column",
                     children=[
                         dcc.Tabs(
                             id="tabs",
-                            value="map-tab",
+                            value="input-tab",
                             children=[
                                 dcc.Tab(
                                     label="Map",
-                                    id="map-tab",
-                                    value="map-tab",  # used for switching to programatically
+                                    id="input-tab",
+                                    value="input-tab",  # used for switching to programatically
                                     className="tab",
                                     children=[
                                         dcc.Loading(
-                                            id="loading",
+                                            parent_className="input",
                                             type="circle",
-                                            color="#17BEBB",
+                                            color=THEME_COLOR_SECONDARY,
                                             children=html.Iframe(id="solution-map")
                                         ),],
                                 ),
@@ -186,7 +213,7 @@ layout = html.Div(
                                                 html.Table(
                                                     id="solution-table",
                                                     className="result-table",
-                                                    children=[] # add children dynamically using 'create_table'
+                                                    # add children dynamically using 'create_table'
                                                 )
                                             ]
                                         )

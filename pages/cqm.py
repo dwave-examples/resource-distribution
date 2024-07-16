@@ -1,36 +1,26 @@
-import streamlit as st
-from streamlit_folium import folium_static
-import pandas as pd
+from dash_html import SAMPLER_TYPES
+from pages.bqm import dropdown
 
-from utils import us_hospitals, get_empty_map
-from page_utils import write_header, persisted
-from resource_distribution import FormInput, get_results
-
-from app_configs import (DESCRIPTION_CQM, MAIN_HEADER_CQM, NUM_HOSPITALS, PARTITION_SIZE, DISTANCE_OBJECTIVE_FRACTION, NUM_NEIGHBORS, SOLVER_TIME,
-                         THUMBNAIL, SAMPLER_TYPES_CQM)
+from app_configs import (DESCRIPTION_CQM, MAIN_HEADER_CQM, NUM_HOSPITALS, SOLVER_TIME,
+                         THEME_COLOR_SECONDARY)
 from dash import dcc, html, register_page
-
-
-map_width, map_height = 1200, 600
 
 register_page(__name__)
 
-def description_card():
-    """A Div containing dashboard title & descriptions."""
-    return html.Div(
-        id="description-card",
-        children=[html.H1(MAIN_HEADER_CQM), html.P(DESCRIPTION_CQM)],
-    )
 
 def generate_control_card() -> html.Div:
-    """
-    This function generates the control card for the dashboard, which
-    contains the dropdowns for selecting the scenario, model, and solver.
+    """This function generates the control card for the dashboard, which
+        contains the settings for selecting the scenario, model, and solver.
 
     Returns:
-        html.Div: A Div containing the dropdowns for selecting the scenario,
-        model, and solver.
+        html.Div: A Div containing the settings for selecting the scenario,
+            model, and solver.
     """
+
+    sampler_options = [
+        {"label": label, "value": sampler_type.value}
+        for sampler_type, label in SAMPLER_TYPES.items()
+    ]
 
     return html.Div(
         id="control-card",
@@ -45,13 +35,10 @@ def generate_control_card() -> html.Div:
             dcc.Slider(0, 2, 1, id="partition-size", className="display-none"), # Dash does not support optional parameters yet
             dcc.Slider(0, 2, 1, id="num-neighbors", className="display-none"),  # Creating "fake" sliders allows us to use the same functions for both pages
             dcc.Slider(0, 2, 1, id="distance-objective-fraction", className="display-none"),
-            html.Label("Solver"),
-            dcc.Dropdown(
-                id="sampler-type-select",
-                options=SAMPLER_TYPES_CQM,
-                value=SAMPLER_TYPES_CQM[0]["value"],
-                clearable=False,
-                searchable=False,
+            dropdown(
+                "Solver",
+                "sampler-type-select",
+                sampler_options,
             ),
             html.Label("Solver Time Limit (seconds)"),
             dcc.Input(
@@ -59,10 +46,8 @@ def generate_control_card() -> html.Div:
                 type="number",
                 **SOLVER_TIME,
             ),
-            html.Div(
-                id="warning",
-                children=[]
-            ),
+            html.Div(id="warning", className="display-none"),
+            # Run and cancel buttons to run the optimization.
             html.Div(
                 id="button-group",
                 children=[
@@ -73,7 +58,7 @@ def generate_control_card() -> html.Div:
                         id="cancel-button",
                         children="Cancel Optimization",
                         n_clicks=0,
-                        style={"display": "none"},
+                        className="display-none",
                     ),
                 ],
             ),
@@ -94,43 +79,59 @@ layout = html.Div(
         ),  # callback blocker to signal that the run is complete
         dcc.Store(id="parameter-hash"),  # hash string to detect changed parameters
         html.Div(
-            id="columns",
+            className="columns-main",
             children=[
                 # Left column
                 html.Div(
-                    id="left-column",
-                    className="four-columns",
+                    id={"type": "to-collapse-class", "index": 0},
+                    className="left-column",
                     children=[
-                        html.Div([
-                            html.Div([
-                                description_card(),
-                                generate_control_card(),
-                                html.Div(["initial child"], id="output-clientside", style={"display": "none"}),
-                            ])
-                        ]),
                         html.Div(
-                            html.Button(id="left-column-collapse", children=[html.Div()]),
-                        )
+                            className="left-column-layer-1",  # Fixed width Div to collapse
+                            children=[
+                                html.Div(
+                                    className="left-column-layer-2",  # Padding and content wrapper
+                                    children=[
+                                        html.Div(
+                                            className="description-card",
+                                            children=[
+                                                html.H1(MAIN_HEADER_CQM),
+                                                html.P(DESCRIPTION_CQM),
+                                            ],
+                                        ),
+                                        generate_control_card(),
+                                    ],
+                                )
+                            ],
+                        ),
+                        # Left column collapse button
+                        html.Div(
+                            html.Button(
+                                id={"type": "collapse-trigger", "index": 0},
+                                className="left-column-collapse",
+                                children=[html.Div(className="collapse-arrow")],
+                            ),
+                        ),
                     ],
                 ),
                 # Right column
                 html.Div(
-                    id="right-column",
+                    className="right-column",
                     children=[
                         dcc.Tabs(
                             id="tabs",
-                            value="map-tab",
+                            value="input-tab",
                             children=[
                                 dcc.Tab(
                                     label="Map",
-                                    id="map-tab",
-                                    value="map-tab",  # used for switching to programatically
+                                    id="input-tab",
+                                    value="input-tab",  # used for switching to programatically
                                     className="tab",
                                     children=[
                                         dcc.Loading(
-                                            id="loading",
+                                            parent_className="input",
                                             type="circle",
-                                            color="#17BEBB",
+                                            color=THEME_COLOR_SECONDARY,
                                             children=html.Iframe(id="solution-map")
                                         ),],
                                 ),
@@ -147,7 +148,7 @@ layout = html.Div(
                                                 html.Table(
                                                     id="solution-table",
                                                     className="result-table",
-                                                    children=[] # add children dynamically using 'create_table'
+                                                    # add children dynamically using 'create_table'
                                                 )
                                             ]
                                         )

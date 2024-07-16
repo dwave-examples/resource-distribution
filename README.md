@@ -29,4 +29,4 @@ the provided link into your browser for access.
 
 ## Snapshot
 
-![demo](demo_app.png)
+![demo](static/demo_app.png)

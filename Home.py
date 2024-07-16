@@ -13,8 +13,8 @@ def run_page():
 
     home_html = render_template(
         'home.html',
-        partitioning=img_to_bytes("assets/partitioning.png"),
-        partition_with_distance=img_to_bytes("assets/partition_with_distance.png"))
+        partitioning=img_to_bytes("static/partitioning.png"),
+        partition_with_distance=img_to_bytes("static/partition_with_distance.png"))
     st.components.v1.html(home_html, height=3500, scrolling=True)
 
 run_page()

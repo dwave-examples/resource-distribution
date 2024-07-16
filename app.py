@@ -14,18 +14,17 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
-from operator import itemgetter
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import dash
 import diskcache
 import folium
-from dash import DiskcacheManager, callback_context, ctx, ALL, no_update
+from dash import DiskcacheManager, ctx, ALL, MATCH, no_update
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+from app_configs import APP_TITLE, DEBUG, THEME_COLOR, THEME_COLOR_SECONDARY
 from resource_distribution import FormInput, get_results
 from page_utils import persisted
 
@@ -38,7 +37,12 @@ from dash_html import create_table, update_table, create_warning, set_html
 cache = diskcache.Cache("./cache")
 background_callback_manager = DiskcacheManager(cache)
 
-from app_configs import APP_TITLE
+# Fix for Dash background callbacks crashing on macOS 10.13+ (https://bugs.python.org/issue33725)
+# See https://github.com/dwave-examples/template for more details.
+import multiprocess
+
+if multiprocess.get_start_method(allow_none=True) is None:
+    multiprocess.set_start_method("spawn")
 
 if TYPE_CHECKING:
     from dash import html
@@ -58,6 +62,16 @@ app.config.suppress_callback_exceptions = True
 BASE_PATH = Path(__file__).parent.resolve()
 DATA_PATH = BASE_PATH.joinpath("input").resolve()
 
+# Generates css file and variable using THEME_COLOR and THEME_COLOR_SECONDARY settings
+css = f"""/* Automatically generated theme settings css file, see app.py */
+:root {{
+    --theme: {THEME_COLOR};
+    --theme-secondary: {THEME_COLOR_SECONDARY};
+}}
+"""
+with open("assets/c10_theme.css", "w") as f:
+    f.write(css)
+
 
 @app.callback(
     Output({"class": "nav-links", "path": ALL}, "className"),
@@ -71,17 +85,29 @@ def intialize_nav(pathname, nav_links):
 
 
 @app.callback(
-    Output("left-column", "className"),
+    Output({"type": "to-collapse-class", "index": MATCH}, "className"),
     inputs=[
-        Input("left-column-collapse", "n_clicks"),
-        State("left-column", "className"),
+        Input({"type": "collapse-trigger", "index": MATCH}, "n_clicks"),
+        State({"type": "to-collapse-class", "index": MATCH}, "className"),
     ],
     prevent_initial_call=True,
 )
-def toggle_left_column(left_column, class_name):
-    if class_name:
-        return ""
-    return "collapsed"
+def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> str:
+    """Toggles a 'collapsed' class that hides and shows some aspect of the UI.
+
+    Args:
+        collapse_trigger (int): The (total) number of times a collapse button has been clicked.
+        to_collapse_class (str): Current class name of the thing to collapse, 'collapsed' if not visible, empty string if visible
+
+    Returns:
+        str: The new class name of the thing to collapse.
+    """
+
+    classes = to_collapse_class.split(" ") if to_collapse_class else []
+    if "collapsed" in classes:
+        classes.remove("collapsed")
+        return " ".join(classes)
+    return to_collapse_class + " collapsed" if to_collapse_class else "collapsed"
 
 
 def generate_inital_map(num_hospitals: int) -> folium.Map:
@@ -210,16 +236,14 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
         # State("parameter-hash", "data"),
     ],
     running=[
-        # show cancel button and disable run button, and disable and animate results tab
-        (Output("cancel-button", "style"), {"display": "inline-block"}, {"display": "none"}),
-        (Output("run-button", "style"), {"display": "none"}, {"display": "inline-block"}),
-        (Output("results-tab", "disabled"), True, False),
-        (Output("results-tab", "className"), "tab-loading", "tab"),
-        # switch to map tab while running
-        (Output("tabs", "value"), "map-tab", "map-tab"),
-        # block certain callbacks from running until this is done
-        (Output("run-in-progress", "data"), True, False),
-        (Output("warning", "style"), {"display": "none"}, {"display": "block"}),
+         # Shows cancel button while running.
+        (Output("cancel-button", "className"), "", "display-none"),
+        (Output("run-button", "className"), "display-none", ""),  # Hides run button while running.
+        (Output("results-tab", "disabled"), True, False),  # Disables results tab while running.
+        (Output("results-tab", "label"), "Loading...", "Results"),
+        (Output("tabs", "value"), "input-tab", "input-tab"),  # Switch to input tab while running.
+        (Output("run-in-progress", "data"), True, False),  # Can block certain callbacks.
+        (Output("warning", "className"), "display-none", ""),
     ],
     cancel=[Input("cancel-button", "n_clicks")],
     prevent_initial_call=True,
@@ -404,4 +428,4 @@ set_html(app)
 
 # Run the server
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=DEBUG)

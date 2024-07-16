@@ -12,19 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This file stores the HTML layout for the app (see ``mvrp.css`` for CSS styling)."""
 from __future__ import annotations
 
+from collections import defaultdict
 import html
 
 from dash import dcc, html, page_registry, page_container
 
-from app_configs import (DISTANCE_OBJECTIVE_FRACTION, NUM_NEIGHBORS, SOLVER_TIME,
-                         THUMBNAIL)
+from app_configs import THUMBNAIL
+from src.enums import SamplerType
 
-map_width, map_height = 1000, 600
-
-
+SAMPLER_TYPES = {
+    SamplerType.CQM: "Quantum Hybrid (CQM)",
+    SamplerType.BQM: "Quantum Hybrid (BQM)",
+    SamplerType.TABU: "Tabu",
+    SamplerType.SIM_ANNEAL: "Simulated Annealing",
+}
 
 def set_html(app):
     """Set the application HTML."""
@@ -44,17 +47,17 @@ def set_html(app):
             dcc.Location(id="url"),
             # Banner
             html.Div(
-                id="banner",
+                className="banner",
                 children=[
                     html.Img(src=THUMBNAIL),
                     html.Div([
                         html.Div(
                             dcc.Link(
-                                page['name'],
+                                page["name"],
                                 href=page["relative_path"],
                                 id={
                                     "class": "nav-links",
-                                    "path": page['path']
+                                    "path": page["path"]
                                 },
                             )
                         ) for page in page_registry.values()
@@ -76,27 +79,8 @@ def create_table(
     """
 
     table = [
-        html.Thead(
-            [
-                html.Tr(
-                    [
-                        html.Th(header) for header in values_dicts.keys()
-                    ]
-                )
-            ]
-        ),
-        html.Tbody(
-            [
-                html.Tr(
-                    [
-                        html.Td(
-                            value
-                        )
-                        for value in values_dicts.values()
-                    ]
-                )
-            ]
-        )
+        html.Thead([html.Tr([html.Th(header) for header in values_dicts.keys()])]),
+        html.Tbody([html.Tr([html.Td(value) for value in values_dicts.values()])])
     ]
 
     return table
@@ -111,21 +95,14 @@ def update_table(
         values_tot: List of total results data (sum of individual vehicle data).
     """
 
-    thead, tfoot = prev_table
+    thead, tbody = prev_table
 
     table = [
         thead,
         html.Tbody(
             [
-                *tfoot['props']['children'],
-                html.Tr(
-                    [
-                        html.Td(
-                            value
-                        )
-                        for value in values_dicts.values()
-                    ]
-                )
+                *tbody['props']['children'],
+                html.Tr([html.Td(value) for value in values_dicts.values()])
             ]
         )
     ]

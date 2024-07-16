@@ -14,12 +14,21 @@
 
 """This file stores input parameters for the app."""
 
-ADDRESS = "Cambridge Ln, Rockhampton QLD 4700, Australia"
-DISTANCE = 1700  # bounding box distance (in meters) around address
-THUMBNAIL = "assets/dwave_logo.svg"
+# Sets Dash debug which hides and shows Dash debug menu.
+# Set to True if developing and False if demoing.
+# App should be restarted to see change.
+DEBUG = False
 
-APP_TITLE = "Resource Distribution Demo"
-MAIN_HEADER_BQM = "BQM Resource Distribution Optimization"
+# THEME_COLOR is used for the button, text, and banner and should be dark
+# and pass accessibility checks with white: https://webaim.org/resources/contrastchecker/
+# THEME_COLOR_SECONDARY can be light or dark and is used for sliders, loading icon, and tabs
+THEME_COLOR = "#074C91"  # D-Wave dark blue default #074C91
+THEME_COLOR_SECONDARY = "#2A7DE1"  # D-Wave blue default #2A7DE1
+
+THUMBNAIL = "static/dwave_logo.svg"
+
+APP_TITLE = "Resource Distribution"
+MAIN_HEADER_BQM = "BQM Resource Distribution"
 DESCRIPTION_BQM = """\
 In the BQM formulation, the goal is to divide the hospitals into groups such that the maximum 
 number of transfers is achieved at minimum cost. Transfer is quantified as the smaller 
@@ -27,7 +36,7 @@ number between total excess and total shortage in a group of hospitals. Cost is 
 costs associated with transferring resources from one hospital to another: In this demonstration, 
 only distance is considered as a cost. 
 """
-MAIN_HEADER_CQM = "CQM Resource Distribution Optimization"
+MAIN_HEADER_CQM = "CQM Resource Distribution"
 DESCRIPTION_CQM = """\
 The BQM formulation requires multiple mathematical transformations to run on an unconstrained 
 solver: the original problem is reformulated as a maximum-independent-set problem.
@@ -37,21 +46,6 @@ The CQM formulation enables the direct solution of the original problem in an in
 #######################################
 # Sliders, buttons and option entries #
 #######################################
-
-
-SAMPLER_TYPES_BQM = [
-       {'label': 'Leap Hybrid BQM Sampler', 'value': 'Leap Hybrid BQM Sampler'},
-       {'label': 'Tabu Sampler', 'value': 'Tabu Sampler'},
-       {'label': 'Simulated Annealing', 'value': 'Simulated Annealing'},
-   ]
-
-
-SAMPLER_TYPES_CQM = [
-       {'label': 'Leap Hybrid CQM Sampler', 'value': 'Leap Hybrid CQM Sampler'},
-       {'label': 'Leap Hybrid BQM Sampler', 'value': 'Leap Hybrid BQM Sampler'},
-       {'label': 'Simulated Annealing', 'value': 'Simulated Annealing'},
-       {'label': 'Tabu Sampler', 'value': 'Tabu Sampler'},
-   ]
 
 NUM_HOSPITALS = {
     "min": 2,

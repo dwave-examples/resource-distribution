@@ -3,3 +3,5 @@
 cache
 initial_map.html
 solution_map.html
+assets/c10_theme.css
+*.DS_Store

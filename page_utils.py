@@ -27,7 +27,7 @@ def write_style():
 def write_title(title):
     html = render_template(
         'title.html',
-        logo=img_to_bytes("assets/logo_dots.png"),
+        logo=img_to_bytes("static/logo_dots.png"),
         title=title)
     st.write(html, unsafe_allow_html=True)
 
