@@ -1,4 +1,4 @@
-# Copyright 2021 D-Wave Systems Inc.
+# Copyright 2024 D-Wave Systems Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ from itertools import cycle
 from typing import Tuple
 
 import folium
-from folium.features import DivIcon
 import numpy as np
 import pandas as pd
 from scipy.spatial import ConvexHull
@@ -44,9 +43,8 @@ def us_hospitals(num_hospitals: int) -> pd.DataFrame:
     df['d'] = [haversine((-73.985130, 40.758896), (lon, lat)) for lon, lat in zip(df['longitude'], df['latitude'])]
     df = df.sort_values(by='d').head(num_hospitals)
 
-    # Hardcoding seed to keep the same map/hospitals for each run (making it easier to compare results)
-    seed = 123
-    np.random.seed(seed)
+    # Hardcoding seed to keep the same map/hospitals for each run
+    np.random.seed(123)
     rnds = np.random.rand(len(df)) * df['Population']
     rnds = rnds / np.max(np.abs(rnds)) * 100
     rnds = np.round(rnds - np.mean(rnds))
@@ -79,15 +77,14 @@ def get_empty_map(df: pd.DataFrame) -> folium.Map:
     folium_map = folium.Map(location=start_coords, tiles=None, zoom_start=zoom)
     folium.TileLayer(tiles='openstreetmap', opacity=0.5).add_to(folium_map)
 
+    label_colors = ['#fc0009', '#e10435', '#b30963', '#910b81', '#5f0aad', '#4f08ba', '#2606de', '#1702f6']
+
     # Marker color is based on number of excess_beds (scale is from red (shortage) to blue (surplus))
-    df['marker_color'] = pd.cut(df['excess_beds'], bins=8, labels=['#fc0009',
-                                                                   '#e10435',
-                                                                   '#b30963',
-                                                                   '#910b81',
-                                                                   '#5f0aad',
-                                                                   '#4f08ba',
-                                                                   '#2606de',
-                                                                   '#1702f6'])
+    df['marker_color'] = pd.cut(
+        df['excess_beds'],
+        bins=8,
+        labels=label_colors
+    )
 
     # Add one marker per hospital
     for name, latitude, longitude, size, excess_beds, color in zip(df['name'], df['latitude'], df['longitude'], df['size'], df['excess_beds'], df['marker_color']):
@@ -184,15 +181,17 @@ def add_result_markers(figure: folium.Map, groups: list) -> None:
 
             popup = folium.map.Popup(html=text, max_width=250)
 
-            folium.vector_layers.Polygon(locations,
-                                         fill=True,
-                                         stroke=True,
-                                         color=color,
-                                         fill_color=color,
-                                         fill_opacity=0.3,
-                                         opacity=0.2,
-                                         interactive=False,
-                                         popup=popup).add_to(figure)
+            folium.vector_layers.Polygon(
+                locations,
+                fill=True,
+                stroke=True,
+                color=color,
+                fill_color=color,
+                fill_opacity=0.3,
+                opacity=0.2,
+                interactive=False,
+                popup=popup
+            ).add_to(figure)
 
 
 def check_feasibility(groups: list) -> Tuple[bool, bool]:

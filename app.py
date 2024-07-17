@@ -14,26 +14,23 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import NamedTuple, Union
 
 import dash
 import diskcache
-import folium
 from dash import DiskcacheManager, ctx, ALL, MATCH
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from app_configs import APP_TITLE, DEBUG, DESCRIPTION_BQM, DESCRIPTION_CQM, MAIN_HEADER_BQM, MAIN_HEADER_CQM, THEME_COLOR, THEME_COLOR_SECONDARY
 from resource_distribution import FormInput, get_results
-from page_utils import persisted
 
 from src.enums import Formulation, SamplerType
 from utils import us_hospitals, get_empty_map
 
 from dash_html import SAMPLER_OPTIONS_ALL, SAMPLER_TYPES, create_table, update_table, create_warning, set_html
-
-# from solver.solver import RoutingProblemParameters, SamplerType, Solver, VehicleType
 
 cache = diskcache.Cache("./cache")
 background_callback_manager = DiskcacheManager(cache)
@@ -44,9 +41,6 @@ import multiprocess
 
 if multiprocess.get_start_method(allow_none=True) is None:
     multiprocess.set_start_method("spawn")
-
-if TYPE_CHECKING:
-    from dash import html
 
 app = dash.Dash(
     __name__,
@@ -99,66 +93,112 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> str:
     return to_collapse_class + " collapsed" if to_collapse_class else "collapsed"
 
 
+class UpdateSelectedFormulationReturn(NamedTuple):
+    """Return type for the ``update_selected_formulation`` callback function."""
+
+    formulation_options_class: list = dash.no_update
+    sliders_class: list = dash.no_update
+    main_header: str = dash.no_update
+    description: str = dash.no_update
+    selected_formulation: int = dash.no_update
+    last_formulation: int = dash.no_update
+    sampler_select_options: list = dash.no_update
+    sampler_select_value: int = dash.no_update
+    results_tab_disabled: int = dash.no_update
+    selected_tab: int = dash.no_update
+    warning: list = dash.no_update
+    solution_table: list = dash.no_update
+
 @app.callback(
     Output({"type": "formulation-option", "index": ALL}, "className"),
     Output({"type": "slider", "index": ALL}, "className"),
     Output("header", "children"),
     Output("description", "children"),
     Output("selected-formulation", "data"),
+    Output("last-formulation", "data"),
     Output("sampler-type-select", "options"),
     Output("sampler-type-select", "value"),
+    Output("results-tab", "disabled"),
+    Output("tabs", "value"),
+    Output("warning", "children"),
+    Output("solution-table", "children"),
     inputs=[
         Input({"type": "formulation-option", "index": ALL}, "n_clicks"),
         State({"type": "slider", "index": ALL}, "className"),
+        State("last-formulation", "data"),
     ],
 )
-def update_selected_formulation(formulation_options, sliders):
+def update_selected_formulation(
+    formulation_options: list[int],
+    sliders: list[str],
+    last_formulation: int
+) -> UpdateSelectedFormulationReturn:
     """Updates the formulation that is selected (BQM or CQM), hides/shows settings accordingly,
-        and updates the navigation options to show which is active"""
+        and updates the navigation options to indicate the currently active formulation option.
+
+    Args:
+        formulation_options: A list containing the number of times each formulation option has been clicked.
+        sliders: A list of the current classes on each of the sliders.
+        last_formulation: The previous formulation that was selected, either BQM (``0`` or ``Formulation.BQM``) or CQM (``1`` or ``Formulation.CQM``).
+
+    Returns: A NamedTuple (UpdateSelectedFormulationReturn) containing all outputs to be used when updating the HTML
+        template (in ``dash_html.py``). These are:
+
+            formulation_options_class (list): A list of classes for the formulation navigation options in the header.
+            sliders_class (list): A list of classes for the slider form fields.
+            main_header (str): The title of the app.
+            description (str): The description of the app.
+            selected_formulation (int): Either BQM (``0`` or ``Formulation.BQM``) or CQM (``1`` or ``Formulation.CQM``).
+            last_formulation (int): The previous formulation that was selected, either BQM (``0`` or ``Formulation.BQM``) or CQM (``1`` or ``Formulation.CQM``).
+            sampler_select_options (list): A list of sampler options to include in the sampler select dropdown.
+            sampler_select_value (int): The new value of the sampler select dropdown.
+            results_tab_disabled (bool): Whether the results tab should be disabled.
+            selected_tab (str): The tab to select.
+            warning (list): The warnings to display.
+            solution_table (list): The new solution table to set.
+    """
     nav_class_names = [""] * len(formulation_options)
 
+    # Clicked the button that was already selected
+    if ctx.triggered_id and last_formulation == ctx.triggered_id["index"]:
+        raise PreventUpdate
+
+    # Either first run or BQM was selected
     if not ctx.triggered_id or ctx.triggered_id["index"] is Formulation.BQM.value:
         nav_class_names[Formulation.BQM.value] = "active"
         sampler_options_bqm = [option for option in SAMPLER_OPTIONS_ALL if option["value"] is not SamplerType.CQM.value]
 
-        return (
-            nav_class_names,
-            [""] * len(sliders),
-            MAIN_HEADER_BQM,
-            DESCRIPTION_BQM,
-            Formulation.BQM.value,
-            sampler_options_bqm,
-            sampler_options_bqm[0]["value"]
+        return UpdateSelectedFormulationReturn(
+            formulation_options_class=nav_class_names,
+            sliders_class=[""] * len(sliders),
+            main_header=MAIN_HEADER_BQM,
+            description=DESCRIPTION_BQM,
+            selected_formulation=Formulation.BQM.value,
+            last_formulation=Formulation.BQM.value,
+            sampler_select_options=sampler_options_bqm,
+            sampler_select_value=sampler_options_bqm[0]["value"],
+            results_tab_disabled=True,
+            selected_tab="input-tab",
+            warning=[],
+            solution_table=[],
         )
 
+    # CQM was selected
     nav_class_names[Formulation.CQM.value] = "active"
-    return (
-        nav_class_names,
-        ["display-none"] * len(sliders),
-        MAIN_HEADER_CQM,
-        DESCRIPTION_CQM,
-        Formulation.CQM.value,
-        SAMPLER_OPTIONS_ALL,
-        SAMPLER_OPTIONS_ALL[0]["value"]
+    return UpdateSelectedFormulationReturn(
+        formulation_options_class=nav_class_names,
+        sliders_class=["display-none"] * len(sliders),
+        main_header=MAIN_HEADER_CQM,
+        description=DESCRIPTION_CQM,
+        selected_formulation=Formulation.CQM.value,
+        last_formulation=Formulation.CQM.value,
+        sampler_select_options=SAMPLER_OPTIONS_ALL,
+        sampler_select_value=SAMPLER_OPTIONS_ALL[0]["value"],
+        results_tab_disabled=True,
+        selected_tab="input-tab",
+        warning=[],
+        solution_table=[],
     )
-
-
-def generate_inital_map(num_hospitals: int) -> folium.Map:
-    """Generates the initial map.
-
-    Args:
-        num_hospitals (int): Number of hospitals.
-
-    Returns:
-        folium.Map: Initial map shown on the map tab.
-    """
-    # Generate hospital data
-    hospital_df = us_hospitals(num_hospitals)
-
-    # Initialize map
-    initial_map = get_empty_map(hospital_df)
-
-    return initial_map
 
 
 @app.callback(
@@ -185,46 +225,14 @@ def render_initial_map(num_hospitals: int, _) -> str:
 
     # only regenerate map if num_hospitals is changed (i.e., if run buttons is NOT clicked)
     if ctx.triggered_id != "run-button" or not map_path.exists():
-        initial_map = generate_inital_map(num_hospitals)
+        # Generate hospital data
+        hospital_df = us_hospitals(num_hospitals)
+
+        # Initialize map
+        initial_map = get_empty_map(hospital_df)
         initial_map.save(map_path)
 
     return open(map_path, "r").read()
-
-
-@app.callback(
-    Output("solution-table", "children"),
-    inputs=[
-        Input("run-in-progress", "data"),
-        State("stored-results", "data"),
-        State("reset-results", "data"),
-        State("sampler-type", "data"),
-    ],
-    prevent_initial_call=True,
-)
-def update_tables(
-    run_in_progress, stored_results, reset_results, sampler_type
-) -> list:
-    """Update the results tables each time a run is made.
-
-    Args:
-        run_in_progress: Whether or not the ``run_optimiation`` callback is running.
-        stored_results: The results tab from the latest run.
-        reset_results: Whether or not to reset the results tables before applying the new one.
-        sampler_type: The sampler type used in the latest run (``"quantum"`` or ``"classical"``)
-
-    Returns:
-        tuple: A tuple containing the two results tables.
-    """
-    empty_or_no_update = [] if reset_results else dash.no_update
-
-    if run_in_progress is True:
-        raise PreventUpdate
-
-    # if sampler_type == "classical":
-    #     return empty_or_no_update, stored_results
-
-    return stored_results
-
 
 
 def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) -> list[str]:
@@ -244,17 +252,17 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
     return warnings
 
 
+class RunOptimizationReturn(NamedTuple):
+    """Return type for the ``run_optimization`` callback function."""
+    solution_map: str = dash.no_update
+    warning: dash.html.Div = dash.no_update
+    solution_table: str = dash.no_update
 
 @app.long_callback(
     # update map and results
     Output("solution-map", "srcDoc", allow_duplicate=True),
-    Output("stored-results", "data", allow_duplicate=True),
-    # store the solver used, whether or not to reset results tabs and the
-    # parameter hash value used to detect parameter changes
-    Output("sampler-type", "data", allow_duplicate=True),
-    # Output("reset-results", "data"),
-    # Output("parameter-hash", "data"),
     Output("warning", "children", allow_duplicate=True),
+    Output("solution-table", "children", allow_duplicate=True),
     inputs=[
         Input("run-button", "n_clicks"),
         State("sampler-type-select", "value"),
@@ -263,19 +271,15 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
         State("partition-size", "value"),
         State("num-neighbors", "value"),
         State("distance-objective-fraction", "value"),
-        # input and output result table (to update it dynamically)
         State("solution-table", "children"),
         State("selected-formulation", "data"),
-        # State("parameter-hash", "data"),
     ],
     running=[
          # Shows cancel button while running.
         (Output("cancel-button", "className"), "", "display-none"),
         (Output("run-button", "className"), "display-none", ""),  # Hides run button while running.
         (Output("results-tab", "disabled"), True, False),  # Disables results tab while running.
-        (Output("results-tab", "label"), "Loading...", "Results"),
         (Output("tabs", "value"), "input-tab", "input-tab"),  # Switch to input tab while running.
-        (Output("run-in-progress", "data"), True, False),  # Can block certain callbacks.
         (Output("warning", "className"), "display-none", ""),
     ],
     cancel=[Input("cancel-button", "n_clicks")],
@@ -283,43 +287,41 @@ def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) 
 )
 def run_optimiation(
     run_click: int,
-    sampler_type: str,
+    sampler_type: Union[SamplerType, int],
     time_limit: float,
     num_hospitals: int,
     partition_size: int,
     num_neighbors: int,
     distance_objective_fraction: int,
-    results_table: list[html.Thead, html.Tbody],
+    results_table: list,
     selected_formulation: Union[Formulation, int],
-    # previous_parameter_hash: str,
-) -> tuple[str, list[html.Thead, html.Tbody], str, int, int, str]:
-    """Run the optimization and update map and results tables.
+) -> RunOptimizationReturn:
+    """Runs the optimization and updates UI accordingly.
 
-    This is the main optimization function which is called when the Run optimization button is
-    clicked. It uses all inputs from the drop-down lists, sliders and text entries and runs the
-    optimization, updates the run/cancel buttons, animates (and disables) the results tab,
-    moves focus to the map tab and updates all relevant HTML entries.
+    This is the main function which is called when the `Run Optimization` button is clicked.
+    This function takes in all form values and runs the optimization, updates the run/cancel
+    buttons, deactivates (and reactivates) the results tab, and updates all relevant HTML
+    components.
 
     Args:
         run_click: The (total) number of times the run button has been clicked.
-        sampler_type: A string stating the sampler type as in SAMPLER_TYPES_CQM or SAMPLER_TYPES_BQM.
-        time_limit: The solver time limit.
+        sampler_type: Either Quantum Hybrid (CQM) (``0`` or ``SamplerType.CQM``), Quantum Hybrid (BQM)
+            (``1`` or ``SamplerType.BQM``), Tabu (``2`` or ``SamplerType.TABU``), or Simulated Annealing
+            (``3`` or ``SamplerType.SIM_ANNEAL``).
         num_hospitals: The number of hospitals.
         partition_size: The partition size.
         num_neighbors: The number of neighbors.
         distance_objective_fraction: The distance objective fraction.
         results_table: The html 'Solution cost' table. Used to update it dynamically.
+        selected_formulation: Either BQM (``0`` or ``Formulation.BQM``) or CQM (``1`` or ``Formulation.CQM``).
 
     Returns:
-        A tuple containing all outputs to be used when updating the HTML template (in
-        ``dash_html,py``). These are:
+        A NamedTuple (RunOptimizationReturn) containing all outputs to be used when updating the HTML
+        template (in ``dash_html.py``). These are:
 
-            solution-map: Updates the 'srcDoc' entry for the 'solution-map' IFrame in the map tab.
-                This is the map (initial and solution map).
-            stored-results: Stores the Solution cost table in the results tab.
-            sampler-type: The sampler used (``"quantum"`` or ``"classical"``).
-            reset-results: Whether or not to reset the results tables before applying the new one.
-            parameter-hash: Hash string to detect changed parameters.
+            solution-map (str): Updates the 'srcDoc' entry for the 'solution-map' Iframe in the map tab.
+            warning (dash.html.Div): The warnings to display.
+            solution_table (list): The new solution table to set.
     """
     if run_click == 0 or ctx.triggered_id != "run-button":
         raise PreventUpdate
@@ -330,135 +332,69 @@ def run_optimiation(
     if isinstance(selected_formulation, int):
         selected_formulation = Formulation(selected_formulation)
 
-    warning = ""
-
     if selected_formulation is Formulation.BQM:
         validate_warnings = validate_input(num_hospitals, partition_size, num_neighbors)
         if validate_warnings:
-            warning = create_warning(validate_warnings)
+            return RunOptimizationReturn(warning=create_warning(validate_warnings))
 
-            return (
-                dash.no_update,
-                dash.no_update,
-                dash.no_update,
-                warning
-            )
+    hospital_df = us_hospitals(num_hospitals)  # Generate hospital data
+    results_dict = defaultdict(list)
 
-    if ctx.triggered_id == "run-button":
-        # Generate hospital data
-        hospital_df = us_hospitals(num_hospitals)
+    if selected_formulation is Formulation.BQM:
+        form_input = FormInput(
+            formulation=selected_formulation,
+            num_hospitals=num_hospitals,
+            partition_size=partition_size,
+            num_neighbors=num_neighbors,
+            dof=distance_objective_fraction,
+            solver=sampler_type,
+            time_limit=time_limit,
+        )
 
-        if selected_formulation is Formulation.BQM:
-            form_input = FormInput(
-                formulation=selected_formulation,
-                num_hospitals=num_hospitals,
-                partition_size=partition_size,
-                num_neighbors=num_neighbors,
-                dof=distance_objective_fraction,
-                solver=sampler_type,
-                time_limit=time_limit,
-            )
-        else:
-            form_input = FormInput(
-                formulation=selected_formulation,
-                num_hospitals=num_hospitals,
-                solver=sampler_type,
-                time_limit=time_limit,
-            )
+        results_dict.update({
+            "Partition Size": partition_size,
+            "Neighbors": num_neighbors,
+            "DOF": distance_objective_fraction
+        })
+    else:
+        form_input = FormInput(
+            formulation=selected_formulation,
+            num_hospitals=num_hospitals,
+            solver=sampler_type,
+            time_limit=time_limit,
+        )
 
-        folium_map = get_empty_map(hospital_df)
-        results_dict = persisted('bqm-results')
+    folium_map = get_empty_map(hospital_df)
+    result = get_results(form_input, hospital_df, folium_map)
 
-        result = get_results(form_input, hospital_df, folium_map)
+    if not result:
+        raise ValueError("Something went wrong while solving problem. Refresh and try again.")
 
-        constraints_satisfied = False
+    if not result.total_transfer:
+        return RunOptimizationReturn(warning=create_warning(["No solution found."]))
 
-        if result is None:
-            raise ValueError("Something went wrong while solving problem. Refresh and try again.")
-        elif result.total_transfer == 0:
-            warning = create_warning(["No solution found."])
-            return (
-                dash.no_update,
-                dash.no_update,
-                dash.no_update,
-                warning
-            )
-        else:
-            results_dict['Hospitals'].append(form_input.num_hospitals)
+    results_dict.update({
+        "Hospitals": num_hospitals,
+        "Solver": SAMPLER_TYPES[sampler_type],
+        "Constraints": f"{'Not' if result.error_msgs else ''} Satisfied",
+        "Transfer": str(round(result.total_transfer, 2)),
+        "Cost": str(round(result.total_cost, 2)),
+        "Energy": str(round(result.energy, 2)),
+        "Run Time": str(round(result.run_time, 2))
+    })
 
-            if selected_formulation is Formulation.BQM:
-                results_dict['Partition Size'].append(form_input.partition_size)
-                results_dict['Neighbors'].append(form_input.num_neighbors)
-                results_dict['DOF'].append(form_input.dof)
+    results_table = update_table(results_table, results_dict) if results_table else create_table(results_dict)
+    result.figure.save("solution_map.html")
 
-            results_dict['Solver'].append(SAMPLER_TYPES[sampler_type])
-
-            if result.error_msgs:
-                warning = create_warning(result.error_msgs)
-                results_dict['Constraints'].append("Not Satisfied")
-            else:
-                results_dict['Constraints'].append("Satisfied")
-
-            results_dict['Transfer'].append(str(round(result.total_transfer, 2)))
-            results_dict['Cost'].append(str(round(result.total_cost, 2)))
-            results_dict['Energy'].append(str(round(result.energy, 2)))
-            results_dict['Run Time'].append(str(round(result.run_time, 2)))
-
-            if results_dict:
-                try:
-                    results_table = update_table(results_table, results_dict) if results_table else create_table(results_dict)
-                except Exception as e:
-                    # Something wrong with cached dictionary -> reset and give warning
-                    results_dict.clear()
-                    warning = create_warning(["Something went wrong. Clear results and try again please."])
-                    print(e)
-                    return (
-                        dash.no_update,
-                        dash.no_update,
-                        dash.no_update,
-                        warning
-                    )
-
-            result.figure.save("solution_map.html")
-
-            # parameter_hash = _get_parameter_hash(**callback_context.states)
-            # if parameter_hash != previous_parameter_hash:
-            #     reset_results = True
-            # else:
-            #     reset_results = False
-
-            return (
-                open("solution_map.html", "r").read(),
-                results_table,
-                sampler_type,
-                # reset_results,
-                # str(parameter_hash),
-                # num_hospitals,
-                # num_neighbors,
-                warning
-            )
-
-    raise PreventUpdate
+    return RunOptimizationReturn(
+        solution_map=open("solution_map.html", "r").read(),
+        warning=create_warning(result.error_msgs) if result.error_msgs else [],
+        solution_table=results_table
+    )
 
 
-# def _get_parameter_hash(**states) -> str:
-#     """Calculate a hash string for parameters which reset the results tables."""
-#     # list of parameter values that will reset the results tables
-#     # when changed in the app; must be hashable
-#     items = [
-#         "vehicle-type-select.value",
-#         "num-vehicles-select.value",
-#         "num-clients-select.value",
-#         "solver-time-limit.value",
-#     ]
-#     try:
-#         return str(hash(itemgetter(*items)(states)))
-#     except TypeError as e:
-#         raise TypeError("unhashable problem parameter value") from e
-
-
-# import the html code and sets it in the app
-# creates the visual layout and app (see `dash_html.py`)
+# Imports the Dash HTML code and sets it in the app.
+# Creates the visual layout and app (see `dash_html.py`)
 set_html(app)
 
 # Run the server

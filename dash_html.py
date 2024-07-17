@@ -224,15 +224,7 @@ def set_html(app):
         id="app-container",
         children=[
             # below are any temporary storage items, e.g., for sharing data between callbacks
-            dcc.Store(id="stored-results"),  # temporarily stored results table
-            dcc.Store(id="sampler-type"),  # solver type used for latest run
-            dcc.Store(
-                id="reset-results"
-            ),  # whether to reset the results tables before displaying the latest run
-            dcc.Store(
-                id="run-in-progress", data=False
-            ),  # callback blocker to signal that the run is complete
-            dcc.Store(id="parameter-hash"),  # hash string to detect changed parameters
+            dcc.Store(id="last-formulation"),  # formulation used for latest run
             dcc.Store(id="selected-formulation"),  # The currently selected and displayed formulation
             # Banner
             html.Div(
