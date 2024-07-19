@@ -1,7 +1,6 @@
-*.pyc
 /saved_problems/
 cache
 initial_map.html
 solution_map.html
-assets/c10_theme.css
+assets/custom_00_theme.css
 *.DS_Store

@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import argparse
 from collections import defaultdict
 from pathlib import Path
 from typing import NamedTuple, Union
@@ -24,7 +25,7 @@ from dash import DiskcacheManager, ctx, ALL, MATCH
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from app_configs import APP_TITLE, DEBUG, DESCRIPTION_BQM, DESCRIPTION_CQM, MAIN_HEADER_BQM, MAIN_HEADER_CQM, THEME_COLOR, THEME_COLOR_SECONDARY
+from app_configs import APP_TITLE, DESCRIPTION_BQM, DESCRIPTION_CQM, MAIN_HEADER_BQM, MAIN_HEADER_CQM, THEME_COLOR, THEME_COLOR_SECONDARY
 from resource_distribution import FormInput, get_results
 
 from src.enums import Formulation, SamplerType
@@ -53,8 +54,24 @@ app.title = APP_TITLE
 server = app.server
 app.config.suppress_callback_exceptions = True
 
-BASE_PATH = Path(__file__).parent.resolve()
-DATA_PATH = BASE_PATH.joinpath("input").resolve()
+# Parse debug argument
+parser = argparse.ArgumentParser(description="Dash debug setting.")
+parser.add_argument(
+    "--debug",
+    action="store_true",
+    help="Add argument to see Dash debug menu and get live reload updates while developing.",
+)
+
+args = parser.parse_args()
+DEBUG = args.debug
+
+print(f"\nDebug has been set to: {DEBUG}")
+if not DEBUG:
+    print(
+        "The app will not show live code updates and the Dash debug menu will be hidden.",
+        "If editting code while the app is running, run the app with `python app.py --debug`.\n",
+        sep="\n"
+    )
 
 # Generates css file and variable using THEME_COLOR and THEME_COLOR_SECONDARY settings
 css = f"""/* Automatically generated theme settings css file, see app.py */
@@ -63,7 +80,7 @@ css = f"""/* Automatically generated theme settings css file, see app.py */
     --theme-secondary: {THEME_COLOR_SECONDARY};
 }}
 """
-with open("assets/c10_theme.css", "w") as f:
+with open("assets/custom_00_theme.css", "w") as f:
     f.write(css)
 
 
@@ -279,6 +296,7 @@ class RunOptimizationReturn(NamedTuple):
         (Output("cancel-button", "className"), "", "display-none"),
         (Output("run-button", "className"), "display-none", ""),  # Hides run button while running.
         (Output("results-tab", "disabled"), True, False),  # Disables results tab while running.
+        (Output("results-tab", "label"), "Loading...", "Results"),
         (Output("tabs", "value"), "input-tab", "input-tab"),  # Switch to input tab while running.
         (Output("warning", "className"), "display-none", ""),
     ],

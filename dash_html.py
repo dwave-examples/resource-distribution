@@ -149,23 +149,31 @@ def create_warning(
     return html.Div([html.P(warning) for warning in warnings])
 
 
-def generate_control_card() -> html.Div:
-    """This function generates the control card for the dashboard, which
-        contains the settings for selecting the scenario, model, and solver.
+def generate_settings_form() -> html.Div:
+    """This function generates settings for selecting the scenario, model, and solver.
 
     Returns:
-        html.Div: A Div containing the settings for selecting the scenario,
-            model, and solver.
+        html.Div: A Div containing the settings for selecting the scenario, model, and solver.
     """
 
     return html.Div(
-        id="control-card",
+        className="settings",
         children=[
-            html.Label("Number of Hospitals"),
-            dcc.Input(
-                id="num-hospitals",
-                type="number",
-                **NUM_HOSPITALS,
+            html.Div(
+                className="caption-wrapper",
+                children=[
+                    html.Div(
+                        [
+                            html.Label("Number of Hospitals"),
+                            dcc.Input(
+                                id="num-hospitals",
+                                type="number",
+                                **NUM_HOSPITALS,
+                            ),
+                        ]
+                    ),
+                    html.P(html.Small("The number of hospitals must be divisible by the partition size."), id="small-caption"),
+                ]
             ),
             slider(
                 "Partition Size",
@@ -173,14 +181,12 @@ def generate_control_card() -> html.Div:
                 PARTITION_SIZE,
                 0,
             ),
-            # html.Caption("The number of hospitals must be divisible by this value."),
             slider(
                 "Number of Neighbors",
                 "num-neighbors",
                 NUM_NEIGHBORS,
                 1,
             ),
-            # html.Caption("This value must be greater than or equal to the partition size and less than or equal to the number of hospitals."),
             slider(
                 "Distance Objective Fraction",
                 "distance-objective-fraction",
@@ -198,21 +204,21 @@ def generate_control_card() -> html.Div:
                 type="number",
                 **SOLVER_TIME,
             ),
-            html.Div(id="warning", className="display-none"),
-            # Run and cancel buttons to run the optimization.
-            html.Div(
-                id="button-group",
-                children=[
-                    html.Button(
-                        id="run-button", children="Run Optimization", n_clicks=0, disabled=False
-                    ),
-                    html.Button(
-                        id="cancel-button",
-                        children="Cancel Optimization",
-                        n_clicks=0,
-                        className="display-none",
-                    ),
-                ],
+        ]
+    )
+
+
+def generate_run_buttons() -> html.Div:
+    """Run and cancel buttons to run the optimization."""
+    return html.Div(
+        id="button-group",
+        children=[
+            html.Button(id="run-button", children="Run Optimization", n_clicks=0, disabled=False),
+            html.Button(
+                id="cancel-button",
+                children="Cancel Optimization",
+                n_clicks=0,
+                className="display-none",
             ),
         ],
     )
@@ -258,14 +264,10 @@ def set_html(app):
                                     html.Div(
                                         className="left-column-layer-2",  # Padding and content wrapper
                                         children=[
-                                            html.Div(
-                                                className="description-card",
-                                                children=[
-                                                    html.H1(id="header", children=[MAIN_HEADER_BQM]),
-                                                    html.P(id="description", children=[DESCRIPTION_BQM]),
-                                                ],
-                                            ),
-                                            generate_control_card(),
+                                            html.H1(id="header", children=[MAIN_HEADER_BQM]),
+                                            html.P(id="description", children=[DESCRIPTION_BQM]),
+                                            generate_settings_form(),
+                                            generate_run_buttons(),
                                         ],
                                     )
                                 ],
@@ -308,14 +310,14 @@ def set_html(app):
                                         disabled=True,
                                         children=[
                                             html.Div(
-                                                className="tab-content--results",
+                                                className="tab-content-results",
                                                 children=[
-                                                    html.H3("Solution"),
                                                     html.Table(
                                                         id="solution-table",
                                                         className="result-table",
                                                         # add children dynamically using 'create_table'
-                                                    )
+                                                    ),
+                                                    html.Div(id="warning", className="display-none"),
                                                 ]
                                             )
                                         ],

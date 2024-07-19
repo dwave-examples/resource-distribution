@@ -1,3 +1,19 @@
+/*
+Copyright 2024 D-Wave Systems Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 /* A custom base of style rules defined specifically for the demos */
 
 body {
@@ -7,7 +23,8 @@ body {
     margin: 0;
 }
 
-h1, h2, h3, h4, h5, h6, td, th, span, a, p, label, button, input {
+h1, h2, h3, h4, h5, h6, td, th,
+span, a, p, label, button, input {
     font-family: var(--font);
 }
 
@@ -17,16 +34,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
-    font-size: 3.4rem;
+    font-size: 3.2rem;
 }
 
 h2 {
-    font-size: 2.8rem;
+    font-size: 2.6rem;
 }
 
 h3 {
     font-size: 2.4rem;
-    margin: 2.5rem 0 1rem;
 }
 
 h4 {
@@ -55,11 +71,8 @@ table {
     border: 1px solid var(--grey-light);
 }
 
-td {
-    color: var(--grey-dark);
-}
-
 th, td {
+    color: var(--grey-dark);
     padding: 0.5rem 1rem;
     border-right: 1px solid var(--grey-light);
 }
@@ -83,26 +96,25 @@ input[type="radio"] {
 }
   
 #app-container {
-    min-width: 1000px;
+    min-width: 100rem;
     height: 100vh;
     display: flex;
     flex-direction: column;
 }
 
 .banner {
-    flex: 0 0 var(--banner-height);
+    height: var(--banner-height);
+    box-sizing: border-box;
     background-color: var(--theme);
+    padding: 1.4rem 2rem;
 
     display: flex;
-    flex-direction: row;
     align-items: center;
+    justify-content: space-between;
 }
 
 .banner img {
-    position: relative;
-    height: 3rem;
-    width: auto;
-    margin-left: 2rem;
+    height: 100%;
 }
 
 .columns-main {
@@ -112,6 +124,7 @@ input[type="radio"] {
 
 .left-column {
     display: flex;
+    height: calc(100vh - var(--banner-height));
 }
 
 .right-column {
@@ -120,14 +133,22 @@ input[type="radio"] {
     width: 100%;
 }
 
-.description-card {
+.settings {
     margin: 2rem 0;
 }
 
-.settings {
-    margin-bottom: 2rem;
+.radio label,
+.checklist label {
+    margin-top: 0.2rem;
+    font-weight: 400;
 }
 
+.radio--inline label:first-child,
+.checklist--inline label:first-child {
+    margin-right: 1.4rem;
+}
+
+/* The following rules are overwriting Dash styling */
 .VirtualizedSelectFocusedOption {
     background-color: var(--grey-lighter);
 }
@@ -141,13 +162,7 @@ input[type="radio"] {
     font-family: var(--font);
 }
 
-.radio label,
-.checklist label {
-    margin-top: 0.2rem;
-    font-weight: 400;
-}
-
-.radio--inline label:first-child,
-.checklist--inline label:first-child {
-    margin-right: 1.4rem;
+div.dash-sk-circle {
+    height: 6rem;
+    width: 6rem;
 }

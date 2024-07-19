@@ -1,20 +1,12 @@
 /* CSS style rules for all custom CSS. */
 
+.tab-content-results {
+    padding: 3rem;
+}
+
 div.dash-sk-circle {
     height: 6rem;
     width: 6rem;
-}
-
-.input {
-    height: 100%;
-}
-
-.tab-content--results {
-    display: block;
-}
-
-.banner {
-    justify-content: space-between;
 }
 
 .banner > div {
@@ -22,13 +14,12 @@ div.dash-sk-circle {
 }
 
 .banner button {
-    color: white;
     opacity: 0.6;
-    text-transform: uppercase;
-    font-size: 2rem;
+    font-size: 1.8rem;
     font-weight: 500;
-    padding: 1.55rem 5rem;
+    padding: 2rem 5rem;
     text-underline-offset: 0.5rem;
+    border-radius: 0;
 }
 
 .banner button.active {
