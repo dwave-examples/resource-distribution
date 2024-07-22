@@ -27,6 +27,11 @@ div.dash-sk-circle {
     background: rgba(255, 255, 255, 0.2);
 }
 
+.banner button.active:hover {
+    filter: none;
+    cursor: default;
+}
+
 #warning > div {
     border: 2px solid var(--red-light);
     border-radius: 0.4rem;
@@ -34,26 +39,51 @@ div.dash-sk-circle {
     padding: 2rem;
     color: var(--red-dark);
     margin-bottom: 1rem;
+    display: inline-block;
 }
 
 #warning p:last-child {
     margin: 0;
 }
 
-caption {
-    display: block;
-    text-align: left;
+.not_satisfied {
+    background-color: rgba(199, 0, 57, 0.15);
+    border: 1px solid var(--red-light);
+}
+
+.caption-wrapper {
+    display: flex;
+    align-items: flex-end;
+}
+
+.caption-wrapper > *:last-child {
+    margin-left: 1rem;
+}
+
+p small {
     font-size: 1.2rem;
-    color: var(--grey-medium);
+    color: var(--red-light);
+}
+
+#small-caption {
+    margin-bottom: 0;
 }
 
 #solution-map {
     border: none;
     width: 100%;
     height: 100%;
+    display: block;
 }
 
-#solver-time-limit {
-    margin-bottom: 2rem;
+#solution-map[data-dash-is-loading="true"] {
+    filter: grayscale(1);
+    opacity: 0.3;
+    transition: filter 0.1s linear, opacity 0.1s linear;
 }
 
+#run-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: none;
+}

@@ -25,11 +25,9 @@ THUMBNAIL = "static/dwave_logo.svg"
 APP_TITLE = "Resource Distribution"
 MAIN_HEADER_BQM = "BQM Resource Distribution"
 DESCRIPTION_BQM = """\
-In the BQM formulation, the goal is to divide the hospitals into groups such that the maximum 
-number of transfers is achieved at minimum cost. Transfer is quantified as the smaller 
-number between total excess and total shortage in a group of hospitals. Cost is the sum of all 
-costs associated with transferring resources from one hospital to another: In this demonstration, 
-only distance is considered as a cost. 
+The goal is to divide the hospitals into groups such that the maximum
+number of transfers is achieved at minimum cost (distance). Transfer is the smaller
+number between total excess and total shortage in a group of hospitals.
 """
 MAIN_HEADER_CQM = "CQM Resource Distribution"
 DESCRIPTION_CQM = """\
@@ -63,8 +61,8 @@ NUM_NEIGHBORS = {
 }
 
 DISTANCE_OBJECTIVE_FRACTION = {
-    "min": 0.0,
-    "max": 1.0,
+    "min": 0,
+    "max": 1,
     "step": 0.01,
     "value": 0.2,
 }

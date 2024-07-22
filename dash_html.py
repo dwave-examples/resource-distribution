@@ -95,7 +95,7 @@ def dropdown(label: str, id: str, options: list) -> html.Div:
 
 
 def create_table(
-    values_dicts: defaultdict
+    values_dicts: defaultdict, not_satisfied: bool
 ) -> list[html.Thead, html.Tbody]:
     """Create a row in the table dynamically.
 
@@ -106,14 +106,14 @@ def create_table(
 
     table = [
         html.Thead([html.Tr([html.Th(header) for header in values_dicts.keys()])]),
-        html.Tbody([html.Tr([html.Td(value) for value in values_dicts.values()])])
+        html.Tbody([html.Tr([html.Td(value) for value in values_dicts.values()], className=f"{'not_satisfied' if not_satisfied else ''}")])
     ]
 
     return table
 
 
 def update_table(
-    prev_table: list[html.Thead, html.Tbody], values_dicts: defaultdict
+    prev_table: list[html.Thead, html.Tbody], values_dicts: defaultdict, not_satisfied: bool
 ) -> list[html.Thead, html.Tbody]:
     """Create a row in the table dynamically.
 
@@ -129,7 +129,7 @@ def update_table(
         html.Tbody(
             [
                 *tbody['props']['children'],
-                html.Tr([html.Td(value) for value in values_dicts.values()])
+                html.Tr([html.Td(value) for value in values_dicts.values()], className=f"{'not_satisfied' if not_satisfied else ''}")
             ]
         )
     ]
@@ -172,7 +172,13 @@ def generate_settings_form() -> html.Div:
                             ),
                         ]
                     ),
-                    html.P(html.Small("The number of hospitals must be divisible by the partition size."), id="small-caption"),
+                    html.P(
+                        html.Small(
+                            "The number of hospitals must be divisible by the partition size."
+                        ),
+                        id="small-caption",
+                        className="display-none"
+                    ),
                 ]
             ),
             slider(

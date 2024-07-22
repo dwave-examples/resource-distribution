@@ -110,6 +110,81 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> str:
     return to_collapse_class + " collapsed" if to_collapse_class else "collapsed"
 
 
+@app.callback(
+    Output("num-hospitals", "min"),
+    inputs=[
+        Input("partition-size", "value"),
+    ],
+)
+def update_num_hospitals(partition_size: int) -> int:
+    """Ensures the number of hospitals can never be lower than the partition size.
+
+    Args:
+        partition_size: The partition size value.
+
+    Returns:
+        num-hospitals: The minimum value for the number of hospitals input.
+    """
+
+    return partition_size
+
+
+@app.callback(
+    Output("partition-size", "max"),
+    inputs=[
+        Input("num-hospitals", "value"),
+    ],
+)
+def update_partition_size(num_hospitals: int) -> int:
+    """Ensures the partition size can never be greater than the number of hospitals.
+
+    Args:
+        num_hospitals: The current value of the number of hospitals input.
+
+    Returns:
+        partition-size: The maximum value of partition size slider.
+    """
+
+    return num_hospitals
+
+
+@app.callback(
+    Output("num-neighbors", "max"),
+    Output("num-neighbors", "min"),
+    Output("num-neighbors", "marks"),
+    Output("small-caption", "className", allow_duplicate=True),
+    Output("run-button", "disabled", allow_duplicate=True),
+    inputs=[
+        Input("num-hospitals", "value"),
+        Input("partition-size", "value"),
+    ],
+)
+def update_num_neighbors(num_hospitals: int, partition_size: int) -> int:
+    """The number of neighbors must be greater than or equal to the partition
+        size and less than or equal to the number of hospitals.
+
+    Args:
+        num_hospitals: The current value of the number of hospitals input.
+        partition_size: The partition size value.
+
+    Returns:
+        num-neighbors-max: The maximum for the number of neighbors slider.
+        num-neighbors-min: The minimum for the number of neighbors slider.
+        num-neighbors-marks: The marks for the number of neighbors slider.
+        small-caption-classname: The class name for the error caption.
+        run-button-disabled: Whether the run button should be disabled.
+    """
+    is_valid = num_hospitals % partition_size == 0
+
+    return (
+        num_hospitals,
+        partition_size,
+        {partition_size: f"{partition_size}", num_hospitals: f"{num_hospitals}"},
+        "display-none" if is_valid else "",
+        False if is_valid else True,
+    )
+
+
 class UpdateSelectedFormulationReturn(NamedTuple):
     """Return type for the ``update_selected_formulation`` callback function."""
 
@@ -125,6 +200,8 @@ class UpdateSelectedFormulationReturn(NamedTuple):
     selected_tab: int = dash.no_update
     warning: list = dash.no_update
     solution_table: list = dash.no_update
+    small_caption_class: str = dash.no_update
+    run_button_disabled: bool = dash.no_update
 
 @app.callback(
     Output({"type": "formulation-option", "index": ALL}, "className"),
@@ -139,16 +216,22 @@ class UpdateSelectedFormulationReturn(NamedTuple):
     Output("tabs", "value"),
     Output("warning", "children"),
     Output("solution-table", "children"),
+    Output("small-caption", "className"),
+    Output("run-button", "disabled"),
     inputs=[
         Input({"type": "formulation-option", "index": ALL}, "n_clicks"),
         State({"type": "slider", "index": ALL}, "className"),
         State("last-formulation", "data"),
+        State("num-hospitals", "value"),
+        State("partition-size", "value"),
     ],
 )
 def update_selected_formulation(
     formulation_options: list[int],
     sliders: list[str],
-    last_formulation: int
+    last_formulation: int,
+    num_hospitals: int,
+    partition_size: int
 ) -> UpdateSelectedFormulationReturn:
     """Updates the formulation that is selected (BQM or CQM), hides/shows settings accordingly,
         and updates the navigation options to indicate the currently active formulation option.
@@ -157,6 +240,8 @@ def update_selected_formulation(
         formulation_options: A list containing the number of times each formulation option has been clicked.
         sliders: A list of the current classes on each of the sliders.
         last_formulation: The previous formulation that was selected, either BQM (``0`` or ``Formulation.BQM``) or CQM (``1`` or ``Formulation.CQM``).
+        num_hospitals: The current value of the number of hospitals input.
+        partition_size: The partition size value.
 
     Returns: A NamedTuple (UpdateSelectedFormulationReturn) containing all outputs to be used when updating the HTML
         template (in ``dash_html.py``). These are:
@@ -173,6 +258,8 @@ def update_selected_formulation(
             selected_tab (str): The tab to select.
             warning (list): The warnings to display.
             solution_table (list): The new solution table to set.
+            small_caption_class (str): The class name for the error caption.
+            run_button_disabled (bool): Whether the run button should be disabled.
     """
     nav_class_names = [""] * len(formulation_options)
 
@@ -198,6 +285,8 @@ def update_selected_formulation(
             selected_tab="input-tab",
             warning=[],
             solution_table=[],
+            small_caption_class="display-none" if num_hospitals % partition_size == 0 else "",
+            run_button_disabled=False if num_hospitals % partition_size == 0 else True,
         )
 
     # CQM was selected
@@ -215,6 +304,8 @@ def update_selected_formulation(
         selected_tab="input-tab",
         warning=[],
         solution_table=[],
+        small_caption_class="display-none",
+        run_button_disabled=False,
     )
 
 
@@ -327,7 +418,7 @@ def run_optimiation(
             (``1`` or ``SamplerType.BQM``), Tabu (``2`` or ``SamplerType.TABU``), or Simulated Annealing
             (``3`` or ``SamplerType.SIM_ANNEAL``).
         num_hospitals: The number of hospitals.
-        partition_size: The partition size.
+        partition_size: The partition size value.
         num_neighbors: The number of neighbors.
         distance_objective_fraction: The distance objective fraction.
         results_table: The html 'Solution cost' table. Used to update it dynamically.
@@ -394,14 +485,14 @@ def run_optimiation(
     results_dict.update({
         "Hospitals": num_hospitals,
         "Solver": SAMPLER_TYPES[sampler_type],
-        "Constraints": f"{'Not' if result.error_msgs else ''} Satisfied",
+        # "Constraints": f"{'Not' if result.error_msgs else ''} Satisfied",
         "Transfer": str(round(result.total_transfer, 2)),
         "Cost": str(round(result.total_cost, 2)),
         "Energy": str(round(result.energy, 2)),
         "Run Time": str(round(result.run_time, 2))
     })
 
-    results_table = update_table(results_table, results_dict) if results_table else create_table(results_dict)
+    results_table = update_table(results_table, results_dict, bool(result.error_msgs)) if results_table else create_table(results_dict, bool(result.error_msgs))
     result.figure.save("solution_map.html")
 
     return RunOptimizationReturn(
