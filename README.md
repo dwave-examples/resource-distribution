@@ -14,6 +14,8 @@ distribution across different groups.
 This demo presents two ways of formulating the problem: as a binary quadratic model (BQM)
 and as a constrained quadratic model (CQM).
 
+![home-img](static/partitioning.png)
+
 ![demo](static/demo_app.png)
 
 ## Installation
@@ -32,10 +34,16 @@ If you are cloning the repo to your local system, working in a [virtual environm
 
 Your development environment should be configured to [access Leap’s Solvers](https://docs.ocean.dwavesys.com/en/stable/overview/sapi.html). You can see information about supported IDEs and authorizing access to your Leap account [here](https://docs.dwavesys.com/docs/latest/doc_leap_dev_env.html).
 
-To run the demo:
+Run the following terminal command to start the Dash app:
 
 ```bash
 python app.py
+```
+
+If you plan on editing any files while the app is running, please run the app with the `--debug` command-line argument for live reloads and easier debugging:
+
+```bash
+python app.py --debug
 ```
 
 Access the user interface with your browser at http://127.0.0.1:8050/.
@@ -43,6 +51,8 @@ Access the user interface with your browser at http://127.0.0.1:8050/.
 The demo program opens an interface where you can configure problems and submit these problems to a solver.
 
 Configuration options can be found in the [app_configs.py](app_configs.py) file.
+
+![home-img](static/partition_with_distance.png)
 
 ## Problem Formulation
 
@@ -123,7 +133,8 @@ Let's start with our constraints.
 
 **Constraint 1: Each hospital must be assigned to exactly one group**
 
-$\sum_{g} x_{i,g} = 1$, for each hospital $i$.
+$\sum_{g} x_{i,g} = 1$, for each hospital $i$
+
 ```
 for i in hospitals:
     cqm.add_discrete([(i, g) for g in range(num_groups)])

@@ -29,8 +29,8 @@ from neal import SimulatedAnnealingSampler
 from src.enums import Formulation, SamplerType
 from tabu import TabuSampler
 
-from solve_lp import lp_problem, distance_matrix_haversine
-from utils import check_feasibility, add_result_markers, get_transfer, get_cost
+from src.solve_lp import lp_problem, distance_matrix_haversine
+from src.utils import check_feasibility, add_result_markers, get_transfer, get_cost
 
 form_fields = ['formulation', 'num_hospitals', 'partition_size', 'num_neighbors', 'dof', 'solver',
                'time_limit']
@@ -401,7 +401,6 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
     total_cost = 0
     total_transfer = 0
 
-    assigned_hospitals = []
     for group in groups:
         total_cost += group.cost
         total_transfer += group.transfer

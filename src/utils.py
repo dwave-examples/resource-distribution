@@ -21,10 +21,10 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import ConvexHull
 
-from solve_lp import haversine
+from src.solve_lp import haversine
 
 
-def us_hospitals(num_hospitals: int) -> pd.DataFrame:
+def generate_hospital_dataframe(num_hospitals: int) -> pd.DataFrame:
     """Loads the hospitals dataset and assigns random values of resource shortage/surplus 
     proportional to hospital size.
 

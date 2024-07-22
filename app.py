@@ -26,10 +26,10 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from app_configs import APP_TITLE, DESCRIPTION_BQM, DESCRIPTION_CQM, MAIN_HEADER_BQM, MAIN_HEADER_CQM, THEME_COLOR, THEME_COLOR_SECONDARY
-from resource_distribution import FormInput, get_results
+from src.resource_distribution import FormInput, get_results
 
 from src.enums import Formulation, SamplerType
-from utils import us_hospitals, get_empty_map
+from src.utils import generate_hospital_dataframe, get_empty_map
 
 from dash_html import SAMPLER_OPTIONS_ALL, SAMPLER_TYPES, create_table, update_table, create_warning, set_html
 
@@ -334,7 +334,7 @@ def render_initial_map(num_hospitals: int, _) -> str:
     # only regenerate map if num_hospitals is changed (i.e., if run buttons is NOT clicked)
     if ctx.triggered_id != "run-button" or not map_path.exists():
         # Generate hospital data
-        hospital_df = us_hospitals(num_hospitals)
+        hospital_df = generate_hospital_dataframe(num_hospitals)
 
         # Initialize map
         initial_map = get_empty_map(hospital_df)
@@ -446,7 +446,7 @@ def run_optimiation(
         if validate_warnings:
             return RunOptimizationReturn(warning=create_warning(validate_warnings))
 
-    hospital_df = us_hospitals(num_hospitals)  # Generate hospital data
+    hospital_df = generate_hospital_dataframe(num_hospitals)  # Generate hospital data
     results_dict = defaultdict(list)
 
     if selected_formulation is Formulation.BQM:
