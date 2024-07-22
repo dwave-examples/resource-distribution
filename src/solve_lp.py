@@ -93,11 +93,8 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
     index_surplus = signed_shortage > 0
     index_shortage = signed_shortage < 0
 
-    try:
-        location_surplus = points[index_surplus]
-        location_shortage = points[index_shortage]
-    except:
-        a = 2
+    location_surplus = points[index_surplus]
+    location_shortage = points[index_shortage]
 
     surplus = signed_shortage[index_surplus]
     shortage = signed_shortage[index_shortage]

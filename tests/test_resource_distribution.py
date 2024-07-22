@@ -15,18 +15,22 @@
 import os
 import unittest
 
-from resource_distribution import get_results, FormInput
-from utils import us_hospitals, get_empty_map
+from src.enums import SamplerType
+from src.resource_distribution import get_results, FormInput
+from src.utils import generate_hospital_dataframe, get_empty_map
 
 class TestResourceDistribution(unittest.TestCase):
     def test_get_results(self):
-        form = FormInput(num_hospitals=6, 
-                         partition_size=2, 
-                         num_neighbors=4, 
-                         dof=0.2, 
-                         solver="Simulated Annealing",
-                         time_limit=15)
-        hospital_df = us_hospitals(form.num_hospitals)
+        form = FormInput(
+            num_hospitals=6,
+            partition_size=2,
+            num_neighbors=4,
+            dof=0.2,
+            solver=SamplerType.SIM_ANNEAL,
+            time_limit=15,
+        )
+
+        hospital_df = generate_hospital_dataframe(form.num_hospitals)
         folium_map = get_empty_map(hospital_df)
         result = get_results(form, hospital_df, folium_map)
 
@@ -39,10 +43,6 @@ class TestResourceDistribution(unittest.TestCase):
         self.assertIn("Polygon", output)   # Checking result markers
 
         # Check that problem file was created
-        problem_file = "saved_problems/main_problem_{}_{}_{}_{:.2f}".format(form.partition_size, 
-                                                                            form.num_hospitals, 
-                                                                            form.num_neighbors, 
-                                                                            form.dof)
-
+        problem_file = f"saved_problems/main_problem_{form.partition_size}_{form.num_hospitals}_{form.num_neighbors}_{form.dof:.2f}"
         self.assertTrue(os.path.isfile(problem_file))
         os.remove(problem_file)
