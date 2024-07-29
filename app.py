@@ -32,13 +32,13 @@ from src.resource_distribution import FormInput, get_results
 from src.enums import Formulation, SamplerType
 from src.utils import generate_hospital_dataframe, get_empty_map
 
-from dash_html import SAMPLER_OPTIONS_ALL, SAMPLER_TYPES, update_table, set_html
+from dash_html import SAMPLER_OPTIONS_ALL, SAMPLER_TYPES, generate_table, set_html
 
 cache = diskcache.Cache("./cache")
 background_callback_manager = DiskcacheManager(cache)
 
 # Fix for Dash background callbacks crashing on macOS 10.13+ (https://bugs.python.org/issue33725)
-# See https://github.com/dwave-examples/template for more details.
+# See https://github.com/dwave-examples/template-dash for more details.
 import multiprocess
 
 if multiprocess.get_start_method(allow_none=True) is None:
@@ -165,6 +165,8 @@ def update_num_neighbors(num_hospitals: int, partition_size: int) -> int:
     """The number of neighbors must be greater than or equal to the partition
         size and less than or equal to the number of hospitals.
 
+        Also checks whether the partition size is a factor of num hospitals and shows a warning if not.
+
     Args:
         num_hospitals: The current value of the number of hospitals input.
         partition_size: The partition size value.
@@ -183,7 +185,7 @@ def update_num_neighbors(num_hospitals: int, partition_size: int) -> int:
         partition_size,
         {partition_size: f"{partition_size}", num_hospitals: f"{num_hospitals}"},
         "display-none" if is_valid else "",
-        False if is_valid else True,
+        not is_valid,
     )
 
 
@@ -198,8 +200,8 @@ class UpdateSelectedFormulationReturn(NamedTuple):
     last_formulation: int = dash.no_update
     sampler_select_options: list = dash.no_update
     sampler_select_value: int = dash.no_update
-    results_tab_disabled: int = dash.no_update
-    selected_tab: int = dash.no_update
+    results_tab_disabled: bool = dash.no_update
+    selected_tab: str = dash.no_update
     solution_table: list = dash.no_update
     small_caption_class: str = dash.no_update
     run_button_disabled: bool = dash.no_update
@@ -269,10 +271,11 @@ def update_selected_formulation(
     if ctx.triggered_id and last_formulation == ctx.triggered_id["index"]:
         raise PreventUpdate
 
-    # Either first run or BQM was selected
+    # Either first load or BQM was selected
     if not ctx.triggered_id or ctx.triggered_id["index"] is Formulation.BQM.value:
         nav_class_names[Formulation.BQM.value] = "active"
         sampler_options_bqm = [option for option in SAMPLER_OPTIONS_ALL if option["value"] is not SamplerType.CQM.value]
+        is_valid = num_hospitals % partition_size == 0
 
         return UpdateSelectedFormulationReturn(
             formulation_options_class=nav_class_names,
@@ -286,8 +289,8 @@ def update_selected_formulation(
             results_tab_disabled=True,
             selected_tab="input-tab",
             solution_table=[],
-            small_caption_class="display-none" if num_hospitals % partition_size == 0 else "",
-            run_button_disabled=False if num_hospitals % partition_size == 0 else True,
+            small_caption_class="display-none" if is_valid else "",
+            run_button_disabled=not is_valid,
             results_table_store={},
         )
 
@@ -333,7 +336,7 @@ def render_initial_map(num_hospitals: int, _) -> str:
     """
     map_path = Path("initial_map.html")
 
-    # only regenerate map if num_hospitals is changed (i.e., if run buttons is NOT clicked)
+    # Only regenerate map if run buttons is NOT clicked (ie num_hospitals has been changed or first load)
     if ctx.triggered_id != "run-button" or not map_path.exists():
         # Generate hospital data
         hospital_df = generate_hospital_dataframe(num_hospitals)
@@ -385,7 +388,7 @@ def run_optimiation(
     num_hospitals: int,
     partition_size: int,
     num_neighbors: int,
-    distance_objective_fraction: int,
+    distance_objective_fraction: float,
     selected_formulation: Union[Formulation, int],
     results_table_store: dict,
 ) -> RunOptimizationReturn:
@@ -480,7 +483,7 @@ def run_optimiation(
 
     return RunOptimizationReturn(
         solution_map=open("solution_map.html", "r").read(),
-        solution_table=update_table(results_table_store),
+        solution_table=generate_table(results_table_store),
         results_table_store=results_table_store,
     )
 

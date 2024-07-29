@@ -96,10 +96,10 @@ def dropdown(label: str, id: str, options: list) -> html.Div:
     )
 
 
-def update_table(
+def generate_table(
     results_dict: defaultdict
 ) -> list[html.Thead, html.Tbody]:
-    """Create table dynamically.
+    """Generates solution table.
 
     Args:
         results_dict: Dictionary of lists of results values from all previous runs.
@@ -108,7 +108,7 @@ def update_table(
     dict_vals = [val for key, val in results_dict.items() if key != "Error"]
     error_msg = results_dict["Error"]
 
-    table = [
+    return [
         html.Thead([
             html.Tr([
                 html.Th("Run"),
@@ -137,8 +137,6 @@ def update_table(
             ) for i in range(len(dict_vals[0]))
         ])
     ]
-
-    return table
 
 
 def generate_settings_form() -> html.Div:
@@ -292,7 +290,7 @@ def set_html(app):
                                     dcc.Tab(
                                         label="Map",
                                         id="input-tab",
-                                        value="input-tab",  # used for switching to programatically
+                                        value="input-tab",  # used for switching tabs programatically
                                         className="tab",
                                         children=[
                                             dcc.Loading(
