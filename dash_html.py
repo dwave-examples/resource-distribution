@@ -18,6 +18,8 @@ from collections import defaultdict
 import html
 
 from dash import dcc, html
+import dash_bootstrap_components as dbc
+
 
 from app_configs import DESCRIPTION_BQM, DISTANCE_OBJECTIVE_FRACTION, MAIN_HEADER_BQM, NUM_HOSPITALS, NUM_NEIGHBORS, PARTITION_SIZE, SOLVER_TIME, THEME_COLOR_SECONDARY, THUMBNAIL
 from src.enums import Formulation, SamplerType
@@ -94,59 +96,49 @@ def dropdown(label: str, id: str, options: list) -> html.Div:
     )
 
 
-def create_table(
-    values_dicts: defaultdict, not_satisfied: bool
-) -> list[html.Thead, html.Tbody]:
-    """Create a row in the table dynamically.
-
-    Args:
-        values_dicts: List of dictionaries with vehicle number as results data as values.
-        values_tot: List of total results data (sum of individual vehicle data).
-    """
-
-    table = [
-        html.Thead([html.Tr([html.Th(header) for header in values_dicts.keys()])]),
-        html.Tbody([html.Tr([html.Td(value) for value in values_dicts.values()], className=f"{'not_satisfied' if not_satisfied else ''}")])
-    ]
-
-    return table
-
-
 def update_table(
-    prev_table: list[html.Thead, html.Tbody], values_dicts: defaultdict, not_satisfied: bool
+    results_dict: defaultdict
 ) -> list[html.Thead, html.Tbody]:
-    """Create a row in the table dynamically.
+    """Create table dynamically.
 
     Args:
-        values_dicts: List of dictionaries with vehicle number as results data as values.
-        values_tot: List of total results data (sum of individual vehicle data).
+        results_dict: Dictionary of lists of results values from all previous runs.
     """
 
-    thead, tbody = prev_table
+    dict_vals = [val for key, val in results_dict.items() if key != "Error"]
+    error_msg = results_dict["Error"]
 
     table = [
-        thead,
-        html.Tbody(
-            [
-                *tbody['props']['children'],
-                html.Tr([html.Td(value) for value in values_dicts.values()], className=f"{'not_satisfied' if not_satisfied else ''}")
-            ]
-        )
+        html.Thead([
+            html.Tr([
+                html.Th("Run"),
+                *[html.Th(header) for header in results_dict.keys() if header != "Error"],
+                html.Th()
+            ])
+        ]),
+        html.Tbody([
+            html.Tr(
+                [
+                    html.Td(i+1),
+                    *[html.Td(value[i]) for value in dict_vals],
+                    html.Td(
+                        [
+                            html.Div("ⓘ"),
+                            dbc.Tooltip(
+                                [html.Span(error_msg[i])],
+                                target=f"tooltip-{i}",
+                                class_name="table-tooltip"
+                            )
+                        ],
+                        id=f"tooltip-{i}"
+                    ) if error_msg[i] else html.Td()
+                ],
+                className="not_satisfied" if error_msg[i] else ""
+            ) for i in range(len(dict_vals[0]))
+        ])
     ]
 
     return table
-
-
-def create_warning(
-    warnings: list[str]
-) -> html.Div:
-    """Outputs a div containing a list of warnings
-
-    Args:
-        warnings: A list of warning strings
-    """
-
-    return html.Div([html.P(warning) for warning in warnings])
 
 
 def generate_settings_form() -> html.Div:
@@ -238,6 +230,7 @@ def set_html(app):
             # below are any temporary storage items, e.g., for sharing data between callbacks
             dcc.Store(id="last-formulation"),  # formulation used for latest run
             dcc.Store(id="selected-formulation"),  # The currently selected and displayed formulation
+            dcc.Store(id="results-table-store"),  # Results dict to update the results table
             # Banner
             html.Div(
                 className="banner",
@@ -306,7 +299,7 @@ def set_html(app):
                                                 parent_className="input",
                                                 type="circle",
                                                 color=THEME_COLOR_SECONDARY,
-                                                children=html.Iframe(id="solution-map")
+                                                children=html.Iframe(id="map")
                                             ),],
                                     ),
                                     dcc.Tab(
@@ -323,7 +316,6 @@ def set_html(app):
                                                         className="result-table",
                                                         # add children dynamically using 'create_table'
                                                     ),
-                                                    html.Div(id="warning", className="display-none"),
                                                 ]
                                             )
                                         ],

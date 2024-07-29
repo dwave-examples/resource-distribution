@@ -4,6 +4,8 @@
 
 # Resource Distribution
 
+![demo](static/demo_app.png)
+
 The Covid-19 pandemic has resulted in millions of people being infected and 
 has overwhelmed health systems. Many hospitals are facing a critical shortage of 
 essential resources such as invasive ventilators, ICU beds, and personal protective gear. 
@@ -15,8 +17,6 @@ This demo presents two ways of formulating the problem: as a binary quadratic mo
 and as a constrained quadratic model (CQM).
 
 ![home-img](static/partitioning.png)
-
-![demo](static/demo_app.png)
 
 ## Installation
 
@@ -32,7 +32,7 @@ If you are cloning the repo to your local system, working in a [virtual environm
 
 ## Usage
 
-Your development environment should be configured to [access Leap’s Solvers](https://docs.ocean.dwavesys.com/en/stable/overview/sapi.html). You can see information about supported IDEs and authorizing access to your Leap account [here](https://docs.dwavesys.com/docs/latest/doc_leap_dev_env.html).
+Your development environment should be configured to access the [Leap&#8482; Quantum Cloud Service](https://docs.ocean.dwavesys.com/en/stable/overview/sapi.html). You can see information about supported IDEs and authorizing access to your Leap account [here](https://docs.dwavesys.com/docs/latest/doc_leap_dev_env.html).
 
 Run the following terminal command to start the Dash app:
 
@@ -52,7 +52,6 @@ The demo program opens an interface where you can configure problems and submit 
 
 Configuration options can be found in the [app_configs.py](app_configs.py) file.
 
-![home-img](static/partition_with_distance.png)
 
 ## Problem Formulation
 
@@ -64,6 +63,8 @@ number between total excess and total shortage in a group of hospitals. Cost is 
 costs associated with transferring resources from one hospital to another: In this demonstration,
 only distance is considered as a cost.
 
+![home-img](static/partition_with_distance.png)
+
 #### Utility Function
 
 Before formulating the BQM, a utility function must be defined.
@@ -74,7 +75,7 @@ are positive and $u_n = (a_5, ..., a_8)$ are negative.
 
 The maximum transfer is equal to
 
-$t = \min\left(\sum_{i \in u_p} a_i, -\sum_{i \in u_n} a_i\right)$
+$$t = \min\left(\sum_{i \in u_p} a_i, -\sum_{i \in u_n} a_i\right)$$
 
 
 For example, if there are fewer hospitals with a positive $a_i$ (excess), maximum transfer is equal 
@@ -85,11 +86,11 @@ hospitals. Transfers occur only between members of $u_p$ and $u_n$.
 
 So the maximum cost is:
 
-$c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,j}$
+$$c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,j}$$
 
 Finally, we can define utility as a balance between cost and transfer.
 
-$U[u] = (1 - \alpha) t - \alpha c$
+$$U[u] = (1 - \alpha) t - \alpha c$$
 
 #### Formulation
 
@@ -99,12 +100,12 @@ centers to k groups [1].
 
 First, we define the set of partitions of size $n/k$ as
 
-$\mathcal{V} = \left\{ u: \forall ~ u \subset S ~\land ~|u| = \frac{n}{k} \right\}$
+$$\mathcal{V} = \left\{ u: \forall ~ u \subset S ~\land ~|u| = \frac{n}{k} \right\}$$
 
 We can define the set of edges as a pair of nodes that share elements (this is the complement
 set of the original as defined in [1]).
 
-$\mathcal{E} = \left\{ (u, v): \forall ~ u,v \in \mathcal{V} ~\land ~~ u \cap v \neq \{\} \right\}$
+$$\mathcal{E} = \left\{ (u, v): \forall ~ u,v \in \mathcal{V} ~\land ~~ u \cap v \neq \{\} \right\}$$
 
 Because the nodes in $\mathcal{E}$ are derived from partitions of size $n/k$, there can be
 no clique larger than $k$. Therefore, all we need to do is to solve the weighted
@@ -112,7 +113,7 @@ maximum-independent-set problem with weights equal to the utility function and s
 factor. If the utility function is defined as $U: \mathcal{V} \rightarrow R$, we can write the
 objective function as,
 
-$H = - \sum_u (U_u + R)~ x_u + \lambda \sum_{u, n \in \mathcal{E}} x_u x_u$
+$$H = - \sum_u (U_u + R)~ x_u + \lambda \sum_{u, n \in \mathcal{E}} x_u x_u$$
 
 where, $x_u$ is a binary variable that decides if the group $u$ is selected.
 
@@ -133,7 +134,7 @@ Let's start with our constraints.
 
 **Constraint 1: Each hospital must be assigned to exactly one group**
 
-$\sum_{g} x_{i,g} = 1$, for each hospital $i$
+$$\sum_{g} x_{i,g} = 1\text{, for each hospital }i$$
 
 ```
 for i in hospitals:
@@ -142,7 +143,7 @@ for i in hospitals:
 
 **Constraint 2: Each group must have a net positive number of beds**
 
-$\sum_{i} a_{i} x_{i,g} >= 0$, for each group $g$, where $a_{i}$ refers to the number of beds that hospital $i$ has.
+$$\sum_{i} a_{i} x_{i,g} >= 0\text{, for each group }g\text{,}\\\text{where }a_{i} \text{ is the number of beds that hospital }i\text{ has.}$$
 
 ```
 for g in range(num_groups):
@@ -158,7 +159,7 @@ Given that $u_p$ are hospitals with a positive number of beds (surplus), $u_n$ a
 with a negative number of beds (shortage), and $d_{i,j}$ is the distance between hospital $i$
 and hospital $j$, the cost can be defined as:
 
-$c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,g} x_{j,g}$, for each group $g$
+$$c = \sum_{i \in u_p, j \in u_n} d_{i,j} x_{i,g} x_{j,g}\text{, for each group }g$$
 
 ```
 objective = 0

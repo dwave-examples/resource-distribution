@@ -21,6 +21,7 @@ from typing import NamedTuple, Union
 
 import dash
 import diskcache
+import dash_bootstrap_components as dbc
 from dash import DiskcacheManager, ctx, ALL, MATCH
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -31,7 +32,7 @@ from src.resource_distribution import FormInput, get_results
 from src.enums import Formulation, SamplerType
 from src.utils import generate_hospital_dataframe, get_empty_map
 
-from dash_html import SAMPLER_OPTIONS_ALL, SAMPLER_TYPES, create_table, update_table, create_warning, set_html
+from dash_html import SAMPLER_OPTIONS_ALL, SAMPLER_TYPES, update_table, set_html
 
 cache = diskcache.Cache("./cache")
 background_callback_manager = DiskcacheManager(cache)
@@ -48,6 +49,7 @@ app = dash.Dash(
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     prevent_initial_callbacks="initial_duplicate",
     background_callback_manager=background_callback_manager,
+    external_stylesheets=[dbc.themes.BOOTSTRAP]
 )
 app.title = APP_TITLE
 
@@ -198,10 +200,10 @@ class UpdateSelectedFormulationReturn(NamedTuple):
     sampler_select_value: int = dash.no_update
     results_tab_disabled: int = dash.no_update
     selected_tab: int = dash.no_update
-    warning: list = dash.no_update
     solution_table: list = dash.no_update
     small_caption_class: str = dash.no_update
     run_button_disabled: bool = dash.no_update
+    results_table_store: dict = dash.no_update
 
 @app.callback(
     Output({"type": "formulation-option", "index": ALL}, "className"),
@@ -214,10 +216,10 @@ class UpdateSelectedFormulationReturn(NamedTuple):
     Output("sampler-type-select", "value"),
     Output("results-tab", "disabled"),
     Output("tabs", "value"),
-    Output("warning", "children"),
     Output("solution-table", "children"),
     Output("small-caption", "className"),
     Output("run-button", "disabled"),
+    Output("results-table-store", "data"),
     inputs=[
         Input({"type": "formulation-option", "index": ALL}, "n_clicks"),
         State({"type": "slider", "index": ALL}, "className"),
@@ -256,10 +258,10 @@ def update_selected_formulation(
             sampler_select_value (int): The new value of the sampler select dropdown.
             results_tab_disabled (bool): Whether the results tab should be disabled.
             selected_tab (str): The tab to select.
-            warning (list): The warnings to display.
             solution_table (list): The new solution table to set.
             small_caption_class (str): The class name for the error caption.
             run_button_disabled (bool): Whether the run button should be disabled.
+            results_table_store (dict): Dict of lists of results for each run.
     """
     nav_class_names = [""] * len(formulation_options)
 
@@ -283,10 +285,10 @@ def update_selected_formulation(
             sampler_select_value=sampler_options_bqm[0]["value"],
             results_tab_disabled=True,
             selected_tab="input-tab",
-            warning=[],
             solution_table=[],
             small_caption_class="display-none" if num_hospitals % partition_size == 0 else "",
             run_button_disabled=False if num_hospitals % partition_size == 0 else True,
+            results_table_store={},
         )
 
     # CQM was selected
@@ -302,15 +304,15 @@ def update_selected_formulation(
         sampler_select_value=SAMPLER_OPTIONS_ALL[0]["value"],
         results_tab_disabled=True,
         selected_tab="input-tab",
-        warning=[],
         solution_table=[],
         small_caption_class="display-none",
         run_button_disabled=False,
+        results_table_store={},
     )
 
 
 @app.callback(
-    Output("solution-map", "srcDoc", allow_duplicate=True),
+    Output("map", "srcDoc", allow_duplicate=True),
     inputs=[
         Input("num-hospitals", "value"),
         Input("run-button", "n_clicks"),
@@ -343,34 +345,17 @@ def render_initial_map(num_hospitals: int, _) -> str:
     return open(map_path, "r").read()
 
 
-def validate_input(num_hospitals: int, partition_size: int, num_neighbors: int) -> list[str]:
-    """Validate form input from user."""
-
-    warnings = []
-
-    if num_hospitals <= partition_size:
-        warnings.append("The number of hospitals must be greater than the partition size.")
-    if num_hospitals % partition_size != 0:
-        warnings.append("The number of hospitals must be divisible by the partition size.")
-    if num_neighbors < partition_size:
-        warnings.append("The number of neighbors must be greater than or equal to the partition size.")
-    if num_neighbors > num_hospitals:
-        warnings.append("The number of neighbors must be less than or equal to the number of hospitals.")
-
-    return warnings
-
-
 class RunOptimizationReturn(NamedTuple):
     """Return type for the ``run_optimization`` callback function."""
     solution_map: str = dash.no_update
-    warning: dash.html.Div = dash.no_update
     solution_table: str = dash.no_update
+    results_table_store: defaultdict = dash.no_update
 
 @app.long_callback(
     # update map and results
-    Output("solution-map", "srcDoc", allow_duplicate=True),
-    Output("warning", "children", allow_duplicate=True),
+    Output("map", "srcDoc", allow_duplicate=True),
     Output("solution-table", "children", allow_duplicate=True),
+    Output("results-table-store", "data", allow_duplicate=True),
     inputs=[
         Input("run-button", "n_clicks"),
         State("sampler-type-select", "value"),
@@ -379,8 +364,8 @@ class RunOptimizationReturn(NamedTuple):
         State("partition-size", "value"),
         State("num-neighbors", "value"),
         State("distance-objective-fraction", "value"),
-        State("solution-table", "children"),
         State("selected-formulation", "data"),
+        State("results-table-store", "data"),
     ],
     running=[
          # Shows cancel button while running.
@@ -389,7 +374,6 @@ class RunOptimizationReturn(NamedTuple):
         (Output("results-tab", "disabled"), True, False),  # Disables results tab while running.
         (Output("results-tab", "label"), "Loading...", "Results"),
         (Output("tabs", "value"), "input-tab", "input-tab"),  # Switch to input tab while running.
-        (Output("warning", "className"), "display-none", ""),
     ],
     cancel=[Input("cancel-button", "n_clicks")],
     prevent_initial_call=True,
@@ -402,8 +386,8 @@ def run_optimiation(
     partition_size: int,
     num_neighbors: int,
     distance_objective_fraction: int,
-    results_table: list,
     selected_formulation: Union[Formulation, int],
+    results_table_store: dict,
 ) -> RunOptimizationReturn:
     """Runs the optimization and updates UI accordingly.
 
@@ -417,20 +401,21 @@ def run_optimiation(
         sampler_type: Either Quantum Hybrid (CQM) (``0`` or ``SamplerType.CQM``), Quantum Hybrid (BQM)
             (``1`` or ``SamplerType.BQM``), Tabu (``2`` or ``SamplerType.TABU``), or Simulated Annealing
             (``3`` or ``SamplerType.SIM_ANNEAL``).
+        solver_time_limit: The solver time limit.
         num_hospitals: The number of hospitals.
         partition_size: The partition size value.
         num_neighbors: The number of neighbors.
         distance_objective_fraction: The distance objective fraction.
-        results_table: The html 'Solution cost' table. Used to update it dynamically.
         selected_formulation: Either BQM (``0`` or ``Formulation.BQM``) or CQM (``1`` or ``Formulation.CQM``).
+        results_table_store: Dict of lists of results for each run.
 
     Returns:
         A NamedTuple (RunOptimizationReturn) containing all outputs to be used when updating the HTML
         template (in ``dash_html.py``). These are:
 
-            solution-map (str): Updates the 'srcDoc' entry for the 'solution-map' Iframe in the map tab.
-            warning (dash.html.Div): The warnings to display.
+            map (str): Updates the 'srcDoc' entry for the 'map' Iframe in the map tab.
             solution_table (list): The new solution table to set.
+            results_table_store (defaultdict[list]): Dict of lists of results for each run.
     """
     if run_click == 0 or ctx.triggered_id != "run-button":
         raise PreventUpdate
@@ -441,13 +426,13 @@ def run_optimiation(
     if isinstance(selected_formulation, int):
         selected_formulation = Formulation(selected_formulation)
 
-    if selected_formulation is Formulation.BQM:
-        validate_warnings = validate_input(num_hospitals, partition_size, num_neighbors)
-        if validate_warnings:
-            return RunOptimizationReturn(warning=create_warning(validate_warnings))
-
     hospital_df = generate_hospital_dataframe(num_hospitals)  # Generate hospital data
-    results_dict = defaultdict(list)
+
+    if not results_table_store:
+        results_table_store = defaultdict(list)
+
+    results_table_store["Solver"].append(SAMPLER_TYPES[sampler_type])
+    results_table_store["Hospitals"].append(num_hospitals)
 
     if selected_formulation is Formulation.BQM:
         form_input = FormInput(
@@ -460,11 +445,9 @@ def run_optimiation(
             time_limit=time_limit,
         )
 
-        results_dict.update({
-            "Partition Size": partition_size,
-            "Neighbors": num_neighbors,
-            "DOF": distance_objective_fraction
-        })
+        results_table_store["Partition"].append(partition_size)
+        results_table_store["Neighbors"].append(num_neighbors)
+        results_table_store["DOF"].append(distance_objective_fraction)
     else:
         form_input = FormInput(
             formulation=selected_formulation,
@@ -480,25 +463,25 @@ def run_optimiation(
         raise ValueError("Something went wrong while solving problem. Refresh and try again.")
 
     if not result.total_transfer:
-        return RunOptimizationReturn(warning=create_warning(["No solution found."]))
+        results_table_store["Transfer"].append("---")
+        results_table_store["Cost"].append("---")
+        results_table_store["Energy"].append("---")
+        results_table_store["Run Time"].append("---")
+        results_table_store["Error"].append("No solution found")
+        return RunOptimizationReturn(results_table_store=results_table_store)
 
-    results_dict.update({
-        "Hospitals": num_hospitals,
-        "Solver": SAMPLER_TYPES[sampler_type],
-        # "Constraints": f"{'Not' if result.error_msgs else ''} Satisfied",
-        "Transfer": str(round(result.total_transfer, 2)),
-        "Cost": str(round(result.total_cost, 2)),
-        "Energy": str(round(result.energy, 2)),
-        "Run Time": str(round(result.run_time, 2))
-    })
+    results_table_store["Transfer"].append(str(round(result.total_transfer, 2)))
+    results_table_store["Cost"].append(str(round(result.total_cost, 2)))
+    results_table_store["Energy"].append(str(round(result.energy, 2)))
+    results_table_store["Run Time"].append(str(round(result.run_time, 2)))
+    results_table_store["Error"].append(result.error_msgs)
 
-    results_table = update_table(results_table, results_dict, bool(result.error_msgs)) if results_table else create_table(results_dict, bool(result.error_msgs))
     result.figure.save("solution_map.html")
 
     return RunOptimizationReturn(
         solution_map=open("solution_map.html", "r").read(),
-        warning=create_warning(result.error_msgs) if result.error_msgs else [],
-        solution_table=results_table
+        solution_table=update_table(results_table_store),
+        results_table_store=results_table_store,
     )
 
 
