@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import math
+import unittest
+
 import numpy as np
 
 from src.solve_lp import distance_matrix_haversine, haversine, lp_problem
@@ -26,7 +27,6 @@ class TestSolveLp(unittest.TestCase):
         dist = haversine(point_1, point_2)
         self.assertEqual(dist, math.pi * 6371)
 
-
     def test_distance_matrix_haversine(self):
         X = np.array([[180, 0], [360, 0]])
         D = distance_matrix_haversine(X)
@@ -34,7 +34,6 @@ class TestSolveLp(unittest.TestCase):
         self.assertEqual(D.shape, X.shape)
         self.assertTrue(np.array_equal(D, D.T))
         self.assertAlmostEqual(D[0][1], np.sqrt(math.pi * 6371), places=3)
-
 
     def test_lp_problem(self):
         points = np.array([(180, 0), (360, 0)])

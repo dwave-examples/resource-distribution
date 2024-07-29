@@ -13,13 +13,20 @@
 # limitations under the License.
 
 import unittest
-import folium
 
+import folium
 import numpy as np
 import pandas as pd
 
 from src.resource_distribution import HospitalGroup
-from src.utils import check_feasibility, generate_hospital_dataframe, get_cost, get_empty_map, get_transfer
+from src.utils import (
+    check_feasibility,
+    generate_hospital_dataframe,
+    get_cost,
+    get_empty_map,
+    get_transfer,
+)
+
 
 class TestUtils(unittest.TestCase):
     def test_generate_hospital_dataframe(self):
@@ -29,14 +36,12 @@ class TestUtils(unittest.TestCase):
         self.assertIsInstance(hospital_df, pd.DataFrame)
         self.assertEqual(len(hospital_df), num_hospitals)
 
-
     def test_get_empty_map(self):
-        hospital_df = pd.read_csv('hospitals_processed.csv')
-        hospital_df['excess_beds'] = 0
+        hospital_df = pd.read_csv("hospitals_processed.csv")
+        hospital_df["excess_beds"] = 0
         folium_map = get_empty_map(hospital_df)
 
         self.assertIsInstance(folium_map, folium.Map)
-
 
     def test_get_cost(self):
         dist = 5
@@ -44,20 +49,18 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(cost, dist)
 
-
     def test_get_transfer(self):
         excess_beds = np.array([[1, 2], [-2, -1]])
         cost = get_transfer(excess_beds)
 
         self.assertEqual(cost, 3)
 
-
     def test_check_feasibility(self):
-        hospital_df = pd.read_csv('hospitals_processed.csv')
-        hospital_df['excess_beds'] = 0
+        hospital_df = pd.read_csv("hospitals_processed.csv")
+        hospital_df["excess_beds"] = 0
         num_hospitals = 2
         distances = dict(
-            ((hospital_df['name'][i], hospital_df['name'][j]), 1)
+            ((hospital_df["name"][i], hospital_df["name"][j]), 1)
             for i in range(num_hospitals)
             for j in range(num_hospitals)
         )

@@ -20,19 +20,25 @@ from pathlib import Path
 from typing import NamedTuple, Union
 
 import dash
-import diskcache
 import dash_bootstrap_components as dbc
-from dash import DiskcacheManager, ctx, ALL, MATCH
+import diskcache
+from dash import ALL, MATCH, DiskcacheManager, ctx
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from app_configs import APP_TITLE, DESCRIPTION_BQM, DESCRIPTION_CQM, MAIN_HEADER_BQM, MAIN_HEADER_CQM, THEME_COLOR, THEME_COLOR_SECONDARY
-from src.resource_distribution import FormInput, get_results
-
-from src.enums import Formulation, SamplerType
-from src.utils import generate_hospital_dataframe, get_empty_map
-
+from app_configs import (
+    APP_TITLE,
+    DESCRIPTION_BQM,
+    DESCRIPTION_CQM,
+    MAIN_HEADER_BQM,
+    MAIN_HEADER_CQM,
+    THEME_COLOR,
+    THEME_COLOR_SECONDARY,
+)
 from dash_html import SAMPLER_OPTIONS_ALL, SAMPLER_TYPES, generate_table, set_html
+from src.enums import Formulation, SamplerType
+from src.resource_distribution import FormInput, get_results
+from src.utils import generate_hospital_dataframe, get_empty_map
 
 cache = diskcache.Cache("./cache")
 background_callback_manager = DiskcacheManager(cache)
@@ -49,7 +55,7 @@ app = dash.Dash(
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     prevent_initial_callbacks="initial_duplicate",
     background_callback_manager=background_callback_manager,
-    external_stylesheets=[dbc.themes.BOOTSTRAP]
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
 )
 app.title = APP_TITLE
 
@@ -72,7 +78,7 @@ if not DEBUG:
     print(
         "The app will not show live code updates and the Dash debug menu will be hidden.",
         "If editting code while the app is running, run the app with `python app.py --debug`.\n",
-        sep="\n"
+        sep="\n",
     )
 
 # Generates css file and variable using THEME_COLOR and THEME_COLOR_SECONDARY settings
@@ -207,6 +213,7 @@ class UpdateSelectedFormulationReturn(NamedTuple):
     run_button_disabled: bool = dash.no_update
     results_table_store: dict = dash.no_update
 
+
 @app.callback(
     Output({"type": "formulation-option", "index": ALL}, "className"),
     Output({"type": "slider", "index": ALL}, "className"),
@@ -235,7 +242,7 @@ def update_selected_formulation(
     sliders: list[str],
     last_formulation: int,
     num_hospitals: int,
-    partition_size: int
+    partition_size: int,
 ) -> UpdateSelectedFormulationReturn:
     """Updates the formulation that is selected (BQM or CQM), hides/shows settings accordingly,
         and updates the navigation options to indicate the currently active formulation option.
@@ -274,7 +281,9 @@ def update_selected_formulation(
     # Either first load or BQM was selected
     if not ctx.triggered_id or ctx.triggered_id["index"] is Formulation.BQM.value:
         nav_class_names[Formulation.BQM.value] = "active"
-        sampler_options_bqm = [option for option in SAMPLER_OPTIONS_ALL if option["value"] is not SamplerType.CQM.value]
+        sampler_options_bqm = [
+            option for option in SAMPLER_OPTIONS_ALL if option["value"] is not SamplerType.CQM.value
+        ]
         is_valid = num_hospitals % partition_size == 0
 
         return UpdateSelectedFormulationReturn(
@@ -350,9 +359,11 @@ def render_initial_map(num_hospitals: int, _) -> str:
 
 class RunOptimizationReturn(NamedTuple):
     """Return type for the ``run_optimization`` callback function."""
+
     solution_map: str = dash.no_update
     solution_table: str = dash.no_update
     results_table_store: defaultdict = dash.no_update
+
 
 @app.long_callback(
     # update map and results
@@ -371,7 +382,7 @@ class RunOptimizationReturn(NamedTuple):
         State("results-table-store", "data"),
     ],
     running=[
-         # Shows cancel button while running.
+        # Shows cancel button while running.
         (Output("cancel-button", "className"), "", "display-none"),
         (Output("run-button", "className"), "display-none", ""),  # Hides run button while running.
         (Output("results-tab", "disabled"), True, False),  # Disables results tab while running.

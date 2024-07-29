@@ -16,7 +16,7 @@ from itertools import product
 from typing import List, Tuple, Union
 
 import numpy as np
-from pulp import LpProblem, LpVariable, LpMinimize, lpSum, LpStatus, LpBinary
+from pulp import LpBinary, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum
 
 Points = Union[List[Tuple[float, float]], np.ndarray]
 
@@ -35,12 +35,14 @@ def haversine(point_1, point_2):
     longitude1, latitude1 = point_1
     longitude2, latitude2 = point_2
     # convert decimal degrees to radians
-    longitude1, latitude1, longitude2, latitude2 = np.radians([longitude1, latitude1, longitude2, latitude2])
+    longitude1, latitude1, longitude2, latitude2 = np.radians(
+        [longitude1, latitude1, longitude2, latitude2]
+    )
 
     # haversine formula
     dlon = longitude2 - longitude1
     dlat = latitude2 - latitude1
-    a = np.sin(dlat/2)**2 + np.cos(latitude1) * np.cos(latitude2) * np.sin(dlon/2)**2
+    a = np.sin(dlat / 2) ** 2 + np.cos(latitude1) * np.cos(latitude2) * np.sin(dlon / 2) ** 2
     c = 2 * np.arcsin(np.sqrt(a))
     r = 6371  # Radius of earth in kilometers. Use 3956 for miles
     return c * r
@@ -51,7 +53,7 @@ def distance_matrix_haversine(X: Points):
 
     Args:
         X: List of tuples or 2-d array of floats (Mx2).
-    
+
     Returns:
         Matrix (MxM) of distances.
     """
@@ -69,23 +71,23 @@ def distance_matrix_haversine(X: Points):
 
 def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
     """Form and solve the LP problem within each cluster of cities/hospitals.
-    
+
     Args:
         points (list):
             List of tuples of (longitude, latitude) coordinates.
-    
+
         signed_shortage (int):
             The amount of shortage for each location (negative values are shortages,
             positive values are surpluses).
 
         transfer (float):
-            The amount of transfer we aim to achieve within each group of points. The 
-            problem is the optimization of cost subject to having at least this amount 
+            The amount of transfer we aim to achieve within each group of points. The
+            problem is the optimization of cost subject to having at least this amount
             of transfer.
 
         verbose (boolean):
             Whether to print out some partial information.
-    
+
     Returns:
         The solution, optimal cost, status, optimal transfer.
 
@@ -101,13 +103,14 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
     num_surplus = len(surplus)
     num_shortage = len(shortage)
     if num_surplus == 0 or num_shortage == 0:
-        return [], 0, 'Optimal', 0
+        return [], 0, "Optimal", 0
 
     prob = LpProblem("Transfer_cost", LpMinimize)
     data = {}
     iix = 0
-    for (idx, (xyp, sp)), (jdx, (xyn, sn)) in product(enumerate(zip(location_surplus, surplus)),
-                                                      enumerate(zip(location_shortage, shortage))):
+    for (idx, (xyp, sp)), (jdx, (xyn, sn)) in product(
+        enumerate(zip(location_surplus, surplus)), enumerate(zip(location_shortage, shortage))
+    ):
         distance = np.sqrt(haversine(xyp, xyn))
         t = np.min([sp, -sn])
         data[(idx, jdx)] = [
@@ -115,16 +118,33 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
             distance,
             t,  # 2
             sp,  # 3
-            -sn  # 4
+            -sn,  # 4
         ]
         iix += 1
 
-    prob += lpSum([data[(i, j)][1] * data[(i, j)][0] for i in range(num_surplus) for j in range(num_shortage)])
-    prob += lpSum([data[(i, j)][2] * data[(i, j)][0] for i in range(num_surplus) for j in range(num_shortage)]) >= transfer
+    prob += lpSum(
+        [data[(i, j)][1] * data[(i, j)][0] for i in range(num_surplus) for j in range(num_shortage)]
+    )
+    prob += (
+        lpSum(
+            [
+                data[(i, j)][2] * data[(i, j)][0]
+                for i in range(num_surplus)
+                for j in range(num_shortage)
+            ]
+        )
+        >= transfer
+    )
     for i in range(num_surplus):
-        prob += lpSum([data[(i, j)][2] * data[(i, j)][0] for j in range(num_shortage)]) <= data[(i, 0)][3]
+        prob += (
+            lpSum([data[(i, j)][2] * data[(i, j)][0] for j in range(num_shortage)])
+            <= data[(i, 0)][3]
+        )
     for j in range(num_shortage):
-        prob += lpSum([data[(i, j)][2] * data[(i, j)][0] for i in range(num_surplus)]) <= data[(0, j)][4]
+        prob += (
+            lpSum([data[(i, j)][2] * data[(i, j)][0] for i in range(num_surplus)])
+            <= data[(0, j)][4]
+        )
 
     status = prob.solve()
     status = LpStatus[status]
@@ -132,11 +152,11 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
     for variable in prob.variables():
         if verbose:
             print("{} = {}".format(variable.name, variable.varValue))
-        idx = int(variable.name.split('_')[-1])
+        idx = int(variable.name.split("_")[-1])
         solutions[idx] = variable.varValue
-    cost = (prob.objective.value())
+    cost = prob.objective.value()
 
-    if status != 'Optimal':
+    if status != "Optimal":
         return lp_problem(points, signed_shortage, transfer - 1)
 
     return solutions, cost, status, transfer

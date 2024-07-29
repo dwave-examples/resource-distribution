@@ -16,8 +16,9 @@ import os
 import unittest
 
 from src.enums import SamplerType
-from src.resource_distribution import get_results, FormInput
+from src.resource_distribution import FormInput, get_results
 from src.utils import generate_hospital_dataframe, get_empty_map
+
 
 class TestResourceDistribution(unittest.TestCase):
     def test_get_results(self):
@@ -39,8 +40,8 @@ class TestResourceDistribution(unittest.TestCase):
 
         output = result.figure.to_json()
         num_markers = output.count("CircleMarker")
-        self.assertEqual(num_markers, 6)   # Checking hospital markers
-        self.assertIn("Polygon", output)   # Checking result markers
+        self.assertEqual(num_markers, 6)  # Checking hospital markers
+        self.assertIn("Polygon", output)  # Checking result markers
 
         # Check that problem file was created
         problem_file = f"saved_problems/main_problem_{form.partition_size}_{form.num_hospitals}_{form.num_neighbors}_{form.dof:.2f}"

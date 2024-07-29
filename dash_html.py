@@ -14,14 +14,23 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 import html
+from collections import defaultdict
 
-from dash import dcc, html
 import dash_bootstrap_components as dbc
+from dash import dcc, html
 
-
-from app_configs import DESCRIPTION_BQM, DISTANCE_OBJECTIVE_FRACTION, MAIN_HEADER_BQM, NUM_HOSPITALS, NUM_NEIGHBORS, PARTITION_SIZE, SOLVER_TIME, THEME_COLOR_SECONDARY, THUMBNAIL
+from app_configs import (
+    DESCRIPTION_BQM,
+    DISTANCE_OBJECTIVE_FRACTION,
+    MAIN_HEADER_BQM,
+    NUM_HOSPITALS,
+    NUM_NEIGHBORS,
+    PARTITION_SIZE,
+    SOLVER_TIME,
+    THEME_COLOR_SECONDARY,
+    THUMBNAIL,
+)
 from src.enums import Formulation, SamplerType
 
 FORMULATION = {
@@ -37,8 +46,7 @@ SAMPLER_TYPES = {
 }
 
 SAMPLER_OPTIONS_ALL = [
-    {"label": label, "value": sampler_type.value}
-    for sampler_type, label in SAMPLER_TYPES.items()
+    {"label": label, "value": sampler_type.value} for sampler_type, label in SAMPLER_TYPES.items()
 ]
 
 
@@ -96,9 +104,7 @@ def dropdown(label: str, id: str, options: list) -> html.Div:
     )
 
 
-def generate_table(
-    results_dict: defaultdict
-) -> list[html.Thead, html.Tbody]:
+def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
     """Generates solution table.
 
     Args:
@@ -109,33 +115,44 @@ def generate_table(
     error_msg = results_dict["Error"]
 
     return [
-        html.Thead([
-            html.Tr([
-                html.Th("Run"),
-                *[html.Th(header) for header in results_dict.keys() if header != "Error"],
-                html.Th()
-            ])
-        ]),
-        html.Tbody([
-            html.Tr(
-                [
-                    html.Td(i+1),
-                    *[html.Td(value[i]) for value in dict_vals],
-                    html.Td(
-                        [
-                            html.Div("ⓘ"),
-                            dbc.Tooltip(
-                                [html.Span(error_msg[i])],
-                                target=f"tooltip-{i}",
-                                class_name="table-tooltip"
+        html.Thead(
+            [
+                html.Tr(
+                    [
+                        html.Th("Run"),
+                        *[html.Th(header) for header in results_dict.keys() if header != "Error"],
+                        html.Th(),
+                    ]
+                )
+            ]
+        ),
+        html.Tbody(
+            [
+                html.Tr(
+                    [
+                        html.Td(i + 1),
+                        *[html.Td(value[i]) for value in dict_vals],
+                        (
+                            html.Td(
+                                [
+                                    html.Div("ⓘ"),
+                                    dbc.Tooltip(
+                                        [html.Span(error_msg[i])],
+                                        target=f"tooltip-{i}",
+                                        class_name="table-tooltip",
+                                    ),
+                                ],
+                                id=f"tooltip-{i}",
                             )
-                        ],
-                        id=f"tooltip-{i}"
-                    ) if error_msg[i] else html.Td()
-                ],
-                className="not_satisfied" if error_msg[i] else ""
-            ) for i in range(len(dict_vals[0]))
-        ])
+                            if error_msg[i]
+                            else html.Td()
+                        ),
+                    ],
+                    className="not_satisfied" if error_msg[i] else "",
+                )
+                for i in range(len(dict_vals[0]))
+            ]
+        ),
     ]
 
 
@@ -167,9 +184,9 @@ def generate_settings_form() -> html.Div:
                             "The number of hospitals must be divisible by the partition size."
                         ),
                         id="small-caption",
-                        className="display-none"
+                        className="display-none",
                     ),
-                ]
+                ],
             ),
             slider(
                 "Partition Size",
@@ -200,7 +217,7 @@ def generate_settings_form() -> html.Div:
                 type="number",
                 **SOLVER_TIME,
             ),
-        ]
+        ],
     )
 
 
@@ -227,25 +244,27 @@ def set_html(app):
         children=[
             # below are any temporary storage items, e.g., for sharing data between callbacks
             dcc.Store(id="last-formulation"),  # formulation used for latest run
-            dcc.Store(id="selected-formulation"),  # The currently selected and displayed formulation
+            dcc.Store(
+                id="selected-formulation"
+            ),  # The currently selected and displayed formulation
             dcc.Store(id="results-table-store"),  # Results dict to update the results table
             # Banner
             html.Div(
                 className="banner",
                 children=[
                     html.Img(src=THUMBNAIL),
-                    html.Div([
-                        html.Div(
-                            html.Button(
-                                formulation_option,
-                                id={
-                                    "type": "formulation-option",
-                                    "index": index
-                                },
+                    html.Div(
+                        [
+                            html.Div(
+                                html.Button(
+                                    formulation_option,
+                                    id={"type": "formulation-option", "index": index},
+                                )
                             )
-                        ) for index, formulation_option in FORMULATION.items()
-                    ]),
-                ]
+                            for index, formulation_option in FORMULATION.items()
+                        ]
+                    ),
+                ],
             ),
             html.Div(
                 className="columns-main",
@@ -297,8 +316,9 @@ def set_html(app):
                                                 parent_className="input",
                                                 type="circle",
                                                 color=THEME_COLOR_SECONDARY,
-                                                children=html.Iframe(id="map")
-                                            ),],
+                                                children=html.Iframe(id="map"),
+                                            ),
+                                        ],
                                     ),
                                     dcc.Tab(
                                         label="Results",
@@ -314,7 +334,7 @@ def set_html(app):
                                                         className="result-table",
                                                         # add children dynamically using 'create_table'
                                                     ),
-                                                ]
+                                                ],
                                             )
                                         ],
                                     ),
@@ -322,7 +342,7 @@ def set_html(app):
                             )
                         ],
                     ),
-                ]
-            )
+                ],
+            ),
         ],
     )
