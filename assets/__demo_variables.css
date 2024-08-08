@@ -1,5 +1,5 @@
 /*
-Copyright 2024 D-Wave Systems Inc.
+Copyright 2024 D-Wave
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ limitations under the License.
 /*
 Variable declarations for all CSS files.
 Some additional variables are generated automatically in app.py
-and stored in custom_00_theme.css.
+and stored in __generated_theme.css.
 
 Dash reads all css files contained in `/assets/` so no imports are necessary.
 */

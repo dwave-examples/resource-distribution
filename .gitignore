@@ -2,5 +2,5 @@
 cache
 initial_map.html
 solution_map.html
-assets/custom_00_theme.css
+assets/__generated_theme.css
 *.DS_Store

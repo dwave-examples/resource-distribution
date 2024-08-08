@@ -1,4 +1,4 @@
-# Copyright 2024 D-Wave Systems Inc.
+# Copyright 2024 D-Wave
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ from collections import defaultdict
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-from app_configs import (
+from demo_configs import (
     DESCRIPTION_BQM,
     DISTANCE_OBJECTIVE_FRACTION,
     MAIN_HEADER_BQM,
@@ -237,9 +237,9 @@ def generate_run_buttons() -> html.Div:
     )
 
 
-def set_html(app):
+def create_interface() -> html.Div:
     """Set the application HTML."""
-    app.layout = html.Div(
+    return html.Div(
         id="app-container",
         children=[
             # below are any temporary storage items, e.g., for sharing data between callbacks
