@@ -53,7 +53,6 @@ def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> str:
     Returns:
         str: The new class name of the thing to collapse.
     """
-
     classes = to_collapse_class.split(" ") if to_collapse_class else []
     if "collapsed" in classes:
         classes.remove("collapsed")
@@ -198,7 +197,8 @@ def update_selected_formulation(
         num_hospitals: The current value of the number of hospitals input.
         partition_size: The partition size value.
 
-    Returns: A NamedTuple (UpdateSelectedFormulationReturn) containing all outputs to be used when updating the HTML
+    Returns:
+        A NamedTuple (UpdateSelectedFormulationReturn) containing all outputs to be used when updating the HTML
         template (in ``dash_html.py``). These are:
 
             formulation_options_class (list): A list of classes for the formulation navigation options in the header.

@@ -1,4 +1,4 @@
-# Copyright 2024 D-Wave
+# Copyright 2021 D-Wave
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ def create_utility_function(
     # for each hospital find the first few nearest neighbors up to num_neighbors
     nearest_neighbors = []
     for i in range(form.num_hospitals):
-        nearest_neighbors.append(np.argsort(distance_matrix[i])[1 : form.num_neighbors + 1])
+        nearest_neighbors.append(np.argsort(distance_matrix[i])[1:form.num_neighbors + 1])
 
     # find all partitions that include num_neighbors of the nearest neighbors
     partitions = set()
