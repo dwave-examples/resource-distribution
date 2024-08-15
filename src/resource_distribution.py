@@ -28,12 +28,11 @@ from dwave.system import LeapHybridCQMSampler, LeapHybridSampler
 from neal import SimulatedAnnealingSampler
 from tabu import TabuSampler
 
-from src.enums import Formulation, SamplerType
+from src.enums import SolverType
 from src.solve_lp import distance_matrix_haversine, lp_problem
 from src.utils import add_result_markers, check_feasibility, get_cost, get_transfer
 
 form_fields = [
-    "formulation",
     "num_hospitals",
     "partition_size",
     "num_neighbors",
@@ -163,11 +162,11 @@ def get_sampler(form: FormInput) -> Tuple[dimod.Sampler, dict]:
     """
     sampler_type = form.solver
     if isinstance(sampler_type, int):
-        sampler_type = SamplerType(sampler_type)
+        sampler_type = SolverType(sampler_type)
 
-    if sampler_type is SamplerType.SIM_ANNEAL:
+    if sampler_type is SolverType.SIM_ANNEAL:
         return SimulatedAnnealingSampler(), {}
-    elif sampler_type is SamplerType.BQM:
+    elif sampler_type is SolverType.BQM:
         solver = LeapHybridSampler.default_solver
         solver.update(name__regex=".*(?<!bulk)$")
         sampler = LeapHybridSampler(solver=solver)
@@ -175,9 +174,9 @@ def get_sampler(form: FormInput) -> Tuple[dimod.Sampler, dict]:
             "time_limit": float(form.time_limit),
             "label": "Demo from Leap - Resource Distribution Optimization",
         }
-    elif sampler_type is SamplerType.TABU:
+    elif sampler_type is SolverType.TABU:
         return TabuSampler(), {"timeout": int(form.time_limit) * 1000}
-    elif sampler_type is SamplerType.CQM:
+    elif sampler_type is SolverType.CQM:
         solver = LeapHybridCQMSampler.default_solver
         solver.update(name__regex=".*(?<!bulk)$")
         sampler = LeapHybridCQMSampler(solver=solver)
@@ -233,7 +232,7 @@ def solve_bqm(
         run_time = 0
     else:
         # Solve problem
-        if form.solver is SamplerType.SIM_ANNEAL:
+        if form.solver is SolverType.SIM_ANNEAL:
             response = sampler.sample(bqm)
             beta_range = response.info["beta_range"]
 
@@ -255,7 +254,7 @@ def solve_bqm(
             response = sampler.sample(bqm, **params).truncate(1)
             run_time = time.perf_counter() - t0
 
-            if form.solver is SamplerType.BQM:
+            if form.solver is SolverType.BQM:
                 run_time = response.info["run_time"] / 1e6
 
     variables = np.array(response.variables)
@@ -347,7 +346,7 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
 
     print("Solving problem with the {}".format(sampler))
 
-    if form.solver is SamplerType.CQM:
+    if form.solver is SolverType.CQM:
         cqm = build_cqm(hospital_df, distances)
 
         sampleset = sampler.sample_cqm(cqm, **params)
@@ -364,30 +363,6 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
 
         energy = solution.energy
     else:
-        # solve problem as a bqm
-        if form.formulation is Formulation.CQM:
-            # on the cqm page, a bunch of bqm tuning parameters are missing -> fill them in here
-            partition_size = 0
-            sizes = [5, 4, 3, 2]
-            for size in sizes:
-                if size != form.num_hospitals and form.num_hospitals % size == 0:
-                    # make sure partition size is divisible by the number of hospitals
-                    partition_size = size
-                    break
-
-            if partition_size == 0:
-                # no other option, one partition
-                partition_size = form.num_hospitals
-
-            form = FormInput(
-                num_hospitals=form.num_hospitals,
-                partition_size=partition_size,
-                num_neighbors=min(2 * partition_size, 8),
-                dof=0.2,  # decreasing dof maximizes transfer
-                solver=form.solver,
-                time_limit=form.time_limit,
-            )
-
         try:
             solution, energy, run_time = solve_bqm(hospital_df, form, sampler, params)
         except ValueError as err:

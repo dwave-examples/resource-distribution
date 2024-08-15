@@ -1,4 +1,4 @@
-# Copyright 2021
+# Copyright 2021 D-Wave
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ from scipy.spatial import ConvexHull
 from src.solve_lp import haversine
 
 
-def generate_hospital_dataframe(num_hospitals: int) -> pd.DataFrame:
+def generate_hospital_dataframe(num_hospitals: int, seed: int = 123) -> pd.DataFrame:
     """Loads the hospitals dataset and assigns random values of resource shortage/surplus
     proportional to hospital size.
 
@@ -46,8 +46,7 @@ def generate_hospital_dataframe(num_hospitals: int) -> pd.DataFrame:
     ]
     df = df.sort_values(by="d").head(num_hospitals)
 
-    # Hardcoding seed to keep the same map/hospitals for each run
-    np.random.seed(123)
+    np.random.seed(seed)
     rnds = np.random.rand(len(df)) * df["Population"]
     rnds = rnds / np.max(np.abs(rnds)) * 100
     rnds = np.round(rnds - np.mean(rnds))

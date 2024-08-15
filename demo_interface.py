@@ -21,9 +21,9 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from demo_configs import (
-    DESCRIPTION_BQM,
+    DESCRIPTION,
     DISTANCE_OBJECTIVE_FRACTION,
-    MAIN_HEADER_BQM,
+    MAIN_HEADER,
     NUM_HOSPITALS,
     NUM_NEIGHBORS,
     PARTITION_SIZE,
@@ -31,22 +31,17 @@ from demo_configs import (
     THEME_COLOR_SECONDARY,
     THUMBNAIL,
 )
-from src.enums import Formulation, SamplerType
+from src.enums import SolverType
 
-FORMULATION = {
-    Formulation.BQM.value: "BQM",
-    Formulation.CQM.value: "CQM",
+SOLVER_TYPES = {
+    SolverType.CQM: "Quantum Hybrid (CQM)",
+    SolverType.BQM: "Quantum Hybrid (BQM)",
+    SolverType.TABU: "Tabu",
+    SolverType.SIM_ANNEAL: "Simulated Annealing",
 }
 
-SAMPLER_TYPES = {
-    SamplerType.CQM: "Quantum Hybrid (CQM)",
-    SamplerType.BQM: "Quantum Hybrid (BQM)",
-    SamplerType.TABU: "Tabu",
-    SamplerType.SIM_ANNEAL: "Simulated Annealing",
-}
-
-SAMPLER_OPTIONS_ALL = [
-    {"label": label, "value": sampler_type.value} for sampler_type, label in SAMPLER_TYPES.items()
+SOLVER_OPTIONS = [
+    {"label": label, "value": solver_type.value} for solver_type, label in SOLVER_TYPES.items()
 ]
 
 
@@ -60,7 +55,7 @@ def slider(label: str, id: str, config: dict, index: int) -> html.Div:
         index: A unique identifier.
     """
     return html.Div(
-        className="slider-wrapper",
+        className="display-none",
         id={"type": "slider", "index": index},
         children=[
             html.Label(label),
@@ -166,6 +161,17 @@ def generate_settings_form() -> html.Div:
     return html.Div(
         className="settings",
         children=[
+            dropdown(
+                "Solver",
+                "solver-type-select",
+                SOLVER_OPTIONS,
+            ),
+            html.Label("Solver Time Limit (seconds)"),
+            dcc.Input(
+                id="solver-time-limit",
+                type="number",
+                **SOLVER_TIME,
+            ),
             html.Div(
                 className="caption-wrapper",
                 children=[
@@ -206,17 +212,6 @@ def generate_settings_form() -> html.Div:
                 DISTANCE_OBJECTIVE_FRACTION,
                 2,
             ),
-            dropdown(
-                "Solver",
-                "sampler-type-select",
-                SAMPLER_OPTIONS_ALL,
-            ),
-            html.Label("Solver Time Limit (seconds)"),
-            dcc.Input(
-                id="solver-time-limit",
-                type="number",
-                **SOLVER_TIME,
-            ),
         ],
     )
 
@@ -243,27 +238,12 @@ def create_interface() -> html.Div:
         id="app-container",
         children=[
             # below are any temporary storage items, e.g., for sharing data between callbacks
-            dcc.Store(id="last-formulation"),  # formulation used for latest run
-            dcc.Store(
-                id="selected-formulation"
-            ),  # The currently selected and displayed formulation
             dcc.Store(id="results-table-store"),  # Results dict to update the results table
             # Banner
             html.Div(
                 className="banner",
                 children=[
                     html.Img(src=THUMBNAIL),
-                    html.Div(
-                        [
-                            html.Div(
-                                html.Button(
-                                    formulation_option,
-                                    id={"type": "formulation-option", "index": index},
-                                )
-                            )
-                            for index, formulation_option in FORMULATION.items()
-                        ]
-                    ),
                 ],
             ),
             html.Div(
@@ -280,8 +260,8 @@ def create_interface() -> html.Div:
                                     html.Div(
                                         className="left-column-layer-2",  # Padding and content wrapper
                                         children=[
-                                            html.H1(id="header", children=[MAIN_HEADER_BQM]),
-                                            html.P(id="description", children=[DESCRIPTION_BQM]),
+                                            html.H1(id="header", children=[MAIN_HEADER]),
+                                            html.P(id="description", children=[DESCRIPTION]),
                                             generate_settings_form(),
                                             generate_run_buttons(),
                                         ],

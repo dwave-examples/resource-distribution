@@ -16,7 +16,7 @@ from itertools import product
 from typing import List, Tuple, Union
 
 import numpy as np
-from pulp import LpBinary, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum
+from pulp import LpBinary, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum, PULP_CBC_CMD
 
 Points = Union[List[Tuple[float, float]], np.ndarray]
 
@@ -146,7 +146,7 @@ def lp_problem(points: Points, signed_shortage, transfer, verbose=False):
             <= data[(0, j)][4]
         )
 
-    status = prob.solve()
+    status = prob.solve(PULP_CBC_CMD(msg=verbose))
     status = LpStatus[status]
     solutions = np.zeros(len(data))
     for variable in prob.variables():

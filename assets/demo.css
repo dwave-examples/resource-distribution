@@ -25,29 +25,6 @@ limitations under the License.
     visibility: visible !important;
 }
 
-.banner > div {
-    display: flex;
-}
-
-.banner button {
-    opacity: 0.6;
-    font-size: 1.8rem;
-    font-weight: 500;
-    padding: 2rem 5rem;
-    text-underline-offset: 0.5rem;
-    border-radius: 0;
-}
-
-.banner button.active {
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.banner button.active:hover {
-    filter: none;
-    cursor: default;
-}
-
 #warning > div {
     border: 2px solid var(--red-light);
     border-radius: 0.4rem;

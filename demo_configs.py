@@ -23,17 +23,13 @@ THEME_COLOR_SECONDARY = "#2A7DE1"  # D-Wave blue default #2A7DE1
 THUMBNAIL = "static/dwave_logo.svg"
 
 APP_TITLE = "Resource Distribution"
-MAIN_HEADER_BQM = "BQM Resource Distribution"
-DESCRIPTION_BQM = """\
+MAIN_HEADER = "Resource Distribution"
+DESCRIPTION = """\
 The goal is to divide the hospitals into groups such that the maximum
 number of transfers is achieved at minimum cost (distance). Transfer is the smaller
 number between total excess and total shortage in a group of hospitals.
-"""
-MAIN_HEADER_CQM = "CQM Resource Distribution"
-DESCRIPTION_CQM = """\
 The BQM formulation requires multiple mathematical transformations to run on an unconstrained 
-solver: the original problem is reformulated as a maximum-independent-set problem.
-The CQM formulation enables the direct solution of the original problem in an intuitive way.
+solver. The CQM formulation enables the direct solution of the original problem in an intuitive way.
 """
 
 #######################################
@@ -48,14 +44,14 @@ NUM_HOSPITALS = {
 
 PARTITION_SIZE = {
     "min": 1,
-    "max": 100,
+    "max": 12,
     "step": 1,
     "value": 4,
 }
 
 NUM_NEIGHBORS = {
-    "min": 1,
-    "max": 100,
+    "min": 5,
+    "max": 12,
     "step": 1,
     "value": 8,
 }

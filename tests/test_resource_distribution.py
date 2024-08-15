@@ -15,7 +15,7 @@
 import os
 import unittest
 
-from src.enums import SamplerType
+from src.enums import SolverType
 from src.resource_distribution import FormInput, get_results
 from src.utils import generate_hospital_dataframe, get_empty_map
 
@@ -27,7 +27,7 @@ class TestResourceDistribution(unittest.TestCase):
             partition_size=2,
             num_neighbors=4,
             dof=0.2,
-            solver=SamplerType.SIM_ANNEAL,
+            solver=SolverType.SIM_ANNEAL,
             time_limit=15,
         )
 
