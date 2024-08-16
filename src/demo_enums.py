@@ -20,3 +20,13 @@ class SolverType(Enum):
     BQM = 1
     TABU = 2
     SIM_ANNEAL = 3
+
+
+    @property
+    def label(self):
+        return {
+            SolverType.CQM: "Quantum Hybrid (CQM)",
+            SolverType.BQM: "Quantum Hybrid (BQM)",
+            SolverType.TABU: "Tabu",
+            SolverType.SIM_ANNEAL: "Simulated Annealing",
+        }[self]

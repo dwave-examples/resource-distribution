@@ -28,7 +28,7 @@ from dwave.system import LeapHybridCQMSampler, LeapHybridSampler
 from neal import SimulatedAnnealingSampler
 from tabu import TabuSampler
 
-from src.enums import SolverType
+from src.demo_enums import SolverType
 from src.solve_lp import distance_matrix_haversine, lp_problem
 from src.utils import add_result_markers, check_feasibility, get_cost, get_transfer
 

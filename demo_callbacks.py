@@ -23,8 +23,8 @@ from dash import ALL, MATCH, ctx
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from demo_interface import SOLVER_TYPES, generate_table
-from src.enums import SolverType
+from demo_interface import generate_table
+from src.demo_enums import SolverType
 from src.resource_distribution import FormInput, get_results
 from src.utils import generate_hospital_dataframe, get_empty_map
 
@@ -292,7 +292,7 @@ def run_optimiation(
     if not results_table_store:
         results_table_store = defaultdict(list)
 
-    results_table_store["Solver"].append(SOLVER_TYPES[solver_type])
+    results_table_store["Solver"].append(solver_type.label)
     results_table_store["Hospitals"].append(num_hospitals)
 
     if solver_type is SolverType.CQM:
@@ -302,9 +302,9 @@ def run_optimiation(
             time_limit=time_limit,
         )
 
-        results_table_store["Partition"].append("")
-        results_table_store["Neighbors"].append("")
-        results_table_store["DOF"].append("")
+        results_table_store["Partition"].append("---")
+        results_table_store["Neighbors"].append("---")
+        results_table_store["DOF"].append("---")
     else:
         form_input = FormInput(
             num_hospitals=num_hospitals,

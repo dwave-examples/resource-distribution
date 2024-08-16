@@ -15,7 +15,7 @@
 import os
 import unittest
 
-from src.enums import SolverType
+from src.demo_enums import SolverType
 from src.resource_distribution import FormInput, get_results
 from src.utils import generate_hospital_dataframe, get_empty_map
 

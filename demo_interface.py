@@ -31,18 +31,7 @@ from demo_configs import (
     THEME_COLOR_SECONDARY,
     THUMBNAIL,
 )
-from src.enums import SolverType
-
-SOLVER_TYPES = {
-    SolverType.CQM: "Quantum Hybrid (CQM)",
-    SolverType.BQM: "Quantum Hybrid (BQM)",
-    SolverType.TABU: "Tabu",
-    SolverType.SIM_ANNEAL: "Simulated Annealing",
-}
-
-SOLVER_OPTIONS = [
-    {"label": label, "value": solver_type.value} for solver_type, label in SOLVER_TYPES.items()
-]
+from src.demo_enums import SolverType
 
 
 def slider(label: str, id: str, config: dict, index: int) -> html.Div:
@@ -157,6 +146,9 @@ def generate_settings_form() -> html.Div:
     Returns:
         html.Div: A Div containing the settings for selecting the scenario, model, and solver.
     """
+    solver_options = [
+        {"label": solver_type.label, "value": solver_type.value} for solver_type in SolverType
+    ]
 
     return html.Div(
         className="settings",
@@ -164,7 +156,7 @@ def generate_settings_form() -> html.Div:
             dropdown(
                 "Solver",
                 "solver-type-select",
-                SOLVER_OPTIONS,
+                solver_options,
             ),
             html.Label("Solver Time Limit (seconds)"),
             dcc.Input(
