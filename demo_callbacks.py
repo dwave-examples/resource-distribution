@@ -104,20 +104,28 @@ def update_partition_size(num_hospitals: int) -> int:
         Input("num-hospitals", "value"),
         Input("partition-size", "value"),
         State("num-neighbors", "value"),
+        State("solver-type-select", "value"),
     ],
 )
-def update_num_neighbors(num_hospitals: int, partition_size: int, num_neighbors: int) -> int:
-    """Updates the number of neighbors slider.
-    
+def update_num_neighbors(
+    num_hospitals: int,
+    partition_size: int,
+    num_neighbors: int,
+    solver_type: Union[SolverType, int],
+) -> int:
+    """Updates the number of neighbors slider and checks whether the partition size is a factor of
+    num hospitals and shows a warning if not.
+
     The number of neighbors must be greater than or equal to the partition
     size and less than or equal to the number of hospitals.
-
-    Also checks whether the partition size is a factor of num hospitals and shows a warning if not.
 
     Args:
         num_hospitals: The current value of the number of hospitals input.
         partition_size: The partition size value.
         num_neighbors: The value for the number of neighbors slider.
+        solver_type: Either Quantum Hybrid (CQM) (``0`` or ``SolverType.CQM``), Quantum Hybrid (BQM)
+            (``1`` or ``SolverType.BQM``), Tabu (``2`` or ``SolverType.TABU``), or Simulated Annealing
+            (``3`` or ``SolverType.SIM_ANNEAL``).
 
     Returns:
         num-neighbors-max: The maximum for the number of neighbors slider.
@@ -127,6 +135,9 @@ def update_num_neighbors(num_hospitals: int, partition_size: int, num_neighbors:
         small-caption-classname: The class name for the error caption.
         run-button-disabled: Whether the run button should be disabled.
     """
+    if solver_type is SolverType.CQM.value:
+        raise PreventUpdate
+
     is_valid = num_hospitals % partition_size == 0
     if partition_size > num_neighbors:
         num_neighbors = partition_size
@@ -156,7 +167,7 @@ def update_num_neighbors(num_hospitals: int, partition_size: int, num_neighbors:
     prevent_initial_call=True,
 )
 def update_settings_visibility(
-    solver_type: list[int],
+    solver_type: Union[SolverType, int],
     sliders: list[str],
     num_hospitals: int,
     partition_size: int,
@@ -314,8 +325,8 @@ def run_optimiation(
             time_limit=time_limit,
         )
 
-        results_table_store["Partition"].append("---")
-        results_table_store["Neighbors"].append("---")
+        results_table_store["Partition Size"].append("---")
+        results_table_store["# Neighbors"].append("---")
         results_table_store["DOF"].append("---")
     else:
         form_input = FormInput(
@@ -327,8 +338,8 @@ def run_optimiation(
             time_limit=time_limit,
         )
 
-        results_table_store["Partition"].append(partition_size)
-        results_table_store["Neighbors"].append(num_neighbors)
+        results_table_store["Partition Size"].append(partition_size)
+        results_table_store["# Neighbors"].append(num_neighbors)
         results_table_store["DOF"].append(distance_objective_fraction)
 
     folium_map = get_empty_map(hospital_df)
