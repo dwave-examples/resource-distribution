@@ -4,8 +4,6 @@
 
 # Resource Distribution
 
-![demo](static/demo_app.png)
-
 The Covid-19 pandemic has resulted in millions of people being infected and 
 has overwhelmed health systems. Many hospitals are facing a critical shortage of 
 essential resources such as invasive ventilators, ICU beds, and personal protective gear. 
@@ -16,11 +14,13 @@ distribution across different groups.
 This demo presents two ways of formulating the problem: as a binary quadratic model (BQM)
 and as a constrained quadratic model (CQM).
 
-![home-img](static/partitioning.png)
+![demo](static/demo.png)
 
 ## Installation
 
-You can run this example without installation in cloud-based IDEs that support the [Development Containers specification](https://containers.dev/supporting) (aka "devcontainers").
+You can run this example without installation in cloud-based IDEs that support the
+[Development Containers specification](https://containers.dev/supporting) (aka "devcontainers")
+such as GitHub Codespaces.
 
 For development environments that do not support `devcontainers`, install requirements:
 
@@ -28,11 +28,14 @@ For development environments that do not support `devcontainers`, install requir
 pip install -r requirements.txt
 ```
 
-If you are cloning the repo to your local system, working in a [virtual environment](https://docs.python.org/3/library/venv.html) is recommended.
+If you are cloning the repo to your local system, working in a
+[virtual environment](https://docs.python.org/3/library/venv.html) is recommended.
 
 ## Usage
-
-Your development environment should be configured to access the [Leap&#8482; Quantum Cloud Service](https://docs.ocean.dwavesys.com/en/stable/overview/sapi.html). You can see information about supported IDEs and authorizing access to your Leap account [here](https://docs.dwavesys.com/docs/latest/doc_leap_dev_env.html).
+Your development environment should be configured to access the
+[Leap&trade; Quantum Cloud Service](https://docs.ocean.dwavesys.com/en/stable/overview/sapi.html).
+You can see information about supported IDEs and authorizing access to your Leap account
+[here](https://docs.dwavesys.com/docs/latest/doc_leap_dev_env.html).
 
 Run the following terminal command to start the Dash app:
 
@@ -40,20 +43,22 @@ Run the following terminal command to start the Dash app:
 python app.py
 ```
 
-If you plan on editing any files while the app is running, please run the app with the `--debug` command-line argument for live reloads and easier debugging:
-
-```bash
-python app.py --debug
-```
-
 Access the user interface with your browser at http://127.0.0.1:8050/.
 
-The demo program opens an interface where you can configure problems and submit these problems to a solver.
+The demo program opens an interface where you can configure problems and submit these problems to
+a solver.
 
-Configuration options can be found in the [app_configs.py](app_configs.py) file.
+Configuration options can be found in the [demo_configs.py](demo_configs.py) file.
+
+> [!NOTE]\
+> If you plan on editing any files while the app is running,
+please run the app with the `--debug` command-line argument for live reloads and easier debugging:
+`python app.py --debug`
 
 
 ## Problem Formulation
+
+![home-img](static/partitioning.png)
 
 ### BQM
 
@@ -62,6 +67,18 @@ number of transfers is achieved at minimum cost. Transfer is quantified as the s
 number between total excess and total shortage in a group of hospitals. Cost is the sum of all
 costs associated with transferring resources from one hospital to another: In this demonstration,
 only distance is considered as a cost.
+
+#### Variables
+
+- **Partition Size**: The size of the groups to divide the hospitals into. If there are 12 hospitals
+and the partition size is 4, the hospitals will be divided into 3 groups of 4.
+- **Number of Neighbors**: Finding all possible groups of size `partition_size` is very time
+consuming, instead we will only consider the possible groups within the `num_neighbors` closest
+neighbors. If `num_neighbors` is 8, the 9th farthest away hospital from *Hospital X* will not be
+permitted in groups containing *Hospital X*.
+- **Distance Objective Fraction**: The balance between optimizing for maximum transfer or
+minimum distance traveled cost. If the distance objective fraction is low the transfer is high.
+If the DOF is high the transfer is low and the distance traveled/cost is low.
 
 ![home-img](static/partition_with_distance.png)
 
