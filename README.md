@@ -74,8 +74,8 @@ only distance is considered as a cost.
 and the partition size is 4, the hospitals will be divided into 3 groups of 4.
 - **Number of Neighbors**: Finding all possible groups of size `partition_size` is very time
 consuming, instead we will only consider the possible groups within the `num_neighbors` closest
-neighbors. If `num_neighbors` is 8, the 9th farthest away hospital from *Hospital X* will not be
-permitted in groups containing *Hospital X*.
+neighbors. If `num_neighbors` is 8, the 9th farthest away hospital from hospital $x$ will not be
+permitted in groups containing hospital $x$.
 - **Distance Objective Fraction**: The balance between optimizing for maximum transfer or
 minimum distance traveled cost. If the distance objective fraction is low the transfer is high.
 If the DOF is high the transfer is low and the distance traveled/cost is low.
@@ -112,17 +112,17 @@ $$U[u] = (1 - \alpha) t - \alpha c$$
 #### Formulation
 
 Given the utility function above, or any utility function that can compute a value for a given
-subset $u$, we can use the following k-clique problem to find the best division of medical
-centers to k groups [1].
+subset $u$, we can use the following $k$-clique problem to find the best division of medical
+centers to $k$ groups [1].
 
 First, we define the set of partitions of size $n/k$ as
 
-$$\mathcal{V} = \left\{ u: \forall ~ u \subset S ~\land ~|u| = \frac{n}{k} \right\}$$
+$$\mathcal{V} = \left\lbrace u: \forall ~ u \subset S ~\land ~|u| = \frac{n}{k} \right\rbrace$$
 
 We can define the set of edges as a pair of nodes that share elements (this is the complement
 set of the original as defined in [1]).
 
-$$\mathcal{E} = \left\{ (u, v): \forall ~ u,v \in \mathcal{V} ~\land ~~ u \cap v \neq \{\} \right\}$$
+$$\mathcal{E} = \left\lbrace (u, v): \forall ~ u,v \in \mathcal{V} ~\land ~~ u \cap v \neq \{\} \right\rbrace$$
 
 Because the nodes in $\mathcal{E}$ are derived from partitions of size $n/k$, there can be
 no clique larger than $k$. Therefore, all we need to do is to solve the weighted
@@ -160,7 +160,8 @@ for i in hospitals:
 
 **Constraint 2: Each group must have a net positive number of beds**
 
-$$\sum_{i} a_{i} x_{i,g} >= 0\text{, for each group }g\text{,}\\\text{where }a_{i} \text{ is the number of beds that hospital }i\text{ has.}$$
+$$\sum_{i} a_{i} x_{i,g} >= 0,\\
+\text{for each group }g\text{, }\text{where }a_{i} \text{ is the number of beds that hospital }i\text{ has.}$$
 
 ```
 for g in range(num_groups):
