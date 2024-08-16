@@ -43,14 +43,14 @@ NUM_HOSPITALS = {
 }
 
 PARTITION_SIZE = {
-    "min": 1,
-    "max": 12,
+    "min": 2,
+    "max": 6,
     "step": 1,
     "value": 4,
 }
 
 NUM_NEIGHBORS = {
-    "min": 5,
+    "min": 4,
     "max": 12,
     "step": 1,
     "value": 8,

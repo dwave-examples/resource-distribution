@@ -21,7 +21,6 @@ class SolverType(Enum):
     TABU = 2
     SIM_ANNEAL = 3
 
-
     @property
     def label(self):
         return {

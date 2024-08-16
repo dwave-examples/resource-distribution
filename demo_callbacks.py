@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import math
 from pathlib import Path
 from typing import NamedTuple, Union
 
@@ -89,21 +90,23 @@ def update_partition_size(num_hospitals: int) -> int:
         partition-size: The maximum value of partition size slider.
     """
 
-    return num_hospitals-1
+    return math.floor((num_hospitals+1)/2)
 
 
 @dash.callback(
     Output("num-neighbors", "max"),
     Output("num-neighbors", "min"),
     Output("num-neighbors", "marks"),
+    Output("num-neighbors", "value"),
     Output("small-caption", "className"),
     Output("run-button", "disabled"),
     inputs=[
         Input("num-hospitals", "value"),
         Input("partition-size", "value"),
+        State("num-neighbors", "value"),
     ],
 )
-def update_num_neighbors(num_hospitals: int, partition_size: int) -> int:
+def update_num_neighbors(num_hospitals: int, partition_size: int, num_neighbors: int) -> int:
     """The number of neighbors must be greater than or equal to the partition
         size and less than or equal to the number of hospitals.
 
@@ -112,20 +115,27 @@ def update_num_neighbors(num_hospitals: int, partition_size: int) -> int:
     Args:
         num_hospitals: The current value of the number of hospitals input.
         partition_size: The partition size value.
+        num_neighbors: The value for the number of neighbors slider.
 
     Returns:
         num-neighbors-max: The maximum for the number of neighbors slider.
         num-neighbors-min: The minimum for the number of neighbors slider.
         num-neighbors-marks: The marks for the number of neighbors slider.
+        num-neighbors-value: The value for the number of neighbors slider.
         small-caption-classname: The class name for the error caption.
         run-button-disabled: Whether the run button should be disabled.
     """
     is_valid = num_hospitals % partition_size == 0
+    if partition_size > num_neighbors:
+        num_neighbors = partition_size
+    if num_hospitals < num_neighbors:
+        num_neighbors = num_hospitals
 
     return (
         num_hospitals,
-        partition_size+1,
+        partition_size,
         {partition_size: f"{partition_size}", num_hospitals: f"{num_hospitals}"},
+        num_neighbors,
         "display-none" if is_valid else "",
         not is_valid,
     )
