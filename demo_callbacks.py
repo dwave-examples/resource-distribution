@@ -90,7 +90,7 @@ def update_partition_size(num_hospitals: int) -> int:
         partition-size: The maximum value of partition size slider.
     """
 
-    return math.floor((num_hospitals+1)/2)
+    return math.floor((num_hospitals + 1) / 2)
 
 
 @dash.callback(
@@ -107,10 +107,12 @@ def update_partition_size(num_hospitals: int) -> int:
     ],
 )
 def update_num_neighbors(num_hospitals: int, partition_size: int, num_neighbors: int) -> int:
-    """The number of neighbors must be greater than or equal to the partition
-        size and less than or equal to the number of hospitals.
+    """Updates the number of neighbors slider.
+    
+    The number of neighbors must be greater than or equal to the partition
+    size and less than or equal to the number of hospitals.
 
-        Also checks whether the partition size is a factor of num hospitals and shows a warning if not.
+    Also checks whether the partition size is a factor of num hospitals and shows a warning if not.
 
     Args:
         num_hospitals: The current value of the number of hospitals input.
@@ -128,7 +130,7 @@ def update_num_neighbors(num_hospitals: int, partition_size: int, num_neighbors:
     is_valid = num_hospitals % partition_size == 0
     if partition_size > num_neighbors:
         num_neighbors = partition_size
-    if num_hospitals < num_neighbors:
+    elif num_hospitals < num_neighbors:
         num_neighbors = num_hospitals
 
     return (
