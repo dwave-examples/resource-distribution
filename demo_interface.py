@@ -304,7 +304,7 @@ def create_interface() -> html.Div:
                                                     html.Table(
                                                         id="solution-table",
                                                         className="result-table",
-                                                        # add children dynamically using 'create_table'
+                                                        # add children dynamically using 'generate_table'
                                                     ),
                                                 ],
                                             )
