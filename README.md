@@ -65,7 +65,7 @@ please run the app with the `--debug` command-line argument for live reloads and
 In the BQM formulation, the goal is to divide the hospitals into groups such that the maximum
 number of transfers is achieved at minimum cost. Transfer is quantified as the smaller
 number between total excess and total shortage in a group of hospitals. Cost is the sum of all
-costs associated with transferring resources from one hospital to another: In this demonstration,
+costs associated with transferring resources from one hospital to another. In this demonstration,
 only distance is considered as a cost.
 
 #### Variables
