@@ -1,4 +1,4 @@
-# Copyright 2021 D-Wave Systems Inc.
+# Copyright 2021 D-Wave
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,16 +17,15 @@ from itertools import cycle
 from typing import Tuple
 
 import folium
-from folium.features import DivIcon
 import numpy as np
 import pandas as pd
 from scipy.spatial import ConvexHull
 
-from solve_lp import haversine
+from src.solve_lp import haversine
 
 
-def us_hospitals(num_hospitals: int) -> pd.DataFrame:
-    """Loads the hospitals dataset and assigns random values of resource shortage/surplus 
+def generate_hospital_dataframe(num_hospitals: int, seed: int = 123) -> pd.DataFrame:
+    """Loads the hospitals dataset and assigns random values of resource shortage/surplus
     proportional to hospital size.
 
     Args:
@@ -35,31 +34,32 @@ def us_hospitals(num_hospitals: int) -> pd.DataFrame:
     Returns:
         Hospital data.
     """
-    df = pd.read_csv('hospitals_processed.csv').drop(['Unnamed: 0'], axis=1).reset_index()
+    df = pd.read_csv("hospitals_processed.csv").drop(["Unnamed: 0"], axis=1).reset_index()
     df.columns = [x.lower() for x in df.columns]
-    df['Population'] = df['population'].values
-    df.drop('population', axis=1, inplace=True)
+    df["Population"] = df["population"].values
+    df.drop("population", axis=1, inplace=True)
 
     # Sort hospitals by their distance to the center of Manhattan
-    df['d'] = [haversine((-73.985130, 40.758896), (lon, lat)) for lon, lat in zip(df['longitude'], df['latitude'])]
-    df = df.sort_values(by='d').head(num_hospitals)
+    df["d"] = [
+        haversine((-73.985130, 40.758896), (lon, lat))
+        for lon, lat in zip(df["longitude"], df["latitude"])
+    ]
+    df = df.sort_values(by="d").head(num_hospitals)
 
-    # Hardcoding seed to keep the same map/hospitals for each run (making it easier to compare results)
-    seed = 123
     np.random.seed(seed)
-    rnds = np.random.rand(len(df)) * df['Population']
+    rnds = np.random.rand(len(df)) * df["Population"]
     rnds = rnds / np.max(np.abs(rnds)) * 100
     rnds = np.round(rnds - np.mean(rnds))
     rnds[np.abs(rnds) < 10] = 10 * (np.random.binomial(1, 0.5, size=sum(np.abs(rnds) < 10)) * 2 - 1)
-    df['excess_beds'] = rnds
+    df["excess_beds"] = rnds
 
     # Make sure we have a net surplus of beds
-    total_beds = sum(df['excess_beds'])
+    total_beds = sum(df["excess_beds"])
     if total_beds < 0:
-        extra_beds_per_hosp = int(math.ceil(-total_beds/num_hospitals))
-        df['excess_beds'] += extra_beds_per_hosp
+        extra_beds_per_hosp = int(math.ceil(-total_beds / num_hospitals))
+        df["excess_beds"] += extra_beds_per_hosp
 
-    return df.sort_values(by='Population', ascending=False)
+    return df.sort_values(by="Population", ascending=False)
 
 
 def get_empty_map(df: pd.DataFrame) -> folium.Map:
@@ -71,37 +71,52 @@ def get_empty_map(df: pd.DataFrame) -> folium.Map:
     Returns:
         Folium map with markers for hospitals in `df`.
     """
-    df['size'] = np.abs(df['excess_beds'])
+    df["size"] = np.abs(df["excess_beds"])
 
     start_coords = (40.758896, -73.985130)
     zoom = 12 if len(df) > 25 else 13
 
     folium_map = folium.Map(location=start_coords, tiles=None, zoom_start=zoom)
-    folium.TileLayer(tiles='openstreetmap', opacity=0.5).add_to(folium_map)
+    folium.TileLayer(tiles="openstreetmap", opacity=0.5).add_to(folium_map)
+
+    label_colors = [
+        "#fc0009",
+        "#e10435",
+        "#b30963",
+        "#910b81",
+        "#5f0aad",
+        "#4f08ba",
+        "#2606de",
+        "#1702f6",
+    ]
 
     # Marker color is based on number of excess_beds (scale is from red (shortage) to blue (surplus))
-    df['marker_color'] = pd.cut(df['excess_beds'], bins=8, labels=['#fc0009',
-                                                                   '#e10435',
-                                                                   '#b30963',
-                                                                   '#910b81',
-                                                                   '#5f0aad',
-                                                                   '#4f08ba',
-                                                                   '#2606de',
-                                                                   '#1702f6'])
+    df["marker_color"] = pd.cut(df["excess_beds"], bins=8, labels=label_colors)
 
     # Add one marker per hospital
-    for name, latitude, longitude, size, excess_beds, color in zip(df['name'], df['latitude'], df['longitude'], df['size'], df['excess_beds'], df['marker_color']):
-        folium.CircleMarker([latitude, longitude],
-                            radius=math.sqrt(size)+3,
-                            tooltip=('Name: ' + name + '<br>'
-                                     'Latitude: ' + str(latitude) + '<br>'
-                                     'Longitude: ' + str(longitude) + '<br>'
-                                     'Excess beds: ' + str(excess_beds)),
-                            fill=True,
-                            stroke=False,
-                            fill_color=color,
-                            fill_opacity=0.8,
-                            interactive=False).add_to(folium_map)
+    for name, latitude, longitude, size, excess_beds, color in zip(
+        df["name"],
+        df["latitude"],
+        df["longitude"],
+        df["size"],
+        df["excess_beds"],
+        df["marker_color"],
+    ):
+        folium.CircleMarker(
+            [latitude, longitude],
+            radius=math.sqrt(size) + 3,
+            tooltip=(
+                "Name: " + name + "<br>"
+                "Latitude: " + str(latitude) + "<br>"
+                "Longitude: " + str(longitude) + "<br>"
+                "Excess beds: " + str(excess_beds)
+            ),
+            fill=True,
+            stroke=False,
+            fill_color=color,
+            fill_opacity=0.8,
+            interactive=False,
+        ).add_to(folium_map)
 
     return folium_map
 
@@ -110,11 +125,11 @@ def get_cost(names: list, resources: list, distances: dict) -> float:
     """Compute the cost of transfer in a partition. Cost refers to the sum of distances between pairs
     of hospitals in a partition, in which one hospital has a shortage of beds and the other has a
     surplus.
-    
+
     Args:
         names: Names of hospitals in the group.
 
-        resources: Amount of shortage/surplus for each hospital in the group. Should be in the same 
+        resources: Amount of shortage/surplus for each hospital in the group. Should be in the same
                    order as `names`.
 
         distances: Keys are 2-tuples of hospital names and values are the distances between the pair.
@@ -155,13 +170,13 @@ def get_transfer(excess_beds: np.ndarray) -> float:
 
 def add_result_markers(figure: folium.Map, groups: list) -> None:
     """Adds Polygon markers to `figure` for each group of hospitals specified in `groups`.
-    
+
     Args:
         figure: Map to add markers to.
-    
+
         groups: List of HospitalGroup tuples.
     """
-    colors = cycle(['red', 'blue', 'green', 'purple', 'yellow'])
+    colors = cycle(["red", "blue", "green", "purple", "yellow"])
 
     for group in groups:
         if group.transfer > 0:
@@ -180,19 +195,23 @@ def add_result_markers(figure: folium.Map, groups: list) -> None:
             text = "Group of {} hospitals. <br> <br> \
                     Hospitals: {} <br> <br>\
                     Transfer: {:.2f} <br> <br>\
-                    Cost: {:.2f}".format(num_hospitals, hospitals, group.transfer, group.cost)
+                    Cost: {:.2f}".format(
+                num_hospitals, hospitals, group.transfer, group.cost
+            )
 
             popup = folium.map.Popup(html=text, max_width=250)
 
-            folium.vector_layers.Polygon(locations,
-                                         fill=True,
-                                         stroke=True,
-                                         color=color,
-                                         fill_color=color,
-                                         fill_opacity=0.3,
-                                         opacity=0.2,
-                                         interactive=False,
-                                         popup=popup).add_to(figure)
+            folium.vector_layers.Polygon(
+                locations,
+                fill=True,
+                stroke=True,
+                color=color,
+                fill_color=color,
+                fill_opacity=0.3,
+                opacity=0.2,
+                interactive=False,
+                popup=popup,
+            ).add_to(figure)
 
 
 def check_feasibility(groups: list) -> Tuple[bool, bool]:
@@ -202,7 +221,7 @@ def check_feasibility(groups: list) -> Tuple[bool, bool]:
         groups: List of HospitalGroup tuples.
 
     Returns:
-        Two bools specifying whether each group has a net positive number of beds and whether each 
+        Two bools specifying whether each group has a net positive number of beds and whether each
         hospital is only in one group.
     """
     # constraint 1: net positive beds

@@ -1,4 +1,4 @@
-# Copyright 2021 D-Wave Systems Inc.
+# Copyright 2021 D-Wave
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,18 +15,23 @@
 import os
 import unittest
 
-from resource_distribution import get_results, FormInput
-from utils import us_hospitals, get_empty_map
+from src.demo_enums import SolverType
+from src.resource_distribution import FormInput, get_results
+from src.utils import generate_hospital_dataframe, get_empty_map
+
 
 class TestResourceDistribution(unittest.TestCase):
     def test_get_results(self):
-        form = FormInput(num_hospitals=6, 
-                         partition_size=2, 
-                         num_neighbors=4, 
-                         dof=0.2, 
-                         solver="SimulatedAnnealing", 
-                         time_limit=15)
-        hospital_df = us_hospitals(form.num_hospitals)
+        form = FormInput(
+            num_hospitals=6,
+            partition_size=2,
+            num_neighbors=4,
+            dof=0.2,
+            solver=SolverType.SIM_ANNEAL,
+            time_limit=15,
+        )
+
+        hospital_df = generate_hospital_dataframe(form.num_hospitals)
         folium_map = get_empty_map(hospital_df)
         result = get_results(form, hospital_df, folium_map)
 
@@ -35,14 +40,10 @@ class TestResourceDistribution(unittest.TestCase):
 
         output = result.figure.to_json()
         num_markers = output.count("CircleMarker")
-        self.assertEqual(num_markers, 6)   # Checking hospital markers
-        self.assertIn("Polygon", output)   # Checking result markers
+        self.assertEqual(num_markers, 6)  # Checking hospital markers
+        self.assertIn("Polygon", output)  # Checking result markers
 
         # Check that problem file was created
-        problem_file = "saved_problems/main_problem_{}_{}_{}_{:.2f}".format(form.partition_size, 
-                                                                            form.num_hospitals, 
-                                                                            form.num_neighbors, 
-                                                                            form.dof)
-
+        problem_file = f"saved_problems/main_problem_{form.partition_size}_{form.num_hospitals}_{form.num_neighbors}_{form.dof:.2f}"
         self.assertTrue(os.path.isfile(problem_file))
         os.remove(problem_file)
