@@ -324,10 +324,8 @@ def run_optimiation(
             solver=solver_type,
             time_limit=time_limit,
         )
+        results_table_store["Settings"].append({})
 
-        results_table_store["Partition Size"].append("---")
-        results_table_store["# Neighbors"].append("---")
-        results_table_store["DOF"].append("---")
     else:
         form_input = FormInput(
             num_hospitals=num_hospitals,
@@ -338,9 +336,13 @@ def run_optimiation(
             time_limit=time_limit,
         )
 
-        results_table_store["Partition Size"].append(partition_size)
-        results_table_store["# Neighbors"].append(num_neighbors)
-        results_table_store["DOF"].append(distance_objective_fraction)
+        results_table_store["Settings"].append(
+            {
+                "Partition Size": partition_size,
+                "Number of Neighbors": num_neighbors,
+                "Distance Objective Fraction": distance_objective_fraction,
+            }
+        )
 
     folium_map = get_empty_map(hospital_df)
     result = get_results(form_input, hospital_df, folium_map)
@@ -349,15 +351,17 @@ def run_optimiation(
         raise ValueError("Something went wrong while solving problem. Refresh and try again.")
 
     if not result.total_transfer:
-        results_table_store["Transfer"].append("---")
-        results_table_store["Cost"].append("---")
+        results_table_store["Beds Transferred"].append("---")
+        results_table_store["Missing Beds"].append("---")
+        results_table_store["Cost (miles)"].append("---")
         results_table_store["Energy"].append("---")
         results_table_store["Run Time"].append("---")
         results_table_store["Error"].append("No solution found")
         return RunOptimizationReturn(results_table_store=results_table_store)
 
-    results_table_store["Transfer"].append(str(round(result.total_transfer, 2)))
-    results_table_store["Cost"].append(str(round(result.total_cost, 2)))
+    results_table_store["Beds Transferred"].append(str(round(result.total_transfer)))
+    results_table_store["Missing Beds"].append(str(round(result.missing_beds)))
+    results_table_store["Cost (miles)"].append(str(round(result.total_cost, 2)))
     results_table_store["Energy"].append(str(round(result.energy, 2)))
     results_table_store["Run Time"].append(str(round(result.run_time, 2)))
     results_table_store["Error"].append(result.error_msgs)

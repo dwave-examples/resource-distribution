@@ -94,9 +94,9 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
     Args:
         results_dict: Dictionary of lists of results values from all previous runs.
     """
-
-    dict_vals = [val for key, val in results_dict.items() if key != "Error"]
-    error_msg = results_dict["Error"]
+    dict_copy = results_dict.copy()
+    error_msg = dict_copy.pop("Error")
+    settings = dict_copy.pop("Settings")
 
     return [
         html.Thead(
@@ -104,8 +104,7 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
                 html.Tr(
                     [
                         html.Th("Run"),
-                        *[html.Th(header) for header in results_dict.keys() if header != "Error"],
-                        html.Th(),
+                        *[html.Th(header) for header in dict_copy.keys()],
                     ]
                 )
             ]
@@ -115,26 +114,41 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
                 html.Tr(
                     [
                         html.Td(i + 1),
-                        *[html.Td(value[i]) for value in dict_vals],
-                        (
+                        *[
                             html.Td(
                                 [
-                                    html.Div("ⓘ"),
-                                    dbc.Tooltip(
-                                        [html.Span(error_msg[i])],
-                                        target=f"tooltip-{i}",
-                                        class_name="table-tooltip",
-                                    ),
-                                ],
-                                id=f"tooltip-{i}",
-                            )
-                            if error_msg[i]
-                            else html.Td()
-                        ),
+                                    value[i],
+                                    html.Div(
+                                        [
+                                            html.Div("ⓘ"),
+                                            dbc.Tooltip(
+                                                [html.Span(error_msg[i])],
+                                                target=f"tooltip-error-{i}",
+                                                class_name="table-tooltip",
+                                            ),
+                                        ],
+                                        id=f"tooltip-error-{i}",
+                                    ) if error_msg[i] else ()
+                                ] if key == "Missing Beds" else
+                                [
+                                    html.Div(
+                                        [
+                                            value[i],
+                                            dbc.Tooltip(
+                                                [html.Div([f"{key}: {value}"]) for key, value in settings[i].items()],
+                                                target=f"tooltip-settings-{i}",
+                                                class_name="table-tooltip",
+                                            ),
+                                        ],
+                                        id=f"tooltip-settings-{i}",
+                                    ) if settings[i] else ()
+                                ]
+                                if key == "Hospitals" else value[i]
+                            ) for key, value in dict_copy.items()
+                        ],
                     ],
-                    className="not_satisfied" if error_msg[i] else "",
                 )
-                for i in range(len(dict_vals[0]))
+                for i in range(len(settings))
             ]
         ),
     ]

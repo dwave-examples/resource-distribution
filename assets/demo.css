@@ -39,10 +39,6 @@ limitations under the License.
     margin: 0;
 }
 
-.not_satisfied td {
-    background-color: rgba(199, 0, 57, 0.15);
-}
-
 .caption-wrapper {
     display: flex;
     align-items: flex-end;
@@ -84,21 +80,27 @@ p small {
     border: none;
 }
 
+#solution-table th {
+    color: white;
+    font-weight: 500;
+    background: var(--theme);
+}
+
 #solution-table th,
 #solution-table td {
     border: 1px solid var(--grey-light);
 }
 
-#solution-table th:last-child,
-#solution-table td:last-child {
-    border: none;
-    background: none;
-}
-
-[id^="tooltip-"] {
+[id^="tooltip-error-"] {
     font-weight: bolder;
     font-size: 1.8rem;
     color: var(--red-light);
+    cursor: pointer;
+    display: inline-block;
+    padding-left: 1rem;
+}
+
+[id^="tooltip-settings-"] {
     cursor: pointer;
 }
 
@@ -106,4 +108,18 @@ p small {
     font-size: 1.4rem;
     margin: 0.6rem 1.2rem;
     display: inline-block;
+}
+
+.table-tooltip div {
+    font-size: 1.4rem;
+    margin: 0 1.2rem;
+    text-align: left;
+}
+
+.table-tooltip div:first-child {
+    margin-top: 0.6rem;
+}
+
+.table-tooltip div:last-child {
+    margin-bottom: 0.6rem;
 }
