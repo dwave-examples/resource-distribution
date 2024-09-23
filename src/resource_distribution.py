@@ -393,7 +393,7 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
     missing_beds, only_one_group = check_feasibility(groups)
 
     error_msgs = []
-    if missing_beds < 0:
+    if missing_beds > 0:
         error_msgs.append("One or more groups did not have a net positive number of excess beds.")
 
     if not only_one_group:

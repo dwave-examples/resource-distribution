@@ -229,7 +229,7 @@ def check_feasibility(groups: list) -> Tuple[bool, bool]:
 
     for group in groups:
         group_beds = sum(group.excess_beds)
-        missing_beds += group_beds if group_beds < 0 else 0
+        missing_beds -= group_beds if group_beds < 0 else 0
 
     # constraint 2: in one group
     assigned_hospitals = []
