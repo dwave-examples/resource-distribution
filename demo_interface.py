@@ -94,6 +94,9 @@ def tooltip(content: list, target: str, class_name: str="") -> dbc.Tooltip:
         content: The content that should show in the tooltip.
         target: The target id for the tooltip.
         class_name: Optional class name for the tooltip.
+
+    Returns:
+        dbc.Tooltip: A Dash Bootstrap components tooltip.
     """
     return dbc.Tooltip(
         content,
@@ -108,16 +111,20 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
 
     Args:
         results_dict: Dictionary of lists of results values from all previous runs.
+
+    Returns:
+        list: The table head and table body of the results table.
     """
-    dict_copy = results_dict.copy()
-    error_msg = dict_copy.pop("Error")
-    settings = dict_copy.pop("Settings")
+    table_columns_dict = results_dict.copy()
+    error_msg = table_columns_dict.pop("Error")
+    settings = table_columns_dict.pop("Settings")
+    num_rows = len(settings)
     rows = []
 
-    for i in range(len(settings)):
+    for i in range(num_rows):
         cells =[]
 
-        for key, value in dict_copy.items():
+        for key, value in table_columns_dict.items():
             cell = [value[i]]
 
             if key == "Missing Beds" and error_msg[i]:
@@ -148,7 +155,7 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
                 html.Tr(
                     [
                         html.Th("Run"),
-                        *[html.Th(header) for header in dict_copy.keys()],
+                        *[html.Th(header) for header in table_columns_dict.keys()],
                     ]
                 )
             ]
