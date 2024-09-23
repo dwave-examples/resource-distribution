@@ -137,13 +137,13 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
                                             dbc.Tooltip(
                                                 [html.Div([f"{key}: {value}"]) for key, value in settings[i].items()],
                                                 target=f"tooltip-settings-{i}",
-                                                class_name="table-tooltip",
+                                                class_name="table-tooltip table-tooltip--settings",
                                             ),
                                         ],
                                         id=f"tooltip-settings-{i}",
-                                    ) if settings[i] else ()
+                                    )
                                 ]
-                                if key == "Hospitals" else value[i]
+                                if key == "Hospitals" and settings[i] else value[i]
                             ) for key, value in dict_copy.items()
                         ],
                     ],

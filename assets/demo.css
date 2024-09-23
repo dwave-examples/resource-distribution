@@ -104,6 +104,10 @@ p small {
     cursor: pointer;
 }
 
+.table-tooltip.table-tooltip--settings .tooltip-inner {
+    min-width: 25rem;
+}
+
 .table-tooltip span {
     font-size: 1.4rem;
     margin: 0.6rem 1.2rem;

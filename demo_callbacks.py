@@ -354,7 +354,6 @@ def run_optimiation(
         results_table_store["Beds Transferred"].append("---")
         results_table_store["Missing Beds"].append("---")
         results_table_store["Cost (miles)"].append("---")
-        results_table_store["Energy"].append("---")
         results_table_store["Run Time"].append("---")
         results_table_store["Error"].append("No solution found")
         return RunOptimizationReturn(results_table_store=results_table_store)
@@ -362,7 +361,6 @@ def run_optimiation(
     results_table_store["Beds Transferred"].append(str(round(result.total_transfer)))
     results_table_store["Missing Beds"].append(str(round(result.missing_beds)))
     results_table_store["Cost (miles)"].append(str(round(result.total_cost, 2)))
-    results_table_store["Energy"].append(str(round(result.energy, 2)))
     results_table_store["Run Time"].append(str(round(result.run_time, 2)))
     results_table_store["Error"].append(result.error_msgs)
 
