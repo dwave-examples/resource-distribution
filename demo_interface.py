@@ -87,16 +87,67 @@ def dropdown(label: str, id: str, options: list) -> html.Div:
         ],
     )
 
+def tooltip(content: list, target: str, class_name: str="") -> dbc.Tooltip:
+    """Generates tooltip.
+
+    Args:
+        content: The content that should show in the tooltip.
+        target: The target id for the tooltip.
+        class_name: Optional class name for the tooltip.
+
+    Returns:
+        dbc.Tooltip: A Dash Bootstrap components tooltip.
+    """
+    return dbc.Tooltip(
+        content,
+        target=target,
+        class_name=f"table-tooltip {class_name}",
+        placement="right",
+    )
+
 
 def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
     """Generates solution table.
 
     Args:
         results_dict: Dictionary of lists of results values from all previous runs.
-    """
 
-    dict_vals = [val for key, val in results_dict.items() if key != "Error"]
-    error_msg = results_dict["Error"]
+    Returns:
+        list: The table head and table body of the results table.
+    """
+    table_columns_dict = results_dict.copy()
+    error_msg = table_columns_dict.pop("Error")
+    settings = table_columns_dict.pop("Settings")
+    num_rows = len(settings)
+    rows = []
+
+    for i in range(num_rows):
+        cells =[]
+
+        for key, value in table_columns_dict.items():
+            cell = [value[i]]
+
+            if key == "Missing Beds" and error_msg[i]:
+                cell.append(
+                    html.Div(
+                        [html.Div("ⓘ"), tooltip([html.Span(error_msg[i])], f"tooltip-error-{i}")],
+                        id=f"tooltip-error-{i}",
+                    )
+                )
+
+            elif key == "Hospitals" and settings[i]:
+                content = [html.Div([f"{key}: {value}"]) for key, value in settings[i].items()]
+
+                cell = [
+                    html.Div(
+                        [value[i], tooltip(content, f"tooltip-settings-{i}", "tooltip-settings")],
+                        id=f"tooltip-settings-{i}",
+                    )
+                ]
+
+            cells.append(html.Td(cell))
+
+        rows.append(html.Tr([html.Td(i + 1), *cells]))
 
     return [
         html.Thead(
@@ -104,39 +155,12 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
                 html.Tr(
                     [
                         html.Th("Run"),
-                        *[html.Th(header) for header in results_dict.keys() if header != "Error"],
-                        html.Th(),
+                        *[html.Th(header) for header in table_columns_dict.keys()],
                     ]
                 )
             ]
         ),
-        html.Tbody(
-            [
-                html.Tr(
-                    [
-                        html.Td(i + 1),
-                        *[html.Td(value[i]) for value in dict_vals],
-                        (
-                            html.Td(
-                                [
-                                    html.Div("ⓘ"),
-                                    dbc.Tooltip(
-                                        [html.Span(error_msg[i])],
-                                        target=f"tooltip-{i}",
-                                        class_name="table-tooltip",
-                                    ),
-                                ],
-                                id=f"tooltip-{i}",
-                            )
-                            if error_msg[i]
-                            else html.Td()
-                        ),
-                    ],
-                    className="not_satisfied" if error_msg[i] else "",
-                )
-                for i in range(len(dict_vals[0]))
-            ]
-        ),
+        html.Tbody(rows),
     ]
 
 

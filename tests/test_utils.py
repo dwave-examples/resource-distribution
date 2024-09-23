@@ -65,7 +65,7 @@ class TestUtils(unittest.TestCase):
             for j in range(num_hospitals)
         )
         group = HospitalGroup(hospital_df, distances)
-        net_positive_beds, only_one_group = check_feasibility([group])
+        missing_beds, only_one_group = check_feasibility([group])
 
-        self.assertTrue(net_positive_beds)
+        self.assertEqual(missing_beds, 0)
         self.assertFalse(only_one_group)

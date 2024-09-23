@@ -42,7 +42,7 @@ form_fields = [
 ]
 FormInput = namedtuple("FormInput", form_fields, defaults=(None,) * len(form_fields))
 
-result_fields = ["figure", "total_cost", "total_transfer", "energy", "error_msgs", "run_time"]
+result_fields = ["figure", "total_cost", "total_transfer", "energy", "error_msgs", "run_time", "missing_beds"]
 Result = namedtuple("Result", result_fields, defaults=(None,) * len(result_fields))
 
 
@@ -390,10 +390,10 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
             )
 
     # check feasibility of solution
-    net_positive_beds, only_one_group = check_feasibility(groups)
+    missing_beds, only_one_group = check_feasibility(groups)
 
     error_msgs = []
-    if not net_positive_beds:
+    if missing_beds > 0:
         error_msgs.append("One or more groups did not have a net positive number of excess beds.")
 
     if not only_one_group:
@@ -420,6 +420,7 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
         energy=energy,
         error_msgs=error_msgs,
         run_time=run_time,
+        missing_beds=missing_beds
     )
 
 

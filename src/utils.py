@@ -225,12 +225,11 @@ def check_feasibility(groups: list) -> Tuple[bool, bool]:
         hospital is only in one group.
     """
     # constraint 1: net positive beds
-    net_positive_beds = True
+    missing_beds = 0
 
     for group in groups:
-        if not group.net_positive_beds:
-            net_positive_beds = False
-            break
+        group_beds = sum(group.excess_beds)
+        missing_beds -= group_beds if group_beds < 0 else 0
 
     # constraint 2: in one group
     assigned_hospitals = []
@@ -244,4 +243,4 @@ def check_feasibility(groups: list) -> Tuple[bool, bool]:
                     break
                 assigned_hospitals.append(hospital)
 
-    return net_positive_beds, only_one_group
+    return missing_beds, only_one_group
