@@ -87,6 +87,21 @@ def dropdown(label: str, id: str, options: list) -> html.Div:
         ],
     )
 
+def tooltip(content: list, target: str, class_name: str="") -> dbc.Tooltip:
+    """Generates tooltip.
+
+    Args:
+        content: The content that should show in the tooltip.
+        target: The target id for the tooltip.
+        class_name: Optional class name for the tooltip.
+    """
+    return dbc.Tooltip(
+        content,
+        target=target,
+        class_name=f"table-tooltip {class_name}",
+        placement="right",
+    )
+
 
 def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
     """Generates solution table.
@@ -97,6 +112,35 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
     dict_copy = results_dict.copy()
     error_msg = dict_copy.pop("Error")
     settings = dict_copy.pop("Settings")
+    rows = []
+
+    for i in range(len(settings)):
+        cells =[]
+
+        for key, value in dict_copy.items():
+            cell = [value[i]]
+
+            if key == "Missing Beds" and error_msg[i]:
+                cell.append(
+                    html.Div(
+                        [html.Div("ⓘ"), tooltip([html.Span(error_msg[i])], f"tooltip-error-{i}")],
+                        id=f"tooltip-error-{i}",
+                    )
+                )
+
+            elif key == "Hospitals" and settings[i]:
+                content = [html.Div([f"{key}: {value}"]) for key, value in settings[i].items()]
+
+                cell = [
+                    html.Div(
+                        [value[i], tooltip(content, f"tooltip-settings-{i}", "tooltip-settings")],
+                        id=f"tooltip-settings-{i}",
+                    )
+                ]
+
+            cells.append(html.Td(cell))
+
+        rows.append(html.Tr([html.Td(i + 1), *cells]))
 
     return [
         html.Thead(
@@ -109,50 +153,7 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
                 )
             ]
         ),
-        html.Tbody(
-            [
-                html.Tr(
-                    [
-                        html.Td(i + 1),
-                        *[
-                            html.Td(
-                                [
-                                    value[i],
-                                    html.Div(
-                                        [
-                                            html.Div("ⓘ"),
-                                            dbc.Tooltip(
-                                                [html.Span(error_msg[i])],
-                                                target=f"tooltip-error-{i}",
-                                                class_name="table-tooltip",
-                                                placement="right",
-                                            ),
-                                        ],
-                                        id=f"tooltip-error-{i}",
-                                    ) if error_msg[i] else ()
-                                ] if key == "Missing Beds" else
-                                [
-                                    html.Div(
-                                        [
-                                            value[i],
-                                            dbc.Tooltip(
-                                                [html.Div([f"{key}: {value}"]) for key, value in settings[i].items()],
-                                                target=f"tooltip-settings-{i}",
-                                                class_name="table-tooltip table-tooltip--settings",
-                                                placement="right",
-                                            ),
-                                        ],
-                                        id=f"tooltip-settings-{i}",
-                                    )
-                                ]
-                                if key == "Hospitals" and settings[i] else value[i]
-                            ) for key, value in dict_copy.items()
-                        ],
-                    ],
-                )
-                for i in range(len(settings))
-            ]
-        ),
+        html.Tbody(rows),
     ]
 
 

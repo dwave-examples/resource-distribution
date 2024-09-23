@@ -104,7 +104,7 @@ p small {
     cursor: pointer;
 }
 
-.table-tooltip.table-tooltip--settings .tooltip-inner {
+.tooltip-settings .tooltip-inner {
     min-width: 25rem;
 }
 
