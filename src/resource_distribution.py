@@ -25,8 +25,7 @@ import numpy as np
 import pandas as pd
 from dimod import BinaryQuadraticModel
 from dwave.system import LeapHybridCQMSampler, LeapHybridSampler
-from neal import SimulatedAnnealingSampler
-from tabu import TabuSampler
+from dwave.samplers import SimulatedAnnealingSampler, TabuSampler
 
 from src.demo_enums import SolverType
 from src.solve_lp import distance_matrix_haversine, lp_problem
