@@ -1,8 +1,8 @@
-dwave-ocean-sdk>=6.3.0
-matplotlib>=3.6
-scipy~=1.10
-pandas~=1.5
-numpy~=1.24
-PuLP==2.7.0
-dash[diskcache]==2.17.1
-dash-bootstrap-components==1.6.0
+dash[diskcache]~=3.4
+dash-bootstrap-components~=2.0
+dwave-ocean-sdk~=9.3
+folium~=0.20
+scipy~=1.17
+pandas~=2.3
+numpy~=2.4
+PuLP~=3.3

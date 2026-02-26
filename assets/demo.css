@@ -25,6 +25,11 @@ limitations under the License.
     visibility: visible !important;
 }
 
+.tab-content, .tab-parent {
+    display: flex;
+    flex-direction: column;
+}
+
 #warning > div {
     border: 2px solid var(--red-light);
     border-radius: 0.4rem;
