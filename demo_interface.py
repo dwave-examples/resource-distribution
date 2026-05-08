@@ -147,7 +147,7 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
         results_dict: Dictionary of lists of results values from all previous runs.
 
     Returns:
-        list: The table head and table body of the results table.
+        The table head and table body of the results table.
     """
     table_columns_dict = results_dict.copy()
     error_msg = table_columns_dict.pop("Error")
@@ -220,7 +220,7 @@ def generate_settings_form() -> html.Div:
     """This function generates settings for selecting the scenario, model, and solver.
 
     Returns:
-        html.Div: A Div containing the settings for selecting the scenario, model, and solver.
+        A Div containing the settings for selecting the scenario, model, and solver.
     """
     solver_options = generate_options(SolverType)
 

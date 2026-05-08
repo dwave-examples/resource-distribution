@@ -17,7 +17,7 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from pathlib import Path
-from typing import NamedTuple, Union
+from typing import NamedTuple
 
 import dash
 from dash import MATCH, ctx
@@ -74,7 +74,7 @@ def update_num_hospitals(partition_size: int) -> int:
         partition_size: The partition size value.
 
     Returns:
-        num-hospitals: The minimum value for the number of hospitals input.
+        The minimum value for the number of hospitals input.
     """
 
     return partition_size
@@ -93,7 +93,7 @@ def update_partition_size(num_hospitals: int) -> int:
         num_hospitals: The current value of the number of hospitals input.
 
     Returns:
-        partition-size: The maximum value of partition size slider.
+        The maximum value of partition size slider.
     """
 
     return math.floor((num_hospitals + 1) / 2)
@@ -118,7 +118,7 @@ def update_num_neighbors(
     partition_size: int,
     num_neighbors: int,
     solver_type: str,
-) -> int:
+) -> tuple[int, int, list, int, str, bool]:
     """Updates the number of neighbors slider and checks whether the partition size is a factor of
     num hospitals and shows a warning if not.
 
@@ -134,12 +134,14 @@ def update_num_neighbors(
             (``3`` or ``SolverType.SIM_ANNEAL``).
 
     Returns:
-        num-neighbors-max: The maximum for the number of neighbors slider.
-        num-neighbors-min: The minimum for the number of neighbors slider.
-        num-neighbors-marks: The marks for the number of neighbors slider.
-        num-neighbors-value: The value for the number of neighbors slider.
-        small-caption-classname: The class name for the error caption.
-        run-button-disabled: Whether the run button should be disabled.
+        A tuple containing:
+
+        - int: The maximum for the number of neighbors slider.
+        - int: The minimum for the number of neighbors slider.
+        - list: The marks for the number of neighbors slider.
+        - int: The value for the number of neighbors slider.
+        - str: The class name for the error caption.
+        - bool: Whether the run button should be disabled.
     """
     if int(solver_type) is SolverType.CQM.value:
         raise PreventUpdate
@@ -188,12 +190,11 @@ def update_settings_visibility(
         partition_size: The partition size value.
 
     Returns:
-        A tuple containing all outputs to be used when updating the HTML
-        template (in ``dash_html.py``). These are:
+        A tuple containing:
 
-            bqm_settings_class (str): The class name for the BQM settings container.
-            small_caption_class (str): The class name for the error caption.
-            run_button_disabled (bool): Whether the run button should be disabled.
+        - str: The class name for the BQM settings container.
+        - str: The class name for the error caption.
+        - bool: Whether the run button should be disabled.
     """
     if int(solver_type) is SolverType.CQM.value:
         return "display-none", "display-none", False
@@ -221,7 +222,7 @@ def render_initial_map(num_hospitals: int, _) -> str:
         num_hospitals: Number of hospitals.
 
     Returns:
-        str: Initial map shown on the map tab as HTML.
+        Initial map shown on the map tab as HTML.
     """
     map_path = Path("initial_map.html")
 
@@ -294,7 +295,7 @@ def run_optimization(
         solver_type: Either Quantum Hybrid (CQM) (``0`` or ``SolverType.CQM``), Quantum Hybrid (BQM)
             (``1`` or ``SolverType.BQM``), Tabu (``2`` or ``SolverType.TABU``), or Simulated Annealing
             (``3`` or ``SolverType.SIM_ANNEAL``).
-        solver_time_limit: The solver time limit.
+        time_limit: The solver time limit.
         num_hospitals: The number of hospitals.
         partition_size: The partition size value.
         num_neighbors: The number of neighbors.
@@ -305,12 +306,10 @@ def run_optimization(
         A NamedTuple (RunOptimizationReturn) containing all outputs to be used when updating the HTML
         template (in ``dash_html.py``). These are:
 
-            map (str): Updates the 'srcDoc' entry for the 'map' Iframe in the map tab.
-            solution_table (list): The new solution table to set.
-            results_table_store (defaultdict[list]): Dict of lists of results for each run.
+        - map: Updates the 'srcDoc' entry for the 'map' Iframe in the map tab.
+        - solution_table: The new solution table to set.
+        - results_table_store: Dict of lists of results for each run.
     """
-    if run_click == 0 or ctx.triggered_id != "run-button":
-        raise PreventUpdate
 
     solver_type = SolverType(int(solver_type))
 
