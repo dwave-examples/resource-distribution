@@ -16,7 +16,7 @@ from itertools import product
 from typing import List, Tuple, Union
 
 import numpy as np
-from pulp import LpBinary, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum, PULP_CBC_CMD
+from pulp import PULP_CBC_CMD, LpBinary, LpMinimize, LpProblem, LpStatus, LpVariable, lpSum
 
 Points = Union[List[Tuple[float, float]], np.ndarray]
 

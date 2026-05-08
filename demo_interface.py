@@ -14,9 +14,9 @@
 
 from __future__ import annotations
 
-from enum import EnumMeta
 import html
 from collections import defaultdict
+from enum import EnumMeta
 
 import dash_mantine_components as dmc
 from dash import dcc, html
@@ -32,7 +32,6 @@ from demo_configs import (
     THUMBNAIL,
 )
 from src.demo_enums import SolverType
-
 
 THEME_COLOR = "#2d4376"
 
@@ -87,7 +86,7 @@ def dropdown(label: str, id: str, options: list) -> html.Div:
     )
 
 
-def input(label: str, id: str, configs: dict, type: str="number") -> html.Div:
+def input(label: str, id: str, configs: dict, type: str = "number") -> html.Div:
     """Input element for either text or number input.
 
     Args:
@@ -100,18 +99,22 @@ def input(label: str, id: str, configs: dict, type: str="number") -> html.Div:
         className="input-wrapper",
         children=[
             html.Label(label, htmlFor=id),
-            dmc.TextInput(
-                id=id,
-                **configs,
-            ) if type == "text" else dmc.NumberInput(
-                id=id,
-                **configs,
+            (
+                dmc.TextInput(
+                    id=id,
+                    **configs,
+                )
+                if type == "text"
+                else dmc.NumberInput(
+                    id=id,
+                    **configs,
+                )
             ),
         ],
     )
 
 
-def tooltip(content: list, target: str, class_name: str="") -> dmc.Tooltip:
+def tooltip(content: list, target: str, class_name: str = "") -> dmc.Tooltip:
     """Generates tooltip.
 
     Args:
@@ -132,11 +135,7 @@ def tooltip(content: list, target: str, class_name: str="") -> dmc.Tooltip:
         withArrow=True,
         arrowSize=10,
         offset=2,
-        transitionProps={
-            "transition": "pop", 
-            "duration": 200,
-            "timingFunction": "ease"
-        },
+        transitionProps={"transition": "pop", "duration": 200, "timingFunction": "ease"},
         className=f"table-tooltip {class_name}",
     )
 
@@ -157,7 +156,7 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
     rows = []
 
     for i in range(num_rows):
-        cells =[]
+        cells = []
 
         for key, value in table_columns_dict.items():
             cell = [value[i]]
@@ -165,10 +164,7 @@ def generate_table(results_dict: defaultdict) -> list[html.Thead, html.Tbody]:
             if key == "Missing Beds" and error_msg[i]:
                 cell.append(
                     html.Div(
-                        [
-                            html.Div("ⓘ"),
-                            tooltip([html.Span(error_msg[i])], f"tooltip-error-{i}")
-                        ],
+                        [html.Div("ⓘ"), tooltip([html.Span(error_msg[i])], f"tooltip-error-{i}")],
                         id=f"tooltip-error-{i}",
                     )
                 )
@@ -254,9 +250,7 @@ def generate_settings_form() -> html.Div:
                         ]
                     ),
                     html.P(
-                        html.Small(
-                            "Number of hospitals must be divisible by partition size."
-                        ),
+                        html.Small("Number of hospitals must be divisible by partition size."),
                         id="small-caption",
                         className="display-none",
                     ),
@@ -419,7 +413,7 @@ def create_interface() -> html.Div:
                                                         color=THEME_COLOR,
                                                         children=html.Iframe(id="map"),
                                                     ),
-                                                ]
+                                                ],
                                             )
                                         ],
                                     ),

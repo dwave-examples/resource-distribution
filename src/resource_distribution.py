@@ -24,8 +24,8 @@ import folium
 import numpy as np
 import pandas as pd
 from dimod import BinaryQuadraticModel
-from dwave.system import LeapHybridCQMSampler, LeapHybridSampler
 from dwave.samplers import SimulatedAnnealingSampler, TabuSampler
+from dwave.system import LeapHybridCQMSampler, LeapHybridSampler
 
 from src.demo_enums import SolverType
 from src.solve_lp import distance_matrix_haversine, lp_problem
@@ -41,7 +41,15 @@ form_fields = [
 ]
 FormInput = namedtuple("FormInput", form_fields, defaults=(None,) * len(form_fields))
 
-result_fields = ["figure", "total_cost", "total_transfer", "energy", "error_msgs", "run_time", "missing_beds"]
+result_fields = [
+    "figure",
+    "total_cost",
+    "total_transfer",
+    "energy",
+    "error_msgs",
+    "run_time",
+    "missing_beds",
+]
 Result = namedtuple("Result", result_fields, defaults=(None,) * len(result_fields))
 
 
@@ -69,7 +77,7 @@ def create_utility_function(
     # for each hospital find the first few nearest neighbors up to num_neighbors
     nearest_neighbors = []
     for i in range(form.num_hospitals):
-        nearest_neighbors.append(np.argsort(distance_matrix[i])[1:form.num_neighbors + 1])
+        nearest_neighbors.append(np.argsort(distance_matrix[i])[1 : form.num_neighbors + 1])
 
     # find all partitions that include num_neighbors of the nearest neighbors
     partitions = set()
@@ -419,7 +427,7 @@ def get_results(form: FormInput, hospital_df: pd.DataFrame, figure: folium.Map) 
         energy=energy,
         error_msgs=error_msgs,
         run_time=run_time,
-        missing_beds=missing_beds
+        missing_beds=missing_beds,
     )
 
 

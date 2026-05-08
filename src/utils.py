@@ -195,9 +195,7 @@ def add_result_markers(figure: folium.Map, groups: list) -> None:
             text = "Group of {} hospitals. <br> <br> \
                     Hospitals: {} <br> <br>\
                     Transfer: {:.2f} <br> <br>\
-                    Cost: {:.2f}".format(
-                num_hospitals, hospitals, group.transfer, group.cost
-            )
+                    Cost: {:.2f}".format(num_hospitals, hospitals, group.transfer, group.cost)
 
             popup = folium.map.Popup(html=text, max_width=250)
 

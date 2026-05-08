@@ -14,8 +14,8 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 import math
+from collections import defaultdict
 from pathlib import Path
 from typing import NamedTuple, Union
 
@@ -150,10 +150,8 @@ def update_num_neighbors(
     elif num_hospitals < num_neighbors:
         num_neighbors = num_hospitals
 
-    marks = [
-        {"value": mark, "label": f'{mark}'} for mark in [partition_size, num_hospitals]
-    ]
-    
+    marks = [{"value": mark, "label": f"{mark}"} for mark in [partition_size, num_hospitals]]
+
     return (
         num_hospitals,
         partition_size,
@@ -265,7 +263,7 @@ class RunOptimizationReturn(NamedTuple):
     ],
     running=[
         # Shows cancel button while running.
-        (Output("cancel-button", "style"), {}, {"display": "none"}),  # Shows cancel button while running.
+        (Output("cancel-button", "style"), {}, {"display": "none"}),
         (Output("run-button", "style"), {"display": "none"}, {}),  # Hides run button while running.
         (Output("results-tab", "disabled"), True, False),  # Disables results tab while running.
         (Output("results-tab", "children"), "Loading...", "Results"),
