@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import NamedTuple, Union
 
 import dash
-from dash import ALL, MATCH, ctx
+from dash import MATCH, ctx
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -32,27 +32,33 @@ from src.utils import generate_hospital_dataframe, get_empty_map
 
 @dash.callback(
     Output({"type": "to-collapse-class", "index": MATCH}, "className"),
+    Output({"type": "collapse-trigger", "index": MATCH}, "aria-expanded"),
     inputs=[
         Input({"type": "collapse-trigger", "index": MATCH}, "n_clicks"),
         State({"type": "to-collapse-class", "index": MATCH}, "className"),
     ],
     prevent_initial_call=True,
 )
-def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> str:
+def toggle_left_column(collapse_trigger: int, to_collapse_class: str) -> tuple[str, str]:
     """Toggles a 'collapsed' class that hides and shows some aspect of the UI.
 
     Args:
-        collapse_trigger (int): The (total) number of times a collapse button has been clicked.
-        to_collapse_class (str): Current class name of the thing to collapse, 'collapsed' if not visible, empty string if visible
+        collapse_trigger: The (total) number of times a collapse button has been clicked.
+        to_collapse_class: Current class name of the thing to collapse, 'collapsed' if not
+            visible, empty string if visible.
 
     Returns:
-        str: The new class name of the thing to collapse.
+        A tuple containing:
+
+        - str: The new class name of the thing to collapse.
+        - str: The aria-expanded value.
     """
+
     classes = to_collapse_class.split(" ") if to_collapse_class else []
     if "collapsed" in classes:
         classes.remove("collapsed")
-        return " ".join(classes)
-    return to_collapse_class + " collapsed" if to_collapse_class else "collapsed"
+        return " ".join(classes), "true"
+    return to_collapse_class + " collapsed" if to_collapse_class else "collapsed", "false"
 
 
 @dash.callback(
@@ -111,7 +117,7 @@ def update_num_neighbors(
     num_hospitals: int,
     partition_size: int,
     num_neighbors: int,
-    solver_type: Union[SolverType, int],
+    solver_type: str,
 ) -> int:
     """Updates the number of neighbors slider and checks whether the partition size is a factor of
     num hospitals and shows a warning if not.
@@ -135,7 +141,7 @@ def update_num_neighbors(
         small-caption-classname: The class name for the error caption.
         run-button-disabled: Whether the run button should be disabled.
     """
-    if solver_type is SolverType.CQM.value:
+    if int(solver_type) is SolverType.CQM.value:
         raise PreventUpdate
 
     is_valid = num_hospitals % partition_size == 0
@@ -144,10 +150,14 @@ def update_num_neighbors(
     elif num_hospitals < num_neighbors:
         num_neighbors = num_hospitals
 
+    marks = [
+        {"value": mark, "label": f'{mark}'} for mark in [partition_size, num_hospitals]
+    ]
+    
     return (
         num_hospitals,
         partition_size,
-        {partition_size: f"{partition_size}", num_hospitals: f"{num_hospitals}"},
+        marks,
         num_neighbors,
         "display-none" if is_valid else "",
         not is_valid,
@@ -155,30 +165,27 @@ def update_num_neighbors(
 
 
 @dash.callback(
-    Output({"type": "slider", "index": ALL}, "className"),
+    Output("bqm-settings", "className"),
     Output("small-caption", "className", allow_duplicate=True),
     Output("run-button", "disabled", allow_duplicate=True),
     inputs=[
         Input("solver-type-select", "value"),
-        State({"type": "slider", "index": ALL}, "className"),
         State("num-hospitals", "value"),
         State("partition-size", "value"),
     ],
     prevent_initial_call=True,
 )
 def update_settings_visibility(
-    solver_type: Union[SolverType, int],
-    sliders: list[str],
+    solver_type: str,
     num_hospitals: int,
     partition_size: int,
-) -> tuple[list, str, bool]:
+) -> tuple[str, str, bool]:
     """Hides the settings if CQM is chosen, shows the settings otherwise.
 
     Args:
         solver_type: Either Quantum Hybrid (CQM) (``0`` or ``SolverType.CQM``), Quantum Hybrid (BQM)
             (``1`` or ``SolverType.BQM``), Tabu (``2`` or ``SolverType.TABU``), or Simulated Annealing
             (``3`` or ``SolverType.SIM_ANNEAL``).
-        sliders: A list of the current classes on each of the sliders.
         num_hospitals: The current value of the number of hospitals input.
         partition_size: The partition size value.
 
@@ -186,16 +193,16 @@ def update_settings_visibility(
         A tuple containing all outputs to be used when updating the HTML
         template (in ``dash_html.py``). These are:
 
-            sliders_class (list): A list of classes for the slider form fields.
+            bqm_settings_class (str): The class name for the BQM settings container.
             small_caption_class (str): The class name for the error caption.
             run_button_disabled (bool): Whether the run button should be disabled.
     """
-    if solver_type is SolverType.CQM.value:
-        return ["display-none"] * len(sliders), "display-none", False
+    if int(solver_type) is SolverType.CQM.value:
+        return "display-none", "display-none", False
 
     is_valid = num_hospitals % partition_size == 0
 
-    return [""] * len(sliders), "display-none" if is_valid else "", not is_valid
+    return "", "display-none" if is_valid else "", not is_valid
 
 
 @dash.callback(
@@ -258,18 +265,18 @@ class RunOptimizationReturn(NamedTuple):
     ],
     running=[
         # Shows cancel button while running.
-        (Output("cancel-button", "className"), "", "display-none"),
-        (Output("run-button", "className"), "display-none", ""),  # Hides run button while running.
+        (Output("cancel-button", "style"), {}, {"display": "none"}),  # Shows cancel button while running.
+        (Output("run-button", "style"), {"display": "none"}, {}),  # Hides run button while running.
         (Output("results-tab", "disabled"), True, False),  # Disables results tab while running.
-        (Output("results-tab", "label"), "Loading...", "Results"),
+        (Output("results-tab", "children"), "Loading...", "Results"),
         (Output("tabs", "value"), "input-tab", "input-tab"),  # Switch to input tab while running.
     ],
     cancel=[Input("cancel-button", "n_clicks")],
     prevent_initial_call=True,
 )
-def run_optimiation(
+def run_optimization(
     run_click: int,
-    solver_type: Union[SolverType, int],
+    solver_type: str,
     time_limit: float,
     num_hospitals: int,
     partition_size: int,
@@ -307,8 +314,7 @@ def run_optimiation(
     if run_click == 0 or ctx.triggered_id != "run-button":
         raise PreventUpdate
 
-    if isinstance(solver_type, int):
-        solver_type = SolverType(solver_type)
+    solver_type = SolverType(int(solver_type))
 
     hospital_df = generate_hospital_dataframe(num_hospitals)  # Generate hospital data
 

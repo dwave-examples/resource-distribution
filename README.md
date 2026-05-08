@@ -14,7 +14,7 @@ distribution across different groups.
 This demo presents two ways of formulating the problem: as a binary quadratic model (BQM)
 and as a constrained quadratic model (CQM).
 
-![demo](static/demo.png)
+![demo](static/demo.png "Image of demo interface")
 
 ## Installation
 
@@ -58,7 +58,7 @@ please run the app with the `--debug` command-line argument for live reloads and
 
 ## Problem Formulation
 
-![home-img](static/partitioning.png)
+![home-img](static/partitioning.png "Image showing two possible partitionings")
 
 ### BQM
 
@@ -80,7 +80,7 @@ permitted in groups containing hospital x.
 minimum distance traveled cost. If the distance objective fraction is low the transfer is high.
 If the DOF is high the transfer is low and the distance traveled/cost is low.
 
-![home-img](static/partition_with_distance.png)
+![home-img](static/partition_with_distance.png "Image showing transfer of beds and distance cost between hospitals")
 
 ### CQM
 

@@ -14,22 +14,14 @@
 
 """This file stores input parameters for the app."""
 
-# THEME_COLOR is used for the button, text, and banner and should be dark
-# and pass accessibility checks with white: https://webaim.org/resources/contrastchecker/
-# THEME_COLOR_SECONDARY can be light or dark and is used for sliders, loading icon, and tabs
-THEME_COLOR = "#074C91"  # D-Wave dark blue default #074C91
-THEME_COLOR_SECONDARY = "#2A7DE1"  # D-Wave blue default #2A7DE1
-
 THUMBNAIL = "static/dwave_logo.svg"
 
 APP_TITLE = "Resource Distribution"
 MAIN_HEADER = "Resource Distribution"
 DESCRIPTION = """\
-The goal is to divide the hospitals into groups such that the maximum
+Hospitals get divided into groups such that the maximum
 number of transfers is achieved at minimum cost (distance). Transfer is the smaller
 number between total excess and total shortage in a group of hospitals.
-The BQM formulation requires multiple mathematical transformations to run on an unconstrained 
-solver. The CQM formulation enables the direct solution of the original problem in an intuitive way.
 """
 
 #######################################

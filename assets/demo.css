@@ -16,18 +16,20 @@ limitations under the License.
 
 /* Style rules for all custom CSS. */
 
+.tab-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
 .tab-content-results {
-    padding: 3rem;
+    padding: 2rem 2rem 0;
 }
 
 .input {
     height: 100%;
     visibility: visible !important;
-}
-
-.tab-content, .tab-parent {
-    display: flex;
-    flex-direction: column;
 }
 
 #warning > div {
@@ -54,12 +56,16 @@ limitations under the License.
 }
 
 p small {
-    font-size: 1.2rem;
-    color: var(--red-light);
+    font-size: 0.875rem;
+    line-height: 0.75rem;
+    font-weight: 600;
+    margin: 0.5rem 0;
+    color: var(--red-dark);
 }
 
 #small-caption {
     margin-bottom: 0;
+    width: 50%;
 }
 
 #map {
@@ -69,37 +75,10 @@ p small {
     display: block;
 }
 
-#map[data-dash-is-loading="true"] {
-    filter: grayscale(1);
-    opacity: 0.3;
-    transition: filter 0.1s linear, opacity 0.1s linear;
-}
-
-#run-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    filter: none;
-}
-
-#solution-table  {
-    border: none;
-}
-
-#solution-table th {
-    color: white;
-    font-weight: 500;
-    background: var(--theme);
-}
-
-#solution-table th,
-#solution-table td {
-    border: 1px solid var(--grey-light);
-}
-
 [id^="tooltip-error-"] {
     font-weight: bolder;
-    font-size: 1.8rem;
-    color: var(--red-light);
+    font-size: 1.125rem;
+    color: var(--red-dark);
     cursor: pointer;
     display: inline-block;
     padding-left: 1rem;
@@ -114,21 +93,27 @@ p small {
 }
 
 .table-tooltip span {
-    font-size: 1.4rem;
-    margin: 0.6rem 1.2rem;
+    color: white;
+    font-size: 0.875rem;
+    margin: 0.4rem 0.675rem;
     display: inline-block;
 }
 
 .table-tooltip div {
-    font-size: 1.4rem;
-    margin: 0 1.2rem;
+    font-size: 0.875rem;
+    margin: 0 0.675rem;
     text-align: left;
+    display: inline-block;
 }
 
 .table-tooltip div:first-child {
-    margin-top: 0.6rem;
+    margin-top: 0.4rem;
 }
 
-.table-tooltip div:last-child {
-    margin-bottom: 0.6rem;
+.table-tooltip div:nth-child(3) {
+    margin-bottom: 0.4rem;
+}
+
+.settings {
+    margin-bottom: 3rem;
 }
