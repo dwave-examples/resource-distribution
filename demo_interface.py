@@ -411,7 +411,10 @@ def create_interface() -> html.Div:
                                                         parent_className="input",
                                                         type="circle",
                                                         color=THEME_COLOR,
-                                                        children=html.Iframe(id="map"),
+                                                        children=html.Iframe(
+                                                            id="map",
+                                                            title="Map of hospitals",
+                                                        ),
                                                     ),
                                                 ],
                                             )
