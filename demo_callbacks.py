@@ -224,7 +224,8 @@ def render_initial_map(num_hospitals: int, _) -> str:
     Returns:
         Initial map shown on the map tab as HTML.
     """
-    map_path = Path("initial_map.html")
+    map_path = Path("src/maps/initial_map.html")
+    map_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Only regenerate map if run buttons is NOT clicked (ie num_hospitals has been changed or first load)
     if ctx.triggered_id != "run-button" or not map_path.exists():
@@ -367,10 +368,10 @@ def run_optimization(
     results_table_store["Run Time"].append(str(round(result.run_time, 2)))
     results_table_store["Error"].append(result.error_msgs)
 
-    result.figure.save("solution_map.html")
+    result.figure.save("src/maps/solution_map.html")
 
     return RunOptimizationReturn(
-        solution_map=open("solution_map.html", "r").read(),
+        solution_map=open("src/maps/solution_map.html", "r").read(),
         solution_table=generate_table(results_table_store),
         results_table_store=results_table_store,
     )

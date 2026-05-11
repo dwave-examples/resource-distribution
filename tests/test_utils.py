@@ -37,7 +37,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(len(hospital_df), num_hospitals)
 
     def test_get_empty_map(self):
-        hospital_df = pd.read_csv("hospitals_processed.csv")
+        hospital_df = pd.read_csv("input_data/hospitals_processed.csv")
         hospital_df["excess_beds"] = 0
         folium_map = get_empty_map(hospital_df)
 
@@ -56,7 +56,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(cost, 3)
 
     def test_check_feasibility(self):
-        hospital_df = pd.read_csv("hospitals_processed.csv")
+        hospital_df = pd.read_csv("input_data/hospitals_processed.csv")
         hospital_df["excess_beds"] = 0
         num_hospitals = 2
         distances = dict(

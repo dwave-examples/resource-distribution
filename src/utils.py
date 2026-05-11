@@ -34,7 +34,7 @@ def generate_hospital_dataframe(num_hospitals: int, seed: int = 123) -> pd.DataF
     Returns:
         Hospital data.
     """
-    df = pd.read_csv("hospitals_processed.csv").drop(["Unnamed: 0"], axis=1).reset_index()
+    df = pd.read_csv("input_data/hospitals_processed.csv").drop(["Unnamed: 0"], axis=1).reset_index()
     df.columns = [x.lower() for x in df.columns]
     df["Population"] = df["population"].values
     df.drop("population", axis=1, inplace=True)
