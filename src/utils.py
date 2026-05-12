@@ -34,7 +34,7 @@ def generate_hospital_dataframe(num_hospitals: int, seed: int = 123) -> pd.DataF
     Returns:
         Hospital data.
     """
-    df = pd.read_csv("hospitals_processed.csv").drop(["Unnamed: 0"], axis=1).reset_index()
+    df = pd.read_csv("input_data/hospitals_processed.csv").drop(["Unnamed: 0"], axis=1).reset_index()
     df.columns = [x.lower() for x in df.columns]
     df["Population"] = df["population"].values
     df.drop("population", axis=1, inplace=True)
@@ -118,6 +118,26 @@ def get_empty_map(df: pd.DataFrame) -> folium.Map:
             interactive=False,
         ).add_to(folium_map)
 
+    accessibility_css = """
+        <style>
+        .leaflet-container .leaflet-control-attribution {
+            background: white;
+        }
+
+        .leaflet-control-attribution a {
+            text-decoration: underline !important;
+            color: #0044cc !important;
+        }
+
+        .leaflet-control-scale-line {
+            color: #737373 !important;
+            text-shadow: none;
+            background: white;
+        }
+        </style>
+    """
+    folium_map.get_root().html.add_child(folium.Element(accessibility_css))
+
     return folium_map
 
 
@@ -195,9 +215,7 @@ def add_result_markers(figure: folium.Map, groups: list) -> None:
             text = "Group of {} hospitals. <br> <br> \
                     Hospitals: {} <br> <br>\
                     Transfer: {:.2f} <br> <br>\
-                    Cost: {:.2f}".format(
-                num_hospitals, hospitals, group.transfer, group.cost
-            )
+                    Cost: {:.2f}".format(num_hospitals, hospitals, group.transfer, group.cost)
 
             popup = folium.map.Popup(html=text, max_width=250)
 
