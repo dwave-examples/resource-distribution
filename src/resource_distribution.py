@@ -127,7 +127,7 @@ def k_clique_from_combinations(
     utility: dict, lagrange: int = 3
 ) -> Tuple[dimod.BinaryQuadraticModel, list]:
     """Helper function for BQM solution.
-    # TODO use dwave-networkx weighted maximum clique or weighted maximum independent set
+    # TODO use dwave-graphs weighted maximum clique or weighted maximum independent set
     This function naively generates all possible combinations of size
     number_variables/num_partitions and then using a given utility function
     (generated randomly here), creates an objective function that find the
